@@ -190,7 +190,7 @@ export const ROUTES: RouteConfig[] = [
     // 2nd ride Kouklia → Pissouri (Google-Maps route, "avoid highways"): starts in Kouklia village,
     // then the same B6 coastal road as route-9 – waypoints on the B6 keep OSRM off the A6.
     id: 'route-11',
-    name: 'Kouklia → Pissouri (Fahrt 2)',
+    name: 'Kouklia → Pissouri',
     videoId: 'bZq5qBMWcIE',
     durationSeconds: 14 * 60 + 1, // 14:01
     routeColor: '#CCFF00',
