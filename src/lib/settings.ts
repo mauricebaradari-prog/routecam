@@ -76,6 +76,7 @@ export const LOCAL_DATA_KEYS: { key: string; label: string }[] = [
   { key: 'routecam.deletedRoutes', label: 'Ausgeblendete Routen' },
   { key: 'routecam.interactions', label: 'Likes, Bewertungen, Meldungen' },
   { key: 'routecam.comments', label: 'Eigene Kommentare' },
+  { key: 'routecam.commentReports', label: 'Gemeldete Kommentare' },
   { key: 'routecam.groups', label: 'Gruppen' },
   { key: 'routecam.notifications', label: 'Benachrichtigungen' },
 ];

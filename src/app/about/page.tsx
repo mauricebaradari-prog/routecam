@@ -36,7 +36,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Warum ist das Video nicht genau synchron?', a: 'Ohne Zeitstempel in den Geodaten wird die Position gleichmäßig über die Strecke geschätzt. Bei langsamen oder schnellen Passagen kann der Pin dem Video etwas vorauseilen oder hinterherlaufen. Im Sync-Editor kannst du Video und Strecke genau aufeinander ausrichten.' },
   { q: 'Was bedeutet „Perspektive wechseln“?', a: 'Wenn mehrere Fahrten dieselbe Straße zeigen, kannst du an derselben Stelle zur anderen Fahrt springen: gleicher Ort, anderes Video.' },
   { q: 'Wer sieht meine Fahrten?', a: 'Öffentlich: alle. Nicht gelistet: nur wer den Link hat. Privat: nur du. Tipp: Beginnt deine Aufzeichnung vor deiner Haustür, zeigt die Strecke deinen Wohnort. Starte die Aufzeichnung lieber ein Stück entfernt.' },
-  { q: 'Wie melde ich einen Inhalt?', a: 'Im Community-Fenster auf der Karte über ⋯ → „Melden“ und einen Grund auswählen. Wir prüfen jede Meldung.' },
+  { q: 'Wie melde ich einen Inhalt?', a: 'Eine Fahrt: im Community-Fenster auf der Karte über ⋯ → „Melden“. Einen Kommentar: mit der Maus über den Kommentar fahren und auf das Fähnchen klicken. Dann einen Grund auswählen. Wir prüfen jede Meldung.' },
   { q: 'Kostet RouteCam etwas?', a: 'Nein. RouteCam ist kostenlos und ohne Werbung.' },
   { q: 'Wie lösche ich mein Konto?', a: 'Schreib uns über die Kontaktadresse unten. Wir löschen dein Konto mit allen Fahrten, Likes und Kommentaren.' },
 ];

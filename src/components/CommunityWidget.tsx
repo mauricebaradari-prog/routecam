@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { ThumbsUp, Share2, Ellipsis, Flag, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle } from 'lucide-react';
 import { shareUrl } from '@/lib/share';
-import { formatCommentTime, initials, type RouteComment } from '@/lib/routeComments';
+import { formatCommentTime, initials, useCommentReports, COMMENT_REPORT_REASONS, type RouteComment } from '@/lib/routeComments';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import { useRouteInteractions, REPORT_REASONS, formatRating, type ReportReason } from '@/lib/routeInteractions';
 
@@ -31,6 +31,8 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportComment, setReportComment] = useState<RouteComment | null>(null);
+  const { reportComment: sendCommentReport, reportedByMe } = useCommentReports();
   const [toast, setToast] = useState<string | null>(null);
   const [hoverStars, setHoverStars] = useState(0);
   const [mobileStars, setMobileStars] = useState(false);
@@ -166,13 +168,30 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
     </div>
   );
 
-  const dialog = reportOpen && (
+  const dialog = (reportOpen && (
     <ReportDialog
-      routeName={routeName}
+      eyebrow="Route melden"
+      title={routeName}
+      question="Was stimmt mit dieser Route nicht?"
+      reasons={REPORT_REASONS}
       onCancel={() => setReportOpen(false)}
-      onSubmit={(reason, note) => { report(routeId, reason, note); setReportOpen(false); showToast('Danke – deine Meldung ist eingegangen'); }}
+      onSubmit={(reason, note) => { report(routeId, reason as ReportReason, note); setReportOpen(false); showToast('Danke – deine Meldung ist eingegangen'); }}
     />
-  );
+  )) || (reportComment && (
+    <ReportDialog
+      eyebrow="Kommentar melden"
+      title={`${reportComment.author} · ${formatCommentTime(reportComment.seconds)}`}
+      quote={reportComment.text}
+      question="Was stimmt mit diesem Kommentar nicht?"
+      reasons={COMMENT_REPORT_REASONS}
+      onCancel={() => setReportComment(null)}
+      onSubmit={(reason, note) => {
+        sendCommentReport(reportComment, reason as (typeof COMMENT_REPORT_REASONS)[number]['value'], note);
+        setReportComment(null);
+        showToast('Danke – der Kommentar wurde gemeldet');
+      }}
+    />
+  ));
 
   // ── Mobile: compact pill on the top edge of the elevation pane ──
   if (isMobile) {
@@ -248,8 +267,9 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
               {comments.map(c => {
                 const active = activeCommentIds.includes(c.id);
                 const passed = !active && c.seconds < currentSeconds;
+                const flagged = reportedByMe(c.id);
                 return (
-                  <li key={c.id} data-comment-id={c.id}>
+                  <li key={c.id} data-comment-id={c.id} className="group/c relative">
                     <button
                       type="button"
                       onClick={() => onSeekToSeconds(c.seconds)}
@@ -266,9 +286,21 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                           <span className="font-semibold text-white">{c.author}</span>
                           <span className="font-mono text-[#CCFF00]">{formatCommentTime(c.seconds)}</span>
                         </span>
-                        <span className="block text-xs text-white/80 leading-snug mt-0.5 break-words">{c.text}</span>
+                        <span className="block text-xs text-white/80 leading-snug mt-0.5 break-words pr-6">{c.text}</span>
+                        {flagged && <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-300/80"><Flag size={10} /> Von dir gemeldet</span>}
                       </span>
                     </button>
+                    {!flagged && (
+                      <button
+                        type="button"
+                        onClick={() => setReportComment(c)}
+                        title="Kommentar melden"
+                        aria-label={`Kommentar von ${c.author} melden`}
+                        className="absolute right-1.5 top-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-amber-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                      >
+                        <Flag size={12} />
+                      </button>
+                    )}
                   </li>
                 );
               })}
@@ -307,12 +339,16 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   );
 }
 
-function ReportDialog({ routeName, onCancel, onSubmit }: {
-  routeName: string;
+function ReportDialog({ eyebrow, title, quote, question, reasons, onCancel, onSubmit }: {
+  eyebrow: string;
+  title: string;
+  quote?: string;
+  question: string;
+  reasons: readonly { value: string; label: string }[];
   onCancel: () => void;
-  onSubmit: (reason: ReportReason, note: string) => void;
+  onSubmit: (reason: string, note: string) => void;
 }) {
-  const [reason, setReason] = useState<ReportReason | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -332,14 +368,15 @@ function ReportDialog({ routeName, onCancel, onSubmit }: {
       >
         <div className="flex items-center justify-between gap-4 px-6 h-16 border-b border-white/10">
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-widest text-white/40">Route melden</div>
-            <h2 className="text-lg font-semibold truncate">{routeName}</h2>
+            <div className="text-[11px] uppercase tracking-widest text-white/40">{eyebrow}</div>
+            <h2 className="text-lg font-semibold truncate">{title}</h2>
           </div>
           <button type="button" onClick={onCancel} aria-label="Schließen" className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center hover:bg-white/10"><X size={22} /></button>
         </div>
         <div className="px-6 py-4 flex flex-col gap-1">
-          <p className="text-sm text-white/60 mb-2">Was stimmt mit dieser Route nicht?</p>
-          {REPORT_REASONS.map(r => (
+          {quote && <blockquote className="mb-3 rounded-lg bg-white/5 border-l-2 border-white/20 px-3 py-2 text-sm text-white/70 break-words">{quote}</blockquote>}
+          <p className="text-sm text-white/60 mb-2">{question}</p>
+          {reasons.map(r => (
             <label key={r.value} className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border transition-colors ${reason === r.value ? 'border-white/15 bg-white/[0.05]' : 'border-transparent hover:bg-white/5'}`}>
               <input type="radio" name="report-reason" checked={reason === r.value} onChange={() => setReason(r.value)} className="accent-[#CCFF00]" />
               <span className="text-sm">{r.label}</span>

@@ -1058,7 +1058,6 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
                     <Link href={mapHref(c)} className="inline-flex items-center gap-1 text-[11px] text-white/50 hover:text-[#CCFF00] transition-colors">
                       <MapPin size={12} /> Auf der Karte zeigen
                     </Link>
-                    {c.dummy && <span className="text-[10px] uppercase tracking-wider text-white/25">Dummy</span>}
                   </div>
                 </div>
               </li>
