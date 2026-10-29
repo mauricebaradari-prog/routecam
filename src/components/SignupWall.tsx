@@ -42,11 +42,26 @@ export default function SignupWall() {
   const btnRef = useRef<HTMLDivElement>(null);
   const [btnError, setBtnError] = useState(false);
 
+  // A playing ride pauses while the wall is open, and continues on "Später"
+  const resumeRef = useRef(false);
+  const pauseRide = () => {
+    const st = (window as any).__EDITOR_STATE;
+    const player = (window as any).__YT_PLAYER;
+    if (st?.isAnimating && player?.pauseVideo) { resumeRef.current = true; try { player.pauseVideo(); } catch {} }
+  };
+  const dismiss = () => {
+    setReason(null);
+    if (resumeRef.current) {
+      resumeRef.current = false;
+      try { (window as any).__YT_PLAYER?.playVideo?.(); } catch {}
+    }
+  };
+
   // open on request
-  useEffect(() => onSignupWall(r => setReason(r)), []);
+  useEffect(() => onSignupWall(r => { pauseRide(); setReason(r); }), []);
 
   // signed in → wall closes (the first-login tutorial takes over)
-  useEffect(() => { if (user) setReason(null); }, [user]);
+  useEffect(() => { if (user) { resumeRef.current = false; setReason(null); } }, [user]);
 
   // engagement: ~3 min watched, or the 3rd ride opened → once per session
   useEffect(() => {
@@ -87,7 +102,7 @@ export default function SignupWall() {
   // Escape = later
   useEffect(() => {
     if (!reason) return;
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setReason(null); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') dismiss(); };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
   }, [reason]);
@@ -97,7 +112,7 @@ export default function SignupWall() {
 
   return (
     <div className="fixed inset-0 z-[96] flex items-end sm:items-center justify-center sm:p-6">
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-md signup-fade" onClick={() => setReason(null)} />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-md signup-fade" onClick={dismiss} />
       <div
         role="dialog"
         aria-modal="true"
@@ -111,7 +126,7 @@ export default function SignupWall() {
               className="signup-draw" style={{ filter: 'drop-shadow(0 0 5px #CCFF00)' }} />
           </svg>
           <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#151515] to-transparent" />
-          <button onClick={() => setReason(null)} aria-label="Schließen" className="absolute right-3 top-3 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white/70 hover:text-white">
+          <button onClick={dismiss} aria-label="Schließen" className="absolute right-3 top-3 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white/70 hover:text-white">
             <X size={16} />
           </button>
           <span className="absolute left-5 top-4 inline-flex items-center gap-1.5 rounded-full bg-[#CCFF00] text-black text-[11px] font-semibold px-2.5 py-1">Kostenlos</span>
@@ -143,7 +158,7 @@ export default function SignupWall() {
               <Link href="/about#agb" onClick={() => setReason(null)} className="text-white/70 underline underline-offset-2">Nutzungsbedingungen</Link> und hast die{' '}
               <Link href="/about#datenschutz" onClick={() => setReason(null)} className="text-white/70 underline underline-offset-2">Datenschutzerklärung</Link> gelesen.
             </p>
-            <button onClick={() => setReason(null)} className="text-sm text-white/50 hover:text-white px-3 py-1.5">
+            <button onClick={dismiss} className="text-sm text-white/50 hover:text-white px-3 py-1.5">
               Später
             </button>
           </div>
