@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
-import { ThumbsUp, Share2, Ellipsis, Flag, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle } from 'lucide-react';
+import { ThumbsUp, Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle } from 'lucide-react';
 import { shareUrl } from '@/lib/share';
-import { formatCommentTime, initials, useCommentReports, COMMENT_REPORT_REASONS, type RouteComment } from '@/lib/routeComments';
+import { formatCommentTime, initials, useCommentReports, useRouteComments, COMMENT_REPORT_REASONS, type RouteComment } from '@/lib/routeComments';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import { useRouteInteractions, REPORT_REASONS, formatRating, type ReportReason } from '@/lib/routeInteractions';
 
@@ -33,6 +33,8 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const [reportOpen, setReportOpen] = useState(false);
   const [reportComment, setReportComment] = useState<RouteComment | null>(null);
   const { reportComment: sendCommentReport, reportedByMe } = useCommentReports();
+  const { deleteComment, isOwn } = useRouteComments();
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [hoverStars, setHoverStars] = useState(0);
   const [mobileStars, setMobileStars] = useState(false);
@@ -290,7 +292,25 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                         {flagged && <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-300/80"><Flag size={10} /> Von dir gemeldet</span>}
                       </span>
                     </button>
-                    {!flagged && (
+                    {isOwn(c) ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirmDelete === c.id) { deleteComment(c.id); setConfirmDelete(null); showToast('Kommentar gelöscht'); }
+                          else setConfirmDelete(c.id);
+                        }}
+                        onBlur={() => setConfirmDelete(id => (id === c.id ? null : id))}
+                        title={confirmDelete === c.id ? 'Zum Löschen noch einmal klicken' : 'Eigenen Kommentar löschen'}
+                        aria-label={confirmDelete === c.id ? 'Löschen bestätigen' : 'Eigenen Kommentar löschen'}
+                        className={`absolute right-1.5 top-1.5 h-6 rounded-full flex items-center justify-center gap-1 transition-opacity ${
+                          confirmDelete === c.id
+                            ? 'px-2 bg-red-500 text-white text-[10px] font-semibold opacity-100'
+                            : 'w-6 text-white/40 hover:text-red-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100'
+                        }`}
+                      >
+                        <Trash2 size={12} />{confirmDelete === c.id && 'Löschen?'}
+                      </button>
+                    ) : !flagged && (
                       <button
                         type="button"
                         onClick={() => setReportComment(c)}

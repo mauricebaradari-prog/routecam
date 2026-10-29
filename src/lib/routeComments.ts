@@ -13,6 +13,7 @@ export interface RouteComment {
   color: string;   // avatar colour (no profile pictures yet)
   text: string;
   createdAt: string;
+  authorId?: string; // account that wrote it (missing on comments from before accounts)
 }
 
 const STORAGE_KEY = 'routecam.comments';
@@ -69,6 +70,7 @@ export function useRouteComments(routeId?: string) {
       color: '#CCFF00',
       text: text.trim(),
       createdAt: new Date().toISOString(),
+      authorId: currentUserId(),
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify([...loadOwn(), comment]));
@@ -76,7 +78,22 @@ export function useRouteComments(routeId?: string) {
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }, []);
 
-  return { comments, countOf, addComment };
+  // Delete an own comment. Reports this browser made on it go too (reporting your own comment
+  // means nothing); reports by others stay for moderation once a database exists.
+  const deleteComment = useCallback((id: string) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(loadOwn().filter(c => c.id !== id)));
+      const me = currentUserId();
+      localStorage.setItem(REPORTS_KEY, JSON.stringify(loadReports().filter(r => !(r.commentId === id && r.reporterId === me))));
+    } catch {}
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+    window.dispatchEvent(new Event(REPORTS_EVENT));
+  }, []);
+
+  // own = written by the signed-in account, or (no accounts yet) written in this browser
+  const isOwn = useCallback((c: RouteComment) => !c.authorId || c.authorId === currentUserId(), []);
+
+  return { comments, countOf, addComment, deleteComment, isOwn };
 }
 
 // ── Reporting comments ───────────────────────────────────────────────────────
