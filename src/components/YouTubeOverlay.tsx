@@ -112,7 +112,9 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
             if (isInternalChange.current || (window as any).__IS_SCRUBBING) return;
             const isPlaying = event.data === 1;
             const isPaused = event.data === 2;
-            const isBuffering = event.data === 3;
+            // Buffering no longer stops the ride: the animation loop simply waits while the video
+            // buffers (see useEditorState). Stopping here raced with the following "playing" event
+            // and left the map stopped while the video played on.
             const currentState = (window as any).__EDITOR_STATE;
             
             if (isPlaying && !currentState.isAnimating) {
@@ -122,7 +124,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
                   (window as any).__yt_throttle_play = null;
                 }, 100);
               }
-            } else if ((isPaused || isBuffering) && currentState.isAnimating) {
+            } else if (isPaused && currentState.isAnimating) {
               if (!(window as any).__yt_throttle_pause) {
                 (window as any).__yt_throttle_pause = setTimeout(() => {
                   stopAnimation();

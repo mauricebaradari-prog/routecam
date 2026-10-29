@@ -154,8 +154,33 @@ export function useEditorState() {
     });
     lastTimeRef.current = null;
 
+    let lastSync = 0;
     const tick = (now: number) => {
       if (lastTimeRef.current === null) lastTimeRef.current = now;
+
+      // The video is the clock. While YouTube hasn't started yet or is buffering, the ride
+      // waits instead of running ahead (or – as before – being stopped by the buffering event
+      // while the video then plays on: the "first play stops the map" bug).
+      const yt = (window as any).__YT_PLAYER;
+      const ps = yt?.getPlayerState?.();
+      if (ps === 3 || ps === -1 || ps === 5) {
+        lastTimeRef.current = now;
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      // About once a second, pull the ride back to the video's real position if they drifted
+      // (stalls, tab in background). Small corrections only – big jumps are seeks, handled elsewhere.
+      if (ps === 1 && now - lastSync > 1000 && yt.getCurrentTime) {
+        lastSync = now;
+        const videoTime = yt.getCurrentTime();
+        setState((prev) => {
+          const dur = prev.durationSeconds || 2056;
+          const drift = videoTime - prev.animationProgress * dur;
+          if (Math.abs(drift) < 0.75 || Math.abs(drift) > dur * 0.004) return prev;
+          return { ...prev, animationProgress: Math.min(1, Math.max(0, videoTime / dur)) };
+        });
+      }
+
       const dt = (now - lastTimeRef.current) / 1000;
       
       // Safety hatch: if dt is 0 or extremely small (e.g. synchronous call bug), ignore
