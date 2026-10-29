@@ -119,21 +119,12 @@ export default function SignupWall() {
         aria-labelledby="signup-title"
         className="relative w-full sm:max-w-[440px] max-h-[92vh] overflow-y-auto no-scrollbar rounded-t-2xl sm:rounded-2xl bg-[#151515] border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.7)] text-white signup-rise"
       >
-        {/* top: a ride drawing itself on a dark map */}
-        <div className="relative h-28 overflow-hidden bg-[#0b0d10]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px)', backgroundSize: '18px 18px' }}>
-          <svg viewBox="0 0 440 112" preserveAspectRatio="none" className="absolute inset-0 w-full h-full" aria-hidden="true">
-            <path d="M-10 92 C 60 88, 80 40, 150 46 S 230 92, 290 70 S 380 18, 450 24" fill="none" stroke="#CCFF00" strokeWidth="2.5" strokeLinecap="round"
-              className="signup-draw" style={{ filter: 'drop-shadow(0 0 5px #CCFF00)' }} />
-          </svg>
-          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#151515] to-transparent" />
-          <button onClick={dismiss} aria-label="Schließen" className="absolute right-3 top-3 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white/70 hover:text-white">
-            <X size={16} />
-          </button>
-          <span className="absolute left-5 top-4 inline-flex items-center gap-1.5 rounded-full bg-[#CCFF00] text-black text-[11px] font-semibold px-2.5 py-1">Kostenlos</span>
-        </div>
+        <button onClick={dismiss} aria-label="Schließen" className="absolute right-3 top-3 z-10 w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white">
+          <X size={16} />
+        </button>
 
-        <div className="px-6 pb-6 -mt-2 relative">
-          <h2 id="signup-title" className="text-xl font-semibold tracking-tight text-balance">{copy.title}</h2>
+        <div className="px-6 pt-7 pb-6 relative">
+          <h2 id="signup-title" className="pr-8 text-xl font-semibold tracking-tight text-balance">{copy.title}</h2>
           <p className="mt-1.5 text-sm text-white/60 leading-relaxed">{copy.text}</p>
 
           <ul className="mt-5 flex flex-col gap-3">
@@ -149,7 +140,10 @@ export default function SignupWall() {
 
           <div className="mt-6 flex flex-col items-center gap-3">
             {configured && !btnError ? (
-              <div ref={btnRef} className="min-h-[44px] flex justify-center" />
+              <>
+                <div ref={btnRef} className="min-h-[44px] flex justify-center" />
+                <span className="inline-flex items-center rounded-full bg-[#CCFF00] text-black text-[11px] font-semibold px-2.5 py-1">Kostenlos</span>
+              </>
             ) : (
               <p className="text-xs text-amber-300 text-center">Die Anmeldung ist gerade nicht erreichbar. Bitte später noch einmal versuchen.</p>
             )}

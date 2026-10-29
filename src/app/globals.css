@@ -159,6 +159,4 @@ body.is-dragging iframe {
 .signup-fade { animation: signup-fade .3s ease-out; }
 @keyframes signup-rise { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
 .signup-rise { animation: signup-rise .35s cubic-bezier(.2,.8,.2,1); }
-@keyframes signup-draw { from { stroke-dashoffset: 700; } to { stroke-dashoffset: 0; } }
-.signup-draw { stroke-dasharray: 700; animation: signup-draw 1.6s cubic-bezier(.4,0,.2,1) .15s both; }
-@media (prefers-reduced-motion: reduce) { .signup-fade, .signup-rise, .signup-draw { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .signup-fade, .signup-rise { animation: none; } }
