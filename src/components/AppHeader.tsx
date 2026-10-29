@@ -28,11 +28,14 @@ interface Props {
 
 // YouTube-style top bar: menu + logo | search | create, notifications, account.
 // Create / notifications / account are placeholders until accounts exist (see 07_TODO.md).
-export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCreate: onCreateRaw, current = 'map', showSearch = true, sticky = false }: Props) {
+export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCreate: onCreateRaw, current = 'map', showSearch: showSearchProp = true, sticky = false }: Props) {
   // creating a ride needs an account – visitors get the sign-up wall instead
   const onCreate = () => { if (requireAccount('create')) onCreateRaw(); };
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user } = useAuth();
+  // Signed out: no search, no notifications, no ride list; over the map the bar is transparent
+  const showSearch = showSearchProp && !!user;
+  const transparent = !user && !sticky;
   // Drawer groups (route lists) are collapsed by default
   const [routesOpen, setRoutesOpen] = useState(false);
   const [likedOpen, setLikedOpen] = useState(false);
@@ -57,7 +60,9 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
     <>
       <header
         style={{ height: HEADER_HEIGHT }}
-        className={`${sticky ? 'sticky' : 'absolute'} top-0 inset-x-0 z-[70] flex items-center gap-2 md:gap-4 px-2 md:px-4 bg-[#0f0f0f]/85 backdrop-blur-md border-b border-white/5`}
+        className={`${sticky ? 'sticky' : 'absolute'} top-0 inset-x-0 z-[70] flex items-center gap-2 md:gap-4 px-2 md:px-4 transition-colors ${
+          transparent ? 'bg-transparent border-b border-transparent' : 'bg-[#0f0f0f]/85 backdrop-blur-md border-b border-white/5'
+        }`}
       >
         {mobileSearch ? (
           // Mobile: search takes over the whole bar
@@ -106,7 +111,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
               <span className="sm:hidden">
                 <IconButton label="Anlegen" onClick={onCreate}><Plus size={22} /></IconButton>
               </span>
-              <NotificationBell />
+              {user && <NotificationBell />}
               <AccountMenu />
             </div>
           </>
@@ -138,13 +143,13 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                 <DrawerLink href="/about" icon={<Info size={20} />} active={current === 'about'}>About</DrawerLink>
               </div>
 
-              <div className="mx-3 my-2 border-t border-white/10" />
+              {user && <div className="mx-3 my-2 border-t border-white/10" />}
 
-              <DrawerGroup title={user ? 'Meine Routen' : 'Fahrten'} count={routes.length} open={routesOpen} onToggle={() => setRoutesOpen(o => !o)}>
+              {user && <DrawerGroup title="Meine Routen" count={routes.length} open={routesOpen} onToggle={() => setRoutesOpen(o => !o)}>
                 {routes.map(r => (
                   <RouteItem key={r.id} name={r.name} active={r.id === activeRouteId} onClick={() => select(r.id)} />
                 ))}
-              </DrawerGroup>
+              </DrawerGroup>}
 
               {user && <>
               <div className="mx-3 my-2 border-t border-white/10" />
