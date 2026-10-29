@@ -10,6 +10,8 @@ import type { RouteConfig } from '@/hooks/useEditorState';
 import LogoLockup from '@/components/LogoLockup';
 import NotificationBell from '@/components/NotificationBell';
 import Onboarding from '@/components/Onboarding';
+import SignupWall from '@/components/SignupWall';
+import { requireAccount } from '@/lib/signupWall';
 import { useAuth } from '@/lib/auth';
 
 export const HEADER_HEIGHT = 56;
@@ -26,7 +28,9 @@ interface Props {
 
 // YouTube-style top bar: menu + logo | search | create, notifications, account.
 // Create / notifications / account are placeholders until accounts exist (see 07_TODO.md).
-export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCreate, current = 'map', showSearch = true, sticky = false }: Props) {
+export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCreate: onCreateRaw, current = 'map', showSearch = true, sticky = false }: Props) {
+  // creating a ride needs an account – visitors get the sign-up wall instead
+  const onCreate = () => { if (requireAccount('create')) onCreateRaw(); };
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Drawer groups (route lists) are collapsed by default
   const [routesOpen, setRoutesOpen] = useState(false);
@@ -110,6 +114,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
       </header>
 
       <Onboarding onCreate={onCreate} />
+      <SignupWall />
 
       {/* Drawer (left side menu) */}
       {drawerOpen && (

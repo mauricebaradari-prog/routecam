@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { ThumbsUp, Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle } from 'lucide-react';
 import { shareUrl } from '@/lib/share';
+import { allowInteraction, requireAccount } from '@/lib/signupWall';
 import { formatCommentTime, initials, useCommentReports, useRouteComments, COMMENT_REPORT_REASONS, type RouteComment } from '@/lib/routeComments';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import { useRouteInteractions, REPORT_REASONS, formatRating, type ReportReason } from '@/lib/routeInteractions';
@@ -116,7 +117,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
           key={n}
           type="button"
           onMouseEnter={() => setHoverStars(n)}
-          onClick={() => { rate(routeId, n); setMobileStars(false); }}
+          onClick={() => { if (stats.myRating === n || allowInteraction()) rate(routeId, n); setMobileStars(false); }}
           title={`${n} ${n === 1 ? 'Stern' : 'Sterne'}`}
           className="p-0.5 transition-transform hover:scale-110"
         >
@@ -129,7 +130,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const likeBtn = (compact: boolean) => (
     <button
       type="button"
-      onClick={() => toggleLike(routeId)}
+      onClick={() => { if (stats.liked || allowInteraction()) toggleLike(routeId); }}
       title={stats.liked ? 'Gefällt mir nicht mehr' : 'Gefällt mir'}
       className={`inline-flex items-center gap-1.5 rounded-full transition-colors ${compact ? 'h-8 px-2.5' : 'h-9 px-3.5'} ${
         stats.liked ? 'bg-[#CCFF00]/15 text-[#CCFF00]' : 'bg-white/10 text-white hover:bg-white/20'
@@ -334,6 +335,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
             onSubmit={e => {
               e.preventDefault();
               if (!draft.trim()) return;
+              if (!requireAccount('comment')) return; // the typed text stays in the field
               onAddComment(currentSeconds, draft);
               setDraft('');
               showToast(`Kommentar bei ${formatCommentTime(currentSeconds)} gesetzt`);

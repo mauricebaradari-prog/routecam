@@ -110,7 +110,14 @@ export function useAuth() {
   // Renders Google's official sign-in button into the given element
   const renderSignInButton = useCallback(async (el: HTMLElement) => {
     const g = await loadGsi();
+    el.replaceChildren(); // effects can run twice (dev mode, re-open) – never stack two buttons
     g.renderButton(el, { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', locale: 'de', width: 240 });
+  }, []);
+
+  // Google "One Tap": the small account prompt in the corner. Google itself decides whether it
+  // may show (cool-down after the visitor closed it, browser support) – no need to track that here.
+  const promptOneTap = useCallback(async () => {
+    try { (await loadGsi()).prompt(); } catch {}
   }, []);
 
   const signOut = useCallback(() => {
@@ -118,5 +125,5 @@ export function useAuth() {
     save(null);
   }, []);
 
-  return { user, signOut, renderSignInButton, configured: !!GOOGLE_CLIENT_ID };
+  return { user, signOut, renderSignInButton, promptOneTap, configured: !!GOOGLE_CLIENT_ID };
 }
