@@ -93,16 +93,37 @@ export default function SignupWall() {
     return () => clearTimeout(t);
   }, [user, configured, promptOneTap]);
 
+  // closed → the next opening starts hidden again
+  useEffect(() => { if (!reason) setBtnReady(false); }, [reason]);
+
   // Google button inside the wall
   useEffect(() => {
     if (!reason || user || !configured || !btnRef.current) return;
     setBtnError(false);
     setBtnReady(false);
     const el = btnRef.current;
+    let alive = true;
+    let poll: ReturnType<typeof setInterval> | undefined;
     renderSignInButton(el, 'outline')
-      // Google swaps in its (sometimes personalised) button a moment later – fade it in once it's there
-      .then(() => setTimeout(() => setBtnReady(true), 250))
+      // Google first draws its standard button, then – when you're signed in to Google in this
+      // browser – slides over to a personalised one ("Als Maurice anmelden", taller). Keep the box
+      // hidden until Google's iframe has stopped changing, then fade it in: one button, no jump.
+      .then(() => {
+        let last = '', stableFor = 0, waited = 0;
+        poll = setInterval(() => {
+          const f = el.querySelector('iframe');
+          const size = f ? `${f.offsetWidth}x${f.offsetHeight}` : '';
+          stableFor = size && size === last ? stableFor + 100 : 0;
+          last = size;
+          waited += 100;
+          if ((stableFor >= 900 && waited >= 1200) || waited >= 3000) {
+            clearInterval(poll);
+            if (alive) setBtnReady(true);
+          }
+        }, 100);
+      })
       .catch(() => setBtnError(true));
+    return () => { alive = false; if (poll) clearInterval(poll); };
   }, [reason, user, configured, renderSignInButton]);
 
   // Escape = later
@@ -148,7 +169,7 @@ export default function SignupWall() {
             {configured && !btnError ? (
               <>
                 {/* fixed box: the window must not jump while Google renders its button */}
-                <div ref={btnRef} className={`h-11 w-[240px] flex items-center justify-center overflow-hidden transition-opacity duration-200 ${btnReady ? 'opacity-100' : 'opacity-0'}`} />
+                <div ref={btnRef} className={`h-14 min-w-[240px] flex items-center justify-center transition-opacity duration-300 ${btnReady ? 'opacity-100' : 'opacity-0'}`} />
                 <span className="inline-flex items-center rounded-full bg-[#CCFF00] text-black text-[11px] font-semibold px-2.5 py-1">Kostenlos</span>
               </>
             ) : (
