@@ -7,7 +7,7 @@
 // - While watching: after ~3 minutes of playback or the 3rd ride opened, the wall appears
 //   once per browser session (can be dismissed with "Später").
 
-export type WallReason = 'comment' | 'create' | 'interact' | 'engaged';
+export type WallReason = 'comment' | 'create' | 'interact' | 'engaged' | 'account';
 
 const OPEN_EVENT = 'routecam:signup-wall';
 const FREE_KEY = 'routecam.anon.freeInteractions';

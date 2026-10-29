@@ -1,5 +1,9 @@
 'use client';
 
+import AccountGate from '@/components/AccountGate';
+import { useAuth } from '@/lib/auth';
+import { ownerOf } from '@/lib/channels';
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -208,9 +212,12 @@ function RatingInline({ avg, count }: { avg: number | null; count: number }) {
   );
 }
 
-export default function Dashboard() {
+function Dashboard() {
   const allRoutes = useAllRoutes();
-  const rows = useMemo(() => buildRows(allRoutes), [allRoutes]);
+  // The dashboard manages your own rides only – never other people's (they could be deleted here)
+  const { user: me } = useAuth();
+  const ownRoutes = useMemo(() => allRoutes.filter(r => !!me && ownerOf(r).id === me.id), [allRoutes, me]);
+  const rows = useMemo(() => buildRows(ownRoutes), [ownRoutes]);
   const [toDelete, setToDelete] = useState<RouteConfig | null>(null);
   const [toRename, setToRename] = useState<RouteConfig | null>(null);
   const { statsOf: interactionsOf } = useRouteInteractions();
@@ -1169,4 +1176,9 @@ function SyncHint({ route }: { route: RouteConfig }) {
       <Clock size={11} /> Nicht ausgerichtet
     </Link>
   );
+}
+
+
+export default function GatedDashboardPage() {
+  return <AccountGate><Dashboard /></AccountGate>;
 }

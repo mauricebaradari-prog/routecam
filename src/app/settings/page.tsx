@@ -1,5 +1,7 @@
 'use client';
 
+import AccountGate from '@/components/AccountGate';
+
 import React, { useEffect, useState } from 'react';
 import PageShell, { Card } from '@/components/PageShell';
 import { useAuth } from '@/lib/auth';
@@ -7,7 +9,7 @@ import { useSettings, LOCAL_DATA_KEYS, LANGUAGES, resolveLanguage } from '@/lib/
 import { VISIBILITY_OPTIONS } from '@/lib/routeVisibility';
 import { VisibilityIcon } from '@/components/Visibility';
 
-export default function SettingsPage() {
+function SettingsPage() {
   const { user, signOut } = useAuth();
   const { settings, update } = useSettings();
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -151,4 +153,9 @@ export default function SettingsPage() {
       </Card>
     </PageShell>
   );
+}
+
+
+export default function GatedSettingsPage() {
+  return <AccountGate><SettingsPage /></AccountGate>;
 }

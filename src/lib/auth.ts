@@ -95,9 +95,10 @@ function loadGsi(): Promise<any> {
 
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [ready, setReady] = useState(false); // false until the stored login has been read
 
   useEffect(() => {
-    const sync = () => setUser(load());
+    const sync = () => { setUser(load()); setReady(true); };
     sync();
     window.addEventListener(CHANGE_EVENT, sync);
     window.addEventListener('storage', sync);
@@ -126,5 +127,5 @@ export function useAuth() {
     save(null);
   }, []);
 
-  return { user, signOut, renderSignInButton, promptOneTap, configured: !!GOOGLE_CLIENT_ID };
+  return { user, ready, signOut, renderSignInButton, promptOneTap, configured: !!GOOGLE_CLIENT_ID };
 }

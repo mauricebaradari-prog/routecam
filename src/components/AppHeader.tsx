@@ -32,6 +32,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
   // creating a ride needs an account – visitors get the sign-up wall instead
   const onCreate = () => { if (requireAccount('create')) onCreateRaw(); };
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { user } = useAuth();
   // Drawer groups (route lists) are collapsed by default
   const [routesOpen, setRoutesOpen] = useState(false);
   const [likedOpen, setLikedOpen] = useState(false);
@@ -133,18 +134,19 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
               {/* Main navigation – always visible, not collapsible */}
               <div className="px-3 pt-2 flex flex-col gap-1">
                 <DrawerLink href="/" icon={<MapIcon size={20} />} active={current === 'map'}>Karte</DrawerLink>
-                <DrawerLink href="/dashboard" icon={<LayoutGrid size={20} />} active={current === 'dashboard'}>Dashboard</DrawerLink>
+                {user && <DrawerLink href="/dashboard" icon={<LayoutGrid size={20} />} active={current === 'dashboard'}>Dashboard</DrawerLink>}
                 <DrawerLink href="/about" icon={<Info size={20} />} active={current === 'about'}>About</DrawerLink>
               </div>
 
               <div className="mx-3 my-2 border-t border-white/10" />
 
-              <DrawerGroup title="Meine Routen" count={routes.length} open={routesOpen} onToggle={() => setRoutesOpen(o => !o)}>
+              <DrawerGroup title={user ? 'Meine Routen' : 'Fahrten'} count={routes.length} open={routesOpen} onToggle={() => setRoutesOpen(o => !o)}>
                 {routes.map(r => (
                   <RouteItem key={r.id} name={r.name} active={r.id === activeRouteId} onClick={() => select(r.id)} />
                 ))}
               </DrawerGroup>
 
+              {user && <>
               <div className="mx-3 my-2 border-t border-white/10" />
 
               <DrawerGroup
@@ -162,6 +164,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                   ))
                 )}
               </DrawerGroup>
+              </>}
             </div>
             <div className="shrink-0 border-t border-white/10 px-6 py-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/40">
               <Link href="/about#impressum" onClick={leaveWhilePlaying} className="hover:text-white/80">Impressum</Link>
