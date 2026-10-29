@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
-import { GripHorizontal, Gauge, Mountain, Compass } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { GripHorizontal, Gauge, Mountain, LocateFixed } from 'lucide-react';
 //  { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { Rnd } from 'react-rnd';
+import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 type MaplibreMap = maplibregl.Map;
 type GeoJSONSource = maplibregl.GeoJSONSource;
 import { City, VehicleConfig, MapStyleId } from '@/hooks/useEditorState';
 import { greatCircleArc } from '@/lib/geo';
+import { buildMapStyle } from '@/lib/mapStyles';
+import { initials, formatCommentTime, type RouteComment } from '@/lib/routeComments';
 
 function getDistance(p1: [number, number], p2: [number, number]) {
   const R = 6371e3;
@@ -25,7 +28,7 @@ function getDistance(p1: [number, number], p2: [number, number]) {
 
 interface GlobeMapProps {
   cities: City[];
-  routes?: { id: string; name: string; cities: City[]; videoId?: string; forceStraight?: boolean; }[];
+  routes?: { id: string; name: string; cities: City[]; videoId?: string; forceStraight?: boolean; source?: 'track'; }[];
   vehicle: VehicleConfig;
   mapStyle: MapStyleId;
   animationProgress: number; // 0-1
@@ -35,18 +38,37 @@ interface GlobeMapProps {
   routeColor: string;
   routeWidth: number;
   durationSeconds: number;
-  onPoint1Projected?: (x: number, y: number) => void;
+  /** start of the active route on screen + a point a little further along it (for the video window), key = route geometry */
+  onPoint1Projected?: (x: number, y: number, dirX: number, dirY: number, key: string) => void;
   showElevation?: boolean;
   showVelocity?: boolean;
-  showCompass?: boolean;
   useGpsTrace?: boolean;
   onSeek?: (progress: number) => void;
-  activeWindow?: 'video' | 'elevation' | 'velocity' | 'compass' | null;
-  setActiveWindow?: (w: 'video' | 'elevation' | 'velocity' | 'compass') => void;
+  comments?: RouteComment[]; // timed comments of the active route, shown as avatars on the line
+  activeCommentIds?: string[]; // comments the vehicle is near – their bubbles are shown
+  overlapBadges?: { progress: number; count: number; names: string[] }[]; // stretches other rides share
+  onOverlapBadgeClick?: (progress: number) => void;
+  focus?: { routeId: string; progress: number } | null; // fly the camera to this point of that route once its geometry is loaded (deep link ?t=)
+  activeWindow?: 'video' | 'elevation' | 'velocity' | 'compass' | 'community' | null;
+  setActiveWindow?: (w: 'video' | 'elevation' | 'velocity' | 'compass' | 'community') => void;
   onPlayRoute?: (routeId: string) => void;
   onStopRoute?: () => void;
+  /** Click on empty map (not on the route, a marker or a badge) */
+  onBackgroundClick?: () => void;
+  // video ↔ route mapping (src/lib/trackSync.ts); identity when the ride isn't synced.
+  // animationProgress already arrives as a route fraction – these convert comment times and hovers.
+  timeToRoute?: (videoFraction: number) => number;
+  routeToTime?: (routeFraction: number) => number;
+  speedAt?: ((routeFraction: number) => number) | null; // real GPS speed, km/h
 }
 
+
+// Below this zoom the other rides are shown as count bubbles instead of lines + pins
+const CLUSTER_ZOOM = 9;
+const CLUSTER_RADIUS_PX = 72;
+
+// Start view without a selected route: Paphos region, western Cyprus
+const OVERVIEW_VIEW = { center: [32.47, 34.83] as [number, number], zoom: 10.2, pitch: 30, bearing: 0 };
 
 // Smooths a polyline using Chaikin's algorithm
 function smoothCoords(coords: [number, number][], iterations = 2): [number, number][] {
@@ -98,14 +120,28 @@ export default function GlobeMap({
   onPoint1Projected,
   showElevation = true,
   showVelocity = true,
-  showCompass = true,
   useGpsTrace = false,
   onSeek,
+  comments = [],
+  focus = null,
+  activeCommentIds = [],
+  overlapBadges = [],
+  onOverlapBadgeClick,
   activeWindow,
   setActiveWindow,
   onPlayRoute,
-  onStopRoute
+  onStopRoute,
+  onBackgroundClick,
+  timeToRoute = (p: number) => p,
+  routeToTime = (p: number) => p,
+  speedAt = null,
 }: GlobeMapProps) {
+  const timeToRouteRef = useRef(timeToRoute);
+  const routeToTimeRef = useRef(routeToTime);
+  const speedAtRef = useRef(speedAt);
+  timeToRouteRef.current = timeToRoute;
+  routeToTimeRef.current = routeToTime;
+  speedAtRef.current = speedAt;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   const prevStyleRef = useRef<string | null>(null);
@@ -113,13 +149,174 @@ export default function GlobeMap({
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const routeMarkersRef = useRef<maplibregl.Marker[]>([]);
   const inactiveMarkersRef = useRef<maplibregl.Marker[]>([]);
+  // per inactive ride: id, centre and bounds – used for the zoomed-out count bubbles
+  const inactiveInfoRef = useRef<{ id: string; center: [number, number]; bbox: [[number, number], [number, number]] }[]>([]);
+  const clusterMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const clusteredRef = useRef(false);
+  const updateClustersRef = useRef<() => void>(() => {});
+  const clusterPassRef = useRef(0);
   const initialCameraRef = useRef<{center: {lng: number, lat: number}, zoom: number, pitch: number, bearing: number, timestamp: number} | null>(null);
+  // follow camera: last target + pending glide frame, so jumps (seek in the elevation profile,
+  // click on the route, comments) animate instead of snapping
+  const lastFollowTargetRef = useRef<[number, number] | null>(null);
+  const glideFrameRef = useRef<number | null>(null);
   
   const renderPassRef = useRef<number>(0);
   const [elevationProfile, setElevationProfile] = React.useState<number[] | null>(null);
   const inactiveRouteCoordsRef = useRef<[number, number][][]>([]);
   const animProgressRef = useRef(animationProgress);
+
+  // "Detached" = the user moved the map themselves. While detached, the camera stops
+  // following the vehicle, and a button offers the way back to the current position.
+  const [followDetached, setFollowDetachedState] = useState(false);
+  const followDetachedRef = useRef(false);
+  const setFollowDetached = (v: boolean) => {
+    if (followDetachedRef.current === v) return;
+    followDetachedRef.current = v;
+    setFollowDetachedState(v);
+  };
   const durationRef = useRef(durationSeconds);
+
+  // ── Timed comments on the route (SoundCloud-style) ──
+  const commentsRef = useRef<RouteComment[]>(comments);
+  const onSeekRef = useRef(onSeek);
+  const onBackgroundClickRef = useRef(onBackgroundClick);
+  const onPoint1ProjectedRef = useRef(onPoint1Projected);
+  onPoint1ProjectedRef.current = onPoint1Projected;
+  onBackgroundClickRef.current = onBackgroundClick;
+  // deselecting by clicking the map keeps the current camera (no fly-out to the overview)
+  const keepCameraRef = useRef(false);
+  onSeekRef.current = onSeek;
+  const commentMarkersRef = useRef<{ id: string; marker: maplibregl.Marker; el: HTMLDivElement; progress: number }[]>([]);
+  const activeCommentIdsRef = useRef<string[]>(activeCommentIds);
+
+  // Position on the drawn route line at a fraction (0–1) of its length – the same
+  // distance-linear mapping the vehicle uses.
+  function pointOnRoute(p: number): [number, number] | null {
+    const pts = fullRouteCoordsRef.current;
+    if (pts.length < 2) return null;
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + distance(pts[i - 1], pts[i]));
+    const target = Math.max(0, Math.min(1, p)) * cum[cum.length - 1];
+    let i = 1;
+    while (i < cum.length - 1 && cum[i] < target) i++;
+    const seg = cum[i] - cum[i - 1] || 1;
+    const t = (target - cum[i - 1]) / seg;
+    return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t];
+  }
+
+  function rebuildCommentMarkers() {
+    const map = mapRef.current;
+    commentMarkersRef.current.forEach(m => m.marker.remove());
+    commentMarkersRef.current = [];
+    const duration = durationRef.current;
+    if (!map || !duration) return;
+    for (const c of commentsRef.current) {
+      const progress = timeToRouteRef.current(Math.min(1, c.seconds / duration));
+      const at = pointOnRoute(progress);
+      if (!at) continue;
+
+      const el = document.createElement('div');
+      el.className = 'rc-comment';
+      const avatar = document.createElement('div');
+      avatar.className = 'rc-avatar';
+      avatar.style.background = c.color;
+      avatar.textContent = initials(c.author);
+      const bubble = document.createElement('div');
+      bubble.className = 'rc-bubble';
+      const head = document.createElement('div');
+      head.className = 'rc-head';
+      const who = document.createElement('span');
+      who.textContent = c.author;
+      const when = document.createElement('span');
+      when.className = 'rc-time';
+      when.textContent = formatCommentTime(c.seconds);
+      head.append(who, when);
+      const body = document.createElement('div');
+      body.textContent = c.text;
+      bubble.append(head, body);
+      el.append(bubble, avatar);
+      // Click: jump video + map to this moment
+      el.addEventListener('click', e => { e.stopPropagation(); onSeekRef.current?.(progress); });
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(at).addTo(map);
+      if (activeCommentIdsRef.current.includes(c.id)) el.classList.add('is-active');
+      commentMarkersRef.current.push({ id: c.id, marker, el, progress });
+    }
+  }
+
+  // Deep link focus: remembered until the route geometry is ready, then the camera flies there
+  const focusRef = useRef<{ routeId: string; progress: number } | null>(null);
+  useEffect(() => {
+    if (!focus) return;
+    focusRef.current = focus;
+    // route already on screen (e.g. next comment of the same ride) → fly right away
+    tryFocus(cities, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
+  function tryFocus(cs: City[], delay = 1300) {
+    const f = focusRef.current;
+    const map = mapRef.current;
+    if (!f || !map) return;
+    // only once the geometry on screen is the target route's
+    const target = routes?.find(r => r.id === f.routeId);
+    if (!target || target.cities[0]?.id !== cs[0]?.id || target.cities.length !== cs.length) return;
+    if (!fullRouteCoordsRef.current.length || geometryKeyRef.current !== `${cs[0]?.id}:${cs.length}`) return;
+    const at = pointOnRoute(f.progress);
+    if (!at) return;
+    focusRef.current = null;
+    // after the initial fitBounds of the route has finished (delay 0: same route, fly now)
+    setTimeout(() => {
+      setFollowDetached(false);
+      map.flyTo({ center: at, zoom: 15, pitch: 50, duration: 1800 });
+    }, delay);
+  }
+
+  // ── Badges where other rides share the road ("⧉ 2") ──
+  const overlapBadgesRef = useRef(overlapBadges);
+  const onOverlapBadgeClickRef = useRef(onOverlapBadgeClick);
+  onOverlapBadgeClickRef.current = onOverlapBadgeClick;
+  const overlapMarkersRef = useRef<maplibregl.Marker[]>([]);
+  function rebuildOverlapMarkers() {
+    const map = mapRef.current;
+    overlapMarkersRef.current.forEach(m => m.remove());
+    overlapMarkersRef.current = [];
+    if (!map) return;
+    for (const b of overlapBadgesRef.current) {
+      const at = pointOnRoute(b.progress);
+      if (!at) continue;
+      const el = document.createElement('button');
+      el.className = 'rc-overlap';
+      el.title = `Auch gefahren: ${b.names.join(', ')} – hierhin springen`;
+      el.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>';
+      const label = document.createElement('span');
+      label.textContent = String(b.count + 1); // incl. the active ride
+      el.appendChild(label);
+      el.addEventListener('click', e => { e.stopPropagation(); onOverlapBadgeClickRef.current?.(b.progress); });
+      overlapMarkersRef.current.push(new maplibregl.Marker({ element: el, anchor: 'center', offset: [0, -22] }).setLngLat(at).addTo(map));
+    }
+  }
+  const overlapKey = overlapBadges.map(b => `${b.progress.toFixed(3)}:${b.count}`).join('|');
+  useEffect(() => {
+    overlapBadgesRef.current = overlapBadges;
+    rebuildOverlapMarkers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlapKey]);
+
+  useEffect(() => {
+    commentsRef.current = comments;
+    durationRef.current = durationSeconds;
+    rebuildCommentMarkers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comments, durationSeconds, timeToRoute]);
+
+  // Show the bubbles of the comments the vehicle is currently near (decided by the page)
+  const activeKey = activeCommentIds.join(',');
+  useEffect(() => {
+    activeCommentIdsRef.current = activeCommentIds;
+    for (const m of commentMarkersRef.current) m.el.classList.toggle('is-active', activeCommentIds.includes(m.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeKey]);
   
   const [isMobile, setIsMobile] = React.useState(false);
   useEffect(() => {
@@ -151,7 +348,10 @@ export default function GlobeMap({
     try {
       const stored = localStorage.getItem('osrmCache');
       if (stored) {
-        osrmCacheRef.current = JSON.parse(stored);
+        const parsed: Record<string, [number, number][]> = JSON.parse(stored);
+        // drop broken single-point segments cached by an older greatCircleArc (see lib/geo.ts)
+        for (const k of Object.keys(parsed)) if (!Array.isArray(parsed[k]) || parsed[k].length < 2) delete parsed[k];
+        osrmCacheRef.current = parsed;
       }
     } catch(e) {}
   }, []);
@@ -159,6 +359,7 @@ export default function GlobeMap({
   const saveOsrmCache = () => {
     try {
       localStorage.setItem('osrmCache', JSON.stringify(osrmCacheRef.current));
+      window.dispatchEvent(new Event('routecam:geometry')); // lets the route-overlap detection recompute
     } catch(e) {}
   };
 
@@ -170,6 +371,13 @@ export default function GlobeMap({
   
   const routeCoordsRef = useRef<GeoJSON.Feature[]>([]);
   const fullRouteCoordsRef = useRef<[number, number][]>([]);
+  const geometryKeyRef = useRef(''); // which route the geometry above belongs to
+
+  // Map event handlers (style.load) are registered once and would otherwise keep the
+  // functions/values of the render they were created in. When the active route changes
+  // while the style is still loading (e.g. returning to the map page in-app), the stale
+  // closure drew the previous route. These always point to the latest render.
+  const latestRef = useRef<{ cities: City[]; updateRouteData: typeof updateRouteData; rebuildMarkers: typeof rebuildMarkers; updateInactiveRoutes: typeof updateInactiveRoutes; fitAllRoutes: (map: MaplibreMap, duration: number) => void } | null>(null);
 
   // ── 1. Init Map ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -177,52 +385,109 @@ export default function GlobeMap({
     if (!mapRef.current) {
       let mapInstance: MaplibreMap;
 
-      const styleUrl =
-        mapStyle === 'streets'
-          ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
-          : mapStyle === 'terrain'
-          ? 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
-          : mapStyle === 'satellite'
-          ? {
-              version: 8 as 8,
-              sources: {
-                'satellite': {
-                  type: 'raster' as 'raster',
-                  tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-                  tileSize: 256
-                }
-              },
-              layers: [
-                {
-                  id: 'background',
-                  type: 'background' as 'background',
-                  paint: {
-                    'background-color': '#000000'
-                  }
-                },
-                {
-                  id: 'satellite-layer',
-                  type: 'raster' as 'raster',
-                  source: 'satellite',
-                  minzoom: 0,
-                  maxzoom: 19
-                }
-              ]
-            }
-          : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+      const styleUrl = buildMapStyle(mapStyle);
 
+      // worker is served from public/ (see scripts/copy-maplibre-worker.mjs)
+      maplibregl.setWorkerUrl('/routecam/maplibre/maplibre-gl-worker.mjs');
       const map = new maplibregl.Map({
         container: containerRef.current,
         style: styleUrl,
-        center: [cities[0]?.lng || 0, cities[0]?.lat || 0],
-        zoom: 4,
-        pitch: 45,
+        center: cities[0] ? [cities[0].lng, cities[0].lat] : OVERVIEW_VIEW.center,
+        zoom: cities[0] ? 4 : OVERVIEW_VIEW.zoom,
+        pitch: cities[0] ? 45 : OVERVIEW_VIEW.pitch,
         interactive: true,
       });
 
-      map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+      // Zoom/compass control removed (not needed – zoom via scroll/pinch, compass lives in the Heading window)
+
+      // Only user gestures carry an originalEvent – programmatic camera moves (follow cam, fitBounds) don't.
+      const onUserMove = (e: any) => { if (e.originalEvent) setFollowDetached(true); };
+      map.on('movestart', onUserMove);
+      map.on('zoomstart', onUserMove);
+      map.on('rotatestart', onUserMove);
+      map.on('pitchstart', onUserMove);
+      // While the follow cam moves the map every frame, MapLibre cancels drag gestures before
+      // 'dragstart' fires – so pressing on the map is already the signal to let go.
+      map.on('mousedown', () => setFollowDetached(true));
+      map.on('touchstart', () => setFollowDetached(true));
+      map.on('wheel', () => setFollowDetached(true));
+
+      // ── Click anywhere on the active route → jump video + vehicle there ──
+      // Nearest point on the drawn line in screen space; hovering shows a dot with the target time.
+      const hoverEl = document.createElement('div');
+      hoverEl.className = 'rc-route-hover';
+      hoverEl.innerHTML = '<span class="rc-route-hover-dot"></span><span class="rc-route-hover-time"></span>';
+      map.getContainer().appendChild(hoverEl);
+      const hoverTime = hoverEl.querySelector('.rc-route-hover-time') as HTMLSpanElement;
+
+      const nearestOnRoute = (pt: { x: number; y: number }, tolerancePx = 14) => {
+        const coords = fullRouteCoordsRef.current;
+        if (coords.length < 2) return null;
+        const step = Math.max(1, Math.floor(coords.length / 1500));
+        let best: { d: number; x: number; y: number; dist: number } | null = null;
+        let acc = 0;
+        let prev = coords[0];
+        let prevPx = map.project(prev as [number, number]);
+        for (let i = step; i < coords.length + step - 1; i += step) {
+          const cur = coords[Math.min(i, coords.length - 1)];
+          const curPx = map.project(cur as [number, number]);
+          const segLen = distance(prev, cur);
+          const dx = curPx.x - prevPx.x, dy = curPx.y - prevPx.y;
+          const len2 = dx * dx + dy * dy;
+          // skip segments wrapped across the globe's horizon
+          if (len2 < (window.innerWidth / 2) ** 2) {
+            const t = len2 ? Math.max(0, Math.min(1, ((pt.x - prevPx.x) * dx + (pt.y - prevPx.y) * dy) / len2)) : 0;
+            const x = prevPx.x + t * dx, y = prevPx.y + t * dy;
+            const d = Math.hypot(pt.x - x, pt.y - y);
+            if (d <= tolerancePx && (!best || d < best.d)) best = { d, x, y, dist: acc + t * segLen };
+          }
+          acc += segLen;
+          prev = cur;
+          prevPx = curPx;
+          if (i >= coords.length - 1) break;
+        }
+        return best && acc > 0 ? { x: best.x, y: best.y, progress: best.dist / acc } : null;
+      };
+
+      let hoverFrame = 0;
+      map.on('mousemove', e => {
+        cancelAnimationFrame(hoverFrame);
+        hoverFrame = requestAnimationFrame(() => {
+          const hit = nearestOnRoute(e.point);
+          if (hit) {
+            hoverEl.style.display = 'block';
+            hoverEl.style.transform = `translate(${hit.x}px, ${hit.y}px)`;
+            hoverTime.textContent = formatCommentTime(routeToTimeRef.current(hit.progress) * (durationRef.current || 0));
+            map.getCanvas().style.cursor = 'pointer';
+          } else {
+            hoverEl.style.display = 'none';
+            map.getCanvas().style.cursor = '';
+          }
+        });
+      });
+      map.on('mouseout', () => { hoverEl.style.display = 'none'; map.getCanvas().style.cursor = ''; });
+      map.on('click', e => {
+        const hit = nearestOnRoute(e.point, (e.originalEvent as any)?.pointerType === 'touch' ? 24 : 14);
+        if (!hit) {
+          // only real clicks on the map canvas – marker / badge clicks bubble up here too
+          if ((e.originalEvent as any)?.target === map.getCanvas() && onBackgroundClickRef.current) {
+            keepCameraRef.current = true;
+            onBackgroundClickRef.current();
+            setTimeout(() => { keepCameraRef.current = false; }, 500); // if nothing was deselected
+          }
+          return;
+        }
+        if (!onSeekRef.current) return;
+        // follow the vehicle again (pressing the map had detached the camera)
+        setFollowDetached(false);
+        initialCameraRef.current = null;
+        onSeekRef.current(hit.progress);
+      });
+      map.on('zoomend', () => updateClustersRef.current());
+      map.on('moveend', () => updateClustersRef.current());
       mapInstance = map;
       mapRef.current = map;
+      if (process.env.NODE_ENV !== "production") (window as any).__MAP = map;
       prevStyleRef.current = mapStyle;
 
       const updateSvgOverlay = () => {
@@ -233,11 +498,17 @@ export default function GlobeMap({
           const currentProgress = animProgressRef.current;
           const currentDuration = durationRef.current;
           
-          if (currentProgress === 0 && fullPts.length > 0 && onPoint1Projected) {
+          const onP1 = onPoint1ProjectedRef.current;
+          if (currentProgress === 0 && fullPts.length > 0 && onP1) {
              const p1 = mapRef.current.project([fullPts[0][0], fullPts[0][1]]);
-             if (!(window as any)._lastP1 || Math.abs((window as any)._lastP1.x - p1.x) > 10 || Math.abs((window as any)._lastP1.y - p1.y) > 10) {
-               (window as any)._lastP1 = { x: p1.x, y: p1.y };
-               Promise.resolve().then(() => onPoint1Projected(p1.x, p1.y));
+             // a point ~20 % along the route → in which direction the ride leaves the start
+             const ahead = fullPts[Math.min(fullPts.length - 1, Math.max(1, Math.floor(fullPts.length * 0.2)))];
+             const pa = mapRef.current.project([ahead[0], ahead[1]]);
+             const key = geometryKeyRef.current;
+             const last = (window as any)._lastP1;
+             if (!last || last.key !== key || Math.abs(last.x - p1.x) > 10 || Math.abs(last.y - p1.y) > 10) {
+               (window as any)._lastP1 = { x: p1.x, y: p1.y, key };
+               Promise.resolve().then(() => onP1(p1.x, p1.y, pa.x, pa.y, key));
              }
           }
           
@@ -268,7 +539,7 @@ export default function GlobeMap({
           }
 
           const inactiveSegments: string[] = [];
-          for (const seg of inactiveRouteCoordsRef.current) {
+          for (const seg of (clusteredRef.current ? [] : inactiveRouteCoordsRef.current)) {
             const segPts: string[] = [];
             let lastP: any = null;
             for (const c of seg) {
@@ -328,7 +599,7 @@ export default function GlobeMap({
              
              if (currentProgress > 0) {
                displayDist = displayDist * currentProgress;
-               displaySecs = currentDuration * (1 - currentProgress);
+               displaySecs = currentDuration * (1 - routeToTimeRef.current(currentProgress));
              }
              
              const distKm = displayDist.toFixed(0);
@@ -345,7 +616,7 @@ export default function GlobeMap({
                    segDistKm = getDistanceKm(wp1[1], wp1[0], wp2[1], wp2[0]);
                 }
                 const timeSecs = currentDuration / Math.max(1, fullPts.length - 1);
-                let speedKmh = (segDistKm / timeSecs) * 3600;
+                let speedKmh = speedAtRef.current ? speedAtRef.current(currentProgress) : (segDistKm / timeSecs) * 3600;
                 
                  // Extremely simple low-pass filter for smooth velocity numbers
                  if (!(window as any)._smoothSpeed || Math.abs((window as any)._smoothSpeed - speedKmh) > 50) {
@@ -435,12 +706,14 @@ export default function GlobeMap({
 
         initRouteLayers(map, routeColor, routeWidth);
         routeInitializedRef.current = true;
-        updateRouteData(map, 0);
-        rebuildMarkers(map, cities);
-        updateInactiveRoutes(map);
-        if (cities.length >= 2) {
-          const lats = cities.map((c) => c.lat);
-          const lngs = cities.map((c) => c.lng);
+        const L = latestRef.current!;
+        const cs = L.cities;
+        L.updateRouteData(map, ++renderPassRef.current);
+        L.rebuildMarkers(map, cs);
+        L.updateInactiveRoutes(map);
+        if (cs.length >= 2) {
+          const lats = cs.map((c) => c.lat);
+          const lngs = cs.map((c) => c.lng);
           const minLat = Math.min(...lats);
           const maxLat = Math.max(...lats);
           const minLng = Math.min(...lngs);
@@ -452,6 +725,8 @@ export default function GlobeMap({
             ],
             { padding: 50, duration: 1200, maxZoom: 13 }
           );
+        } else {
+          latestRef.current?.fitAllRoutes(map, 0);
         }
       });
 
@@ -498,40 +773,7 @@ export default function GlobeMap({
   useEffect(() => {
     const map = mapRef.current;
     if (map && mapStyle && routeInitializedRef.current) {
-      let styleUrl: string | maplibregl.StyleSpecification | undefined = undefined;
-      
-      if (mapStyle === 'streets') styleUrl = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-      else if (mapStyle === 'terrain') styleUrl = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
-      else if (mapStyle === 'satellite') {
-         styleUrl = {
-              version: 8 as 8,
-              sources: {
-                'satellite': {
-                  type: 'raster' as 'raster',
-                  tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-                  tileSize: 256
-                }
-              },
-              layers: [
-                {
-                  id: 'background',
-                  type: 'background' as 'background',
-                  paint: {
-                    'background-color': '#000000'
-                  }
-                },
-                {
-                  id: 'satellite-layer',
-                  type: 'raster',
-                  source: 'satellite',
-                  minzoom: 0,
-                  maxzoom: 19
-                }
-              ]
-         };
-      } else {
-         styleUrl = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-      }
+      const styleUrl = buildMapStyle(mapStyle);
 
       map.setStyle(styleUrl);
       map.once('style.load', () => {
@@ -547,8 +789,9 @@ export default function GlobeMap({
         } catch (e) {}
 
         initRouteLayers(map, routeColor, routeWidth);
-        updateRouteData(map, 0); // Reset to full line
-        rebuildMarkers(map, cities);
+        const L = latestRef.current!;
+        L.updateRouteData(map, ++renderPassRef.current); // Reset to full line
+        L.rebuildMarkers(map, L.cities);
       });
     }
   }, [mapStyle, globeAtmosphere]);
@@ -590,12 +833,16 @@ export default function GlobeMap({
     }
 
     // Second pass: build segments
+    const info: { id: string; center: [number, number]; bbox: [[number, number], [number, number]] }[] = [];
     for (const route of routes) {
       const isActive = route.cities.length === cities.length && route.cities.every((c, i) => c.id === cities[i].id);
       if (isActive) continue;
+      let minX = 180, minY = 90, maxX = -180, maxY = -90;
+      for (const c of route.cities) { minX = Math.min(minX, c.lng); maxX = Math.max(maxX, c.lng); minY = Math.min(minY, c.lat); maxY = Math.max(maxY, c.lat); }
+      if (route.cities.length) info.push({ id: route.id, center: [(minX + maxX) / 2, (minY + maxY) / 2], bbox: [[minX, minY], [maxX, maxY]] });
       for (let i = 0; i < route.cities.length - 1; i++) {
         const cacheKey = `${route.cities[i].id}-${route.cities[i+1].id}`;
-        const coords = osrmCacheRef.current[cacheKey] || greatCircleArc(route.cities[i], route.cities[i + 1], 120);
+        const coords = osrmCacheRef.current[cacheKey] || greatCircleArc(route.cities[i], route.cities[i + 1], route.source === 'track' ? 1 : 120);
         const finalCoords = route.forceStraight ? smoothCoords(coords, 3) : coords;
         allCoordSegments.push(finalCoords);
         allFeatures.push({
@@ -607,6 +854,7 @@ export default function GlobeMap({
     }
     // Store for SVG rendering
     inactiveRouteCoordsRef.current = allCoordSegments;
+    inactiveInfoRef.current = info;
     // Also update MapLibre source (as backup)
     if (map.getSource('inactive-routes')) {
       (map.getSource('inactive-routes') as GeoJSONSource).setData({
@@ -626,7 +874,7 @@ export default function GlobeMap({
         let allRouteCoords: [number, number][] = [];
         for (let i = 0; i < route.cities.length - 1; i++) {
             const cacheKey = `${route.cities[i].id}-${route.cities[i+1].id}`;
-            const coords = osrmCacheRef.current[cacheKey] || greatCircleArc(route.cities[i], route.cities[i + 1], 120);
+            const coords = osrmCacheRef.current[cacheKey] || greatCircleArc(route.cities[i], route.cities[i + 1], route.source === 'track' ? 1 : 120);
             allRouteCoords = allRouteCoords.concat(coords);
         }
         
@@ -697,6 +945,7 @@ export default function GlobeMap({
           inactiveMarkersRef.current.push(marker);
         });
       }
+      updateClustersRef.current();
     });
     // Trigger SVG update
     if ((window as any)._updateSvgOverlay) {
@@ -709,6 +958,67 @@ export default function GlobeMap({
       updateInactiveRoutes(mapRef.current);
     }
   }, [routes, cities, mapStyle]);
+
+  // Zoomed out: replace the other rides (lines, pins, previews) by bubbles with the number of rides.
+  // Clicking a bubble zooms in until its rides are visible again.
+  updateClustersRef.current = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    const clustered = map.getZoom() < CLUSTER_ZOOM && inactiveInfoRef.current.length > 0;
+    const changed = clustered !== clusteredRef.current;
+    clusteredRef.current = clustered;
+    inactiveMarkersRef.current.forEach(m => { m.getElement().style.display = clustered ? 'none' : ''; });
+    clusterMarkersRef.current.forEach(m => m.remove());
+    clusterMarkersRef.current = [];
+    if (changed && (window as any)._updateSvgOverlay) (window as any)._updateSvgOverlay();
+    if (!clustered) return;
+
+    // greedy clustering in screen space
+    const groups: { pts: { x: number; y: number }[]; items: typeof inactiveInfoRef.current }[] = [];
+    for (const r of inactiveInfoRef.current) {
+      const p = map.project(r.center);
+      let g = groups.find(gr => {
+        const cx = gr.pts.reduce((a, q) => a + q.x, 0) / gr.pts.length;
+        const cy = gr.pts.reduce((a, q) => a + q.y, 0) / gr.pts.length;
+        return Math.hypot(cx - p.x, cy - p.y) < CLUSTER_RADIUS_PX;
+      });
+      if (!g) { g = { pts: [], items: [] }; groups.push(g); }
+      g.pts.push({ x: p.x, y: p.y });
+      g.items.push(r);
+    }
+
+    const pass = ++clusterPassRef.current; // zoomend + moveend fire together → only the latest pass draws
+    import('maplibre-gl').then(({ Marker }) => {
+      if (pass !== clusterPassRef.current || !clusteredRef.current || !mapRef.current) return;
+      for (const g of groups) {
+        const n = g.items.length;
+        let minX = 180, minY = 90, maxX = -180, maxY = -90;
+        for (const it of g.items) {
+          minX = Math.min(minX, it.bbox[0][0]); minY = Math.min(minY, it.bbox[0][1]);
+          maxX = Math.max(maxX, it.bbox[1][0]); maxY = Math.max(maxY, it.bbox[1][1]);
+        }
+        const size = Math.min(56, 34 + Math.log2(n) * 7);
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.title = `${n} ${n === 1 ? 'Fahrt' : 'Fahrten'} – heranzoomen`;
+        el.className = 'rc-cluster';
+        el.style.width = el.style.height = `${size}px`;
+        el.textContent = String(n);
+        el.addEventListener('click', e => {
+          e.stopPropagation();
+          const m = mapRef.current;
+          if (!m) return;
+          const cam = m.cameraForBounds([[minX, minY], [maxX, maxY]], { padding: 120, maxZoom: 13 });
+          const zoom = Math.max(cam?.zoom ?? CLUSTER_ZOOM, CLUSTER_ZOOM + 0.5);
+          m.flyTo({ center: (cam?.center as any) ?? [(minX + maxX) / 2, (minY + maxY) / 2], zoom, duration: 1200 });
+        });
+        const marker = new Marker({ element: el })
+          .setLngLat([(minX + maxX) / 2, (minY + maxY) / 2])
+          .addTo(mapRef.current);
+        clusterMarkersRef.current.push(marker);
+      }
+    });
+  };
 
   // Rebuild markers when animation state changes (play/pause icon toggle)
   useEffect(() => {
@@ -723,6 +1033,7 @@ export default function GlobeMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !routeInitializedRef.current) return;
+    setFollowDetached(false);
     renderPassRef.current += 1;
     legDistancesRef.current = [];
     updateRouteData(map, renderPassRef.current);
@@ -742,8 +1053,18 @@ export default function GlobeMap({
         ],
         { padding: 50, duration: 1200, maxZoom: 13 }
       );
+    } else {
+      // no route selected → overview of all rides
+      setElevationProfile(null);
+      if (keepCameraRef.current) keepCameraRef.current = false;
+      else fitAllRoutes(map, 1200);
     }
   }, [cities]);
+
+  // Overview without a selected route (first load): Cyprus, Paphos region
+  function fitAllRoutes(map: MaplibreMap, duration: number) {
+    map.flyTo({ ...OVERVIEW_VIEW, duration });
+  }
 
   async function updateRouteData(map: MaplibreMap, passId: number) {
     if (!map.getSource('route')) return;
@@ -784,7 +1105,7 @@ export default function GlobeMap({
 
     for (let i = 0; i < cities.length - 1; i++) {
       const cacheKey = `${cities[i].id}-${cities[i+1].id}`;
-      let coords = osrmCacheRef.current[cacheKey] || greatCircleArc(cities[i], cities[i + 1], 120);
+      let coords = osrmCacheRef.current[cacheKey] || greatCircleArc(cities[i], cities[i + 1], activeRoute?.source === 'track' ? 1 : 120);
       osrmCacheRef.current[cacheKey] = coords; // cache original
       if (i > 0 && coords.length > 0) coords = coords.slice(1);
       routeFullCoords.push(...coords);
@@ -827,6 +1148,10 @@ export default function GlobeMap({
     if (allFeatures.length > 0) {
       const allCoords = allFeatures.flatMap(f => (f.geometry as any).coordinates);
       fullRouteCoordsRef.current = allCoords;
+      geometryKeyRef.current = `${cities[0]?.id}:${cities.length}`;
+      rebuildCommentMarkers();
+      rebuildOverlapMarkers();
+      tryFocus(cities);
       if (allCoords.length > 0) {
         midLngLatRef.current = allCoords[Math.floor(allCoords.length / 2)];
       }
@@ -849,8 +1174,8 @@ export default function GlobeMap({
     
 
     
-    // Fetch elevation profile
-    if (allFeatures.length > 0) {
+    // Fetch elevation profile (not in the overview without a route)
+    if (allFeatures.length > 0 && cities.length >= 2) {
       const allCoords = allFeatures.flatMap(f => (f.geometry as any).coordinates);
       const sampledPts = [];
       const numSamples = 60;
@@ -868,7 +1193,7 @@ export default function GlobeMap({
         .catch(e => console.error("Elevation fetch failed", e));
     }
 
-    updateRouteProgress(map, (useGpsTrace || activeRoute?.forceStraight) && cities.length > 0 ? [cities[0], cities[cities.length-1]] : cities, animationProgress, totalPathDist, lDists);
+    updateRouteProgress(map, (useGpsTrace || activeRoute?.forceStraight) && cities.length > 0 ? [cities[0], cities[cities.length-1]] : cities, animProgressRef.current, totalPathDist, lDists); // ref, not the closure value – progress may have been set (deep link) while the route was loading
   }
 
   function updateRouteProgress(
@@ -951,7 +1276,7 @@ export default function GlobeMap({
     routeCoordsRef.current = newActiveFeatures;
 
     
-    if (cameraMode !== 'static' && progress > 0 && progress < 1) {
+    if (cameraMode !== 'static' && progress > 0 && progress < 1 && !followDetachedRef.current) {
       let targetBearing = map.getBearing();
       if (cameraMode === 'orbit') {
         targetBearing = progress * 360;
@@ -967,6 +1292,15 @@ export default function GlobeMap({
       
       const TRANSITION_DURATION = 1.5; // 1.5 seconds smooth transition
       const currentRealTime = Date.now() / 1000;
+
+      // Jump detected (target moved far since the last frame) → glide from the current view
+      const last = lastFollowTargetRef.current;
+      lastFollowTargetRef.current = targetCenter;
+      if (last && initialCameraRef.current) {
+        const a = map.project(last as [number, number]);
+        const b = map.project(targetCenter);
+        if (Math.hypot(a.x - b.x, a.y - b.y) > 80) initialCameraRef.current = null;
+      }
       
       if (!initialCameraRef.current) {
         initialCameraRef.current = {
@@ -1003,6 +1337,13 @@ export default function GlobeMap({
           pitch: cPitch,
           bearing: cBearing
         });
+        // keep gliding even when paused (no animation loop drives this function then)
+        if (glideFrameRef.current === null) {
+          glideFrameRef.current = requestAnimationFrame(() => {
+            glideFrameRef.current = null;
+            updateRouteProgress(map, cs, animProgressRef.current, totalDist, legDists);
+          });
+        }
       } else {
         map.jumpTo({
           center: targetCenter,
@@ -1013,6 +1354,7 @@ export default function GlobeMap({
       }
     } else {
       initialCameraRef.current = null;
+      lastFollowTargetRef.current = null;
     }
 
     if ((window as any)._updateSvgOverlay) {
@@ -1021,6 +1363,9 @@ export default function GlobeMap({
   }
 
   function rebuildMarkers(map: MaplibreMap, cs: City[], activeRouteId?: string) {
+    // Callers often pass no id – without it the play pin would call onPlayRoute(''), which
+    // deselects the ride and flies the camera back to the overview (Cyprus).
+    if (!activeRouteId) activeRouteId = routes?.find(r => r.cities.length === cs.length && r.cities.every((c, i) => c.id === cs[i]?.id))?.id;
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
     import('maplibre-gl').then(({ Marker }) => {
@@ -1058,6 +1403,26 @@ export default function GlobeMap({
     }
   }, [animationProgress]);
 
+
+  // Back to the current video position (or the whole route if playback hasn't started)
+  function recenter() {
+    const map = mapRef.current;
+    if (!map) return;
+    setFollowDetached(false);
+    initialCameraRef.current = null;
+    const vehicle = vehicleLngLatRef.current;
+    const progress = animProgressRef.current;
+    if (progress > 0 && vehicle) {
+      // While playing with a moving camera, the follow cam glides back by itself
+      if (isAnimating && cameraMode !== 'static') return;
+      map.flyTo({ center: vehicle, zoom: Math.max(map.getZoom(), 14), pitch: Math.max(map.getPitch(), 45), duration: 1200 });
+    } else if (cities.length >= 2) {
+      const lats = cities.map(c => c.lat), lngs = cities.map(c => c.lng);
+      map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 50, duration: 1200, maxZoom: 13 });
+    }
+  }
+
+  latestRef.current = { cities, updateRouteData, rebuildMarkers, updateInactiveRoutes, fitAllRoutes };
 
   return (
     <div className="w-full h-full absolute inset-0 pointer-events-none z-0">
@@ -1100,7 +1465,17 @@ export default function GlobeMap({
         <span ref={distanceTextRef} className="text-[#CCFF00] font-bold text-xs">0 km</span>
         <span ref={distanceTimeRef} className="text-white/70 text-[10px] font-medium uppercase tracking-wider">0m 0s</span>
       </div>
-      
+
+      {followDetached && cities.length >= 2 && (
+        <button
+          onClick={recenter}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 h-10 pl-3 pr-4 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-sm font-medium text-white shadow-xl hover:bg-black/90 hover:border-[#CCFF00]/50 transition-colors"
+        >
+          <LocateFixed size={18} className="text-[#CCFF00]" />
+          {animationProgress > 0 ? 'Zurück zum Video' : 'Zurück zur Route'}
+        </button>
+      )}
+
       </div>
       {showElevation && elevationProfile && (() => {
         const content = (
@@ -1118,9 +1493,20 @@ export default function GlobeMap({
               </div>
             </div>
             {!isMobile && (
-              <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}>
-                <GripHorizontal size={14} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Mini compass (replaces the former Heading window) */}
+                <svg width="26" height="26" viewBox="0 0 26 26" style={{ overflow: 'visible' }} aria-label="Fahrtrichtung">
+                  <circle cx="13" cy="13" r="11.5" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
+                  <text x="13" y="5.2" fill="#9ca3af" fontSize="5" fontWeight="700" fontFamily="sans-serif" textAnchor="middle">N</text>
+                  <g ref={compassNeedleRef} style={{ transformOrigin: '13px 13px', transform: 'rotate(0deg)', willChange: 'transform' }}>
+                    <polygon points="13,6 17,18 13,15.5 9,18" fill="#ef4444" stroke="#ffffff" strokeWidth="1" strokeLinejoin="round" />
+                  </g>
+                </svg>
+                <span ref={headingTextRef} style={{ color: '#fff', fontSize: '12px', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.03em', minWidth: '52px', textAlign: 'right' }}>N 0°</span>
+                <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}>
+                  <GripHorizontal size={14} />
+                </button>
+              </div>
             )}
           </div>
           
@@ -1148,8 +1534,28 @@ export default function GlobeMap({
               const leftPct = animationProgress * 100;
               const bottomPct = ((currentElev - min) / range) * 100;
               
+              const elevAt = (p: number) => {
+                const x = Math.max(0, Math.min(1, p)) * (elevationProfile.length - 1);
+                const a = Math.floor(x), b = Math.min(a + 1, elevationProfile.length - 1);
+                return elevationProfile[a] + (x - a) * (elevationProfile[b] - elevationProfile[a]);
+              };
+
               return (
                 <>
+                  {/* comment positions – dots in the commenter's colour, ringed while the vehicle passes them */}
+                  {durationSeconds > 0 && comments.map(c => {
+                    const p = timeToRoute(Math.min(1, c.seconds / durationSeconds));
+                    const active = activeCommentIds.includes(c.id);
+                    return (
+                      <div key={c.id} style={{
+                        position: 'absolute', left: `${p * 100}%`, bottom: `${((elevAt(p) - min) / range) * 100}%`,
+                        transform: 'translate(-50%, 50%)', width: active ? '10px' : '7px', height: active ? '10px' : '7px',
+                        borderRadius: '50%', background: c.color, border: '1px solid rgba(0,0,0,0.85)',
+                        boxShadow: active ? `0 0 0 2px #CCFF00, 0 0 10px ${c.color}` : 'none',
+                        zIndex: 19, pointerEvents: 'none', transition: 'width 150ms, height 150ms, box-shadow 150ms',
+                      }} />
+                    );
+                  })}
                   <div style={{
                     position: 'absolute', left: `${leftPct}%`, bottom: `${bottomPct}%`,
                     transform: 'translate(-50%, 50%)',
@@ -1232,12 +1638,13 @@ export default function GlobeMap({
         }
         return (
           <Rnd
-            default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 24, width: 320, height: 'auto' }}
+            default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 80, width: 320, height: 'auto' }}
             bounds="parent"
             enableResizing={false}
             className="z-50"
             style={{ zIndex: activeWindow === 'elevation' ? 60 : 50 }}
-            onDragStart={() => setActiveWindow && setActiveWindow('elevation')}
+            onDragStart={() => { lockIframes(); setActiveWindow && setActiveWindow('elevation'); }}
+            onDragStop={unlockIframes}
             onMouseDown={() => setActiveWindow && setActiveWindow('elevation')}
           >
             {content}
@@ -1246,12 +1653,13 @@ export default function GlobeMap({
       })()}
       {showVelocity && (
         <Rnd
-          default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 192, width: 320, height: 'auto' }}
+          default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 248, width: 320, height: 'auto' }}
           bounds="parent"
           enableResizing={false}
           className="z-50"
           style={{ zIndex: activeWindow === 'velocity' ? 60 : 50 }}
-          onDragStart={() => setActiveWindow && setActiveWindow('velocity')}
+          onDragStart={() => { lockIframes(); setActiveWindow && setActiveWindow('velocity'); }}
+            onDragStop={unlockIframes}
           onMouseDown={() => setActiveWindow && setActiveWindow('velocity')}
         >
         <div style={{ width: '100%', height: '100%', background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: 'grab' }} className="active:cursor-grabbing">
@@ -1289,49 +1697,6 @@ export default function GlobeMap({
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginTop: '4px' }}>
               <span ref={velocityTextRef} style={{ color: '#fff', fontSize: '36px', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.05em', lineHeight: '36px' }}>0</span>
               <span style={{ color: '#9ca3af', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>km/h</span>
-            </div>
-          </div>
-        </div>
-        </Rnd>
-      )}
-      {showCompass && !isMobile && (
-        <Rnd
-          default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: showVelocity ? 448 : 192, width: 320, height: 'auto' }}
-          bounds="parent"
-          enableResizing={false}
-          className="z-50"
-          style={{ zIndex: activeWindow === 'compass' ? 60 : 50 }}
-          onDragStart={() => setActiveWindow && setActiveWindow('compass')}
-          onMouseDown={() => setActiveWindow && setActiveWindow('compass')}
-        >
-        <div style={{ width: '100%', height: '100%', background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: 'grab' }} className="active:cursor-grabbing">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }} className="pointer-events-none">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Compass size={14} className="text-[#CCFF00]" />
-              <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>Heading</h3>
-            </div>
-            <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}>
-              <GripHorizontal size={14} />
-            </button>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: '170px' }} className="pointer-events-none">
-            <svg width="220" height="130" viewBox="0 0 220 130" style={{ overflow: 'visible' }}>
-              <circle cx="110" cy="65" r="55" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-              <circle cx="110" cy="65" r="55" fill="none" stroke="#374151" strokeWidth="2" strokeDasharray="4 6" />
-              
-              <text x="110" y="22" fill="#9ca3af" fontSize="12" fontFamily="sans-serif" fontWeight="700" textAnchor="middle">N</text>
-              <text x="110" y="118" fill="#9ca3af" fontSize="12" fontFamily="sans-serif" fontWeight="700" textAnchor="middle">S</text>
-              <text x="63" y="70" fill="#9ca3af" fontSize="12" fontFamily="sans-serif" fontWeight="700" textAnchor="middle">W</text>
-              <text x="157" y="70" fill="#9ca3af" fontSize="12" fontFamily="sans-serif" fontWeight="700" textAnchor="middle">E</text>
-
-              <g ref={compassNeedleRef} style={{ transformOrigin: '110px 65px', transform: 'rotate(0deg)', willChange: 'transform' }}>
-                {/* Navigation Arrow */}
-                <polygon points="110,25 125,75 110,65 95,75" fill="#ef4444" stroke="#ffffff" strokeWidth="2" strokeLinejoin="round" />
-              </g>
-            </svg>
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginTop: '4px' }}>
-              <span ref={headingTextRef} style={{ color: '#fff', fontSize: '24px', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.05em', lineHeight: '24px' }}>N 0°</span>
             </div>
           </div>
         </div>

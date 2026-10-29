@@ -1,11 +1,21 @@
 'use client';
 import { useEffect, useState } from 'react';
 
+// Debug banner for development only – visitors of the live site never see it.
 export default function ErrorLogger() {
+  if (process.env.NODE_ENV !== 'development') return null;
+  return <DevErrorBanner />;
+}
+
+function DevErrorBanner() {
   const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
     const handleError = (e: ErrorEvent) => {
+      // "Script error." without a file = an error inside a script from another site
+      // (YouTube player, Google sign-in). The browser hides its details, it isn't ours,
+      // and it doesn't affect RouteCam – don't show it.
+      if (!e.filename && /^Script error\.?$/.test(e.message)) return;
       setErrors(prev => [...prev, "Error: " + e.message + " at " + e.filename + ":" + e.lineno]);
     };
     const handleRejection = (e: PromiseRejectionEvent) => {

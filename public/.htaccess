@@ -1,0 +1,9 @@
+# RouteCam on IONOS (Apache): the static export writes pages as channel.html, about.html …
+# These rules let /routecam/channel?u=… and /routecam/about#… work without ".html".
+Options -MultiViews
+RewriteEngine On
+RewriteBase /routecam/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+?)/?$ $1.html [L]

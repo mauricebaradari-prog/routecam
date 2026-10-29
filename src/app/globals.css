@@ -72,3 +72,84 @@ html, body {
 .maplibregl-marker {
   z-index: 20 !important;
 }
+
+/* See src/lib/dragGuard.ts */
+body.is-dragging iframe {
+  pointer-events: none;
+}
+
+/* Timed comments on the route (GlobeMap) */
+/* no position here – MapLibre positions markers absolutely (.maplibregl-marker) */
+.rc-comment { cursor: pointer; z-index: 4; }
+.rc-comment:hover, .rc-comment.is-active { z-index: 30; }
+.rc-avatar {
+  width: 24px; height: 24px; border-radius: 9999px;
+  display: flex; align-items: center; justify-content: center;
+  font: 700 9px/1 var(--font-geist-sans, system-ui, sans-serif); color: #0b0d10;
+  border: 2px solid #0b0d10; box-shadow: 0 0 0 1.5px rgba(255,255,255,0.85), 0 2px 8px rgba(0,0,0,0.5);
+  transition: transform 150ms ease;
+}
+.rc-comment:hover .rc-avatar, .rc-comment.is-active .rc-avatar { transform: scale(1.25); }
+.rc-bubble {
+  position: absolute; left: 50%; bottom: 34px; width: max-content; max-width: 240px;
+  transform: translate(-50%, 6px); opacity: 0; pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+  background: rgba(15,15,15,0.92); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+  padding: 8px 10px; color: #fff; font: 400 12px/1.4 var(--font-geist-sans, system-ui, sans-serif);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.rc-comment:hover .rc-bubble, .rc-comment.is-active .rc-bubble { opacity: 1; transform: translate(-50%, 0); }
+.rc-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 2px; font-weight: 600; font-size: 11px; }
+.rc-time { color: #CCFF00; font-family: var(--font-geist-mono, ui-monospace, monospace); font-weight: 500; font-size: 10px; }
+
+/* Hover indicator for "click on the route to jump there" (GlobeMap) */
+.rc-route-hover { position: absolute; left: 0; top: 0; display: none; pointer-events: none; z-index: 15; will-change: transform; }
+.rc-route-hover-dot {
+  position: absolute; width: 14px; height: 14px; left: -7px; top: -7px; border-radius: 9999px;
+  background: #CCFF00; border: 2px solid #0b0d10; box-shadow: 0 0 0 2px rgba(204,255,0,0.35), 0 0 12px rgba(204,255,0,0.6);
+}
+.rc-route-hover-time {
+  position: absolute; left: 0; top: -34px; transform: translateX(-50%);
+  background: rgba(15,15,15,0.92); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+  padding: 2px 6px; color: #CCFF00; font: 600 11px/1.4 var(--font-geist-mono, ui-monospace, monospace); white-space: nowrap;
+}
+
+/* Scrollable without a visible scrollbar (community comment list) */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Badge where other rides share the road (GlobeMap) */
+.rc-overlap {
+  display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px 0 6px; border-radius: 9999px;
+  background: rgba(15,15,15,0.9); border: 1px solid rgba(204,255,0,0.6); color: #CCFF00; cursor: pointer;
+  font: 700 11px/1 var(--font-geist-mono, ui-monospace, monospace); box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  z-index: 45 !important; /* above the video-preview markers of other routes */
+}
+.rc-overlap:hover { background: #CCFF00; color: #0b0d10; }
+
+/* Zoomed-out ride clusters (GlobeMap) */
+.rc-cluster {
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  border-radius: 9999px; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+  border: 2px solid #CCFF00; color: #CCFF00;
+  font: 700 14px/1 var(--font-geist-mono, ui-monospace, monospace);
+  box-shadow: 0 0 0 4px rgba(204,255,0,0.15), 0 0 18px rgba(204,255,0,0.45), 0 4px 14px rgba(0,0,0,0.6);
+  transition: transform 150ms ease, background 150ms ease;
+}
+.rc-cluster:hover { transform: scale(1.12); background: rgba(204,255,0,0.18); }
+
+/* Onboarding modal */
+@keyframes onboarding-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.onboarding-fade { animation: onboarding-fade .25s ease-out; }
+@keyframes onboarding-draw { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+.onboarding-draw { stroke-dasharray: 120; animation: onboarding-draw 1.1s ease-out .15s both; }
+@media (prefers-reduced-motion: reduce) { .onboarding-fade, .onboarding-draw { animation: none; } }
+@keyframes onboarding-pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.onboarding-pop { display: inline-block; animation: onboarding-pop .35s ease-out both; }
+@keyframes onboarding-ripple { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+.onboarding-ripple { animation: onboarding-ripple .4s ease-out forwards; }
+@keyframes onboarding-flash { from { transform: scale(.3); opacity: .9; } to { transform: scale(3); opacity: 0; } }
+.onboarding-flash { animation: onboarding-flash .45s ease-out forwards; }
+@keyframes onboarding-road { to { stroke-dashoffset: -18; } }
+.onboarding-road { animation: onboarding-road .35s linear infinite; }

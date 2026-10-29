@@ -62,9 +62,11 @@ export function greatCircleArc(
       )
     );
 
-  // If the two points are very close, just return a straight line
-  if (d < 0.00001) {
-    return [[from.lng, from.lat]];
+  // Very close points (GPS track points are often only a few metres apart): straight segment.
+  // Must keep both ends – callers drop the first point of every following segment, so a
+  // single-point result made whole stretches of recorded tracks disappear (d < 1e-5 rad ≈ 64 m).
+  if (d < 1e-6 || steps <= 1) {
+    return [[from.lng, from.lat], [to.lng, to.lat]];
   }
 
   const coords: [number, number][] = [];

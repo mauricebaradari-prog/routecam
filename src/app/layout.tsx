@@ -46,7 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
          * PostCSS processing issues with this particular stylesheet.
          */}
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link rel="stylesheet" href="/maplibre-gl.css" />
+        <link rel="stylesheet" href="/routecam/maplibre-gl.css" />
       </head>
       <body className="h-full antialiased font-sans">
         <ErrorLogger />
