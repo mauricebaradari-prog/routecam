@@ -3,7 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, Heart, LogOut, Settings, LifeBuoy, Info, SquareUser as UserSquare } from 'lucide-react';
-import { channelHref } from '@/lib/channels';
+import { channelHref, ownerOf } from '@/lib/channels';
+import { useAllRoutes } from '@/lib/userRoutes';
 import { leaveWhilePlaying } from '@/lib/nav';
 import { useRouteInteractions } from '@/lib/routeInteractions';
 import type { RouteConfig } from '@/hooks/useEditorState';
@@ -34,6 +35,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user } = useAuth();
   // Signed out: no search, no notifications, no ride list; over the map the bar is transparent
+  // (from tablet width up – on a phone the ride thumbnails on the map would run under logo and buttons)
   const showSearch = showSearchProp && !!user;
   const transparent = !user && !sticky;
   // Drawer groups (route lists) are collapsed by default
@@ -41,6 +43,9 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
   const [likedOpen, setLikedOpen] = useState(false);
   const { statsOf } = useRouteInteractions();
   const likedRoutes = routes.filter(r => statsOf(r.id).liked);
+  // "Meine Routen" = rides of the signed-in account (all of them, also private / unlisted)
+  const allRoutes = useAllRoutes();
+  const myRoutes = useMemo(() => (user ? allRoutes.filter(r => ownerOf(r).id === user.id) : []), [allRoutes, user]);
   const [mobileSearch, setMobileSearch] = useState(false);
 
   useEffect(() => {
@@ -61,7 +66,9 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
       <header
         style={{ height: HEADER_HEIGHT }}
         className={`${sticky ? 'sticky' : 'absolute'} top-0 inset-x-0 z-[70] flex items-center gap-2 md:gap-4 px-2 md:px-4 transition-colors ${
-          transparent ? 'bg-transparent border-b border-transparent' : 'bg-[#0f0f0f]/85 backdrop-blur-md border-b border-white/5'
+          transparent
+            ? 'bg-[#0f0f0f]/85 backdrop-blur-md border-b border-white/5 md:bg-transparent md:backdrop-blur-none md:border-transparent'
+            : 'bg-[#0f0f0f]/85 backdrop-blur-md border-b border-white/5'
         }`}
       >
         {mobileSearch ? (
@@ -145,10 +152,14 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
 
               {user && <div className="mx-3 my-2 border-t border-white/10" />}
 
-              {user && <DrawerGroup title="Meine Routen" count={routes.length} open={routesOpen} onToggle={() => setRoutesOpen(o => !o)}>
-                {routes.map(r => (
-                  <RouteItem key={r.id} name={r.name} active={r.id === activeRouteId} onClick={() => select(r.id)} />
-                ))}
+              {user && <DrawerGroup title="Meine Routen" count={myRoutes.length} open={routesOpen} onToggle={() => setRoutesOpen(o => !o)}>
+                {myRoutes.length === 0 ? (
+                  <p className="pl-6 pr-3 py-2 text-xs text-white/40">Noch keine eigene Fahrt – oben rechts auf „Anlegen“.</p>
+                ) : (
+                  myRoutes.map(r => (
+                    <RouteItem key={r.id} name={r.name} active={r.id === activeRouteId} onClick={() => select(r.id)} />
+                  ))
+                )}
               </DrawerGroup>}
 
               {user && <>

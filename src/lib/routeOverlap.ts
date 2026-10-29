@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { RouteConfig } from '@/hooks/useEditorState';
+import { loadRoadCache } from '@/lib/roadGeometry';
 
 // "Same road, different ride": finds where other rides run along the same road as the
 // active one, and maps positions between them, so a viewer can switch perspective at a
@@ -37,7 +38,7 @@ const MERGE_GAP_M = 1500;       // join sections of the same direction separated
 // ── geometry ────────────────────────────────────────────────────────────────
 
 function loadOsrmCache(): Record<string, LngLat[]> {
-  try { return JSON.parse(localStorage.getItem('osrmCache') || '{}'); } catch { return {}; }
+  return loadRoadCache();
 }
 
 // Same line the map draws: GPS tracks and straight routes as-is, otherwise the cached road geometry.

@@ -8,31 +8,28 @@ import { Geist, Geist_Mono } from "next/font/google";
 const geist = Geist({ subsets: ["latin", "latin-ext"], variable: "--font-geist-sans", display: "swap" });
 const geistMono = Geist_Mono({ subsets: ["latin", "latin-ext"], variable: "--font-geist-mono", display: "swap" });
 
+const TITLE = "RouteCam – Fahrvideos auf dem 3D-Globus";
+const DESCRIPTION =
+  "Fahrvideo und GPS-Strecke synchron: Während das YouTube-Video läuft, fährt die Route über einen 3D-Globus mit Höhenprofil. Kostenlos, im Browser, ohne Download.";
+const OG_IMAGE = "https://maurice-baradari.de/routecam/og-image.jpg";
+
 export const metadata: Metadata = {
-  title: "Create your Travel Route Animation - Editor",
-  description:
-    "Open the free 3D travel map editor. No download, no registration. Select cities, choose vehicle and export video instantly.",
+  title: TITLE,
+  description: DESCRIPTION,
   openGraph: {
-    title: "RouteCam - Travel Route Animation",
-    description: "Open the free 3D travel map editor. No download, no registration.",
+    title: TITLE,
+    description: DESCRIPTION,
     url: "https://maurice-baradari.de/routecam/",
     siteName: "RouteCam",
-    images: [
-      {
-        url: "https://maurice-baradari.de/routecam/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "RouteCam Preview",
-      },
-    ],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "RouteCam" }],
     locale: "de_DE",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "RouteCam - Travel Route Animation",
-    description: "Open the free 3D travel map editor. No download, no registration.",
-    images: ["https://maurice-baradari.de/routecam/og-image.jpg"],
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
 };
 
@@ -42,7 +39,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} h-full bg-black`}>
+    <html lang="de" className={`${geist.variable} ${geistMono.variable} h-full bg-black`}>
       <head>
         {/*
          * MapLibre GL CSS is served as a static public file to avoid Turbopack

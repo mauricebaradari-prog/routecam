@@ -22,7 +22,7 @@ export default function AnimationsPanel({ animSpeed, cameraMode, onChange }: Ani
       {/* Speed */}
       <div>
         <h3 className="text-[10px] font-bold text-white uppercase tracking-widest mb-3 flex items-center justify-between">
-          <span>Speed</span>
+          <span>Tempo</span>
           <span className="text-[#CCFF00] font-mono">{animSpeed}x</span>
         </h3>
         <div className="flex gap-2">

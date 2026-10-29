@@ -60,8 +60,15 @@ export function withOwner(route: RouteConfig): RouteConfig {
   return me ? { ...route, owner: { id: me.id, name: me.name, picture: me.picture } } : route;
 }
 
+// The id used in links. The founder's channel is always addressed as "maurice": his Google
+// account id only exists in his own browser, so a link carrying it would be "Kanal nicht
+// gefunden" for everyone else. (Goes away with Supabase, when profiles have one public id.)
+export function publicChannelId(ownerId: string) {
+  return ownerId !== FOUNDER.id && typeof window !== 'undefined' && ownerId === founderId() ? FOUNDER.id : ownerId;
+}
+
 export function channelHref(ownerId: string) {
-  return `/channel?u=${encodeURIComponent(ownerId)}`;
+  return `/channel?u=${encodeURIComponent(publicChannelId(ownerId))}`;
 }
 
 export function initialOf(name: string) {

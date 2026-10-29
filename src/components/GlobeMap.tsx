@@ -10,6 +10,7 @@ type MaplibreMap = maplibregl.Map;
 type GeoJSONSource = maplibregl.GeoJSONSource;
 import { City, VehicleConfig, MapStyleId } from '@/hooks/useEditorState';
 import { greatCircleArc } from '@/lib/geo';
+import { loadRoadCache, saveRoadCache } from '@/lib/roadGeometry';
 import { buildMapStyle } from '@/lib/mapStyles';
 import { initials, formatCommentTime, type RouteComment } from '@/lib/routeComments';
 
@@ -342,23 +343,13 @@ export default function GlobeMap({
   const fullSvgPathRef = React.useRef<SVGPathElement>(null);
   const inactiveSvgPathRef = React.useRef<SVGPathElement>(null);
   const svgPathRef = React.useRef<SVGPathElement>(null);
+  // road course per waypoint pair – built-in rides are bundled, see lib/roadGeometry.ts
   const osrmCacheRef = useRef<Record<string, [number, number][]>>({});
-  
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('osrmCache');
-      if (stored) {
-        const parsed: Record<string, [number, number][]> = JSON.parse(stored);
-        // drop broken single-point segments cached by an older greatCircleArc (see lib/geo.ts)
-        for (const k of Object.keys(parsed)) if (!Array.isArray(parsed[k]) || parsed[k].length < 2) delete parsed[k];
-        osrmCacheRef.current = parsed;
-      }
-    } catch(e) {}
-  }, []);
-  
+  if (!Object.keys(osrmCacheRef.current).length && typeof window !== 'undefined') osrmCacheRef.current = loadRoadCache();
+
   const saveOsrmCache = () => {
     try {
-      localStorage.setItem('osrmCache', JSON.stringify(osrmCacheRef.current));
+      saveRoadCache(osrmCacheRef.current);
       window.dispatchEvent(new Event('routecam:geometry')); // lets the route-overlap detection recompute
     } catch(e) {}
   };
@@ -894,7 +885,7 @@ export default function GlobeMap({
             inner.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.5)';
             
             const img = document.createElement('img');
-            img.src = route.videoId ? `https://img.youtube.com/vi/${route.videoId}/mqdefault.jpg` : 'https://images.unsplash.com/photo-1542281286-9e0a16bb7366?auto=format&fit=crop&w=300&q=80';
+            img.src = route.videoId ? `https://img.youtube.com/vi/${route.videoId}/mqdefault.jpg` : '';
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'cover';
@@ -1204,7 +1195,6 @@ export default function GlobeMap({
   ) {
     
     if (!map.getSource('route') || legDists.length !== cs.length - 1) {
-      console.log('Progress abort:', { hasSource: !!map.getSource('route'), legDistsLen: legDists.length, expected: cs.length - 1 });
       return;
     }
 

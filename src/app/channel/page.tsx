@@ -11,7 +11,7 @@ import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useRouteInteractions } from '@/lib/routeInteractions';
 import { VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { useAuth } from '@/lib/auth';
-import { ownerOf, distanceKm, FOUNDER, founderId, type RouteOwner } from '@/lib/channels';
+import { ownerOf, distanceKm, FOUNDER, founderId, publicChannelId, type RouteOwner } from '@/lib/channels';
 import { useRouteGroups, relativeTime, type RouteGroup } from '@/lib/routeGroups';
 import ChannelAvatar from '@/components/ChannelAvatar';
 import sparklinesData from '@/data/sparklines.json';
@@ -103,7 +103,7 @@ export default function ChannelPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
-            <ShareButton channelId={owner.id} title={`${owner.name} auf RouteCam`} />
+            <ShareButton channelId={publicChannelId(owner.id)} title={`${owner.name} auf RouteCam`} />
             {own && (
               <button onClick={() => router.push('/dashboard?create=1')} className="inline-flex items-center gap-1.5 h-10 pl-3 pr-4 rounded-full bg-[#CCFF00] text-black text-sm font-semibold hover:brightness-110">
                 <Plus size={18} /> Fahrt anlegen

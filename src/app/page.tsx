@@ -442,7 +442,7 @@ export default function Home() {
               <button
                 onClick={resetAnimation}
                 className="w-10 h-10 rounded-full flex items-center justify-center bg-black/50 text-gray-400 border border-white/10 hover:bg-black/70 hover:text-white transition-all mt-2"
-                title="Reset animation"
+                title="Zurück zum Anfang"
               >
                 <RotateCcw size={16} />
               </button>

@@ -14,7 +14,7 @@ const COPY: Record<WallReason, { title: string; text: string }> = {
   comment:  { title: 'Melde dich an, um zu kommentieren', text: 'Dein Kommentar bleibt im Feld stehen – nach der Anmeldung nur noch absenden.' },
   create:   { title: 'Melde dich an, um deine Fahrt anzulegen', text: 'Video und GPS-Strecke verbinden, auf deinem eigenen Kanal zeigen.' },
   interact: { title: 'Dir gefällt, was du siehst?', text: 'Mit einem kostenlosen Konto likest und bewertest du so viele Fahrten, wie du willst.' },
-  account:  { title: 'Melde dich an, um dein Dashboard zu öffnen', text: 'Dashboard, Einstellungen und der Sync-Editor gehören zu deinem Konto.' },
+  account:  { title: 'Melde dich an, um diesen Bereich zu öffnen', text: 'Dashboard, Einstellungen und der Sync-Editor gehören zu deinem Konto.' },
   engaged:  { title: 'Werde Teil der RouteCam-Community', text: 'Kostenlos und in fünf Sekunden – mit deinem Google-Konto.' },
 };
 

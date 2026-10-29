@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useEditorState } from '../hooks/useEditorState';
 import { Rnd } from 'react-rnd';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import Link from 'next/link';
@@ -10,13 +9,13 @@ import ChannelAvatar from '@/components/ChannelAvatar';
 import { leaveWhilePlaying } from '@/lib/nav';
 import { waitForYT } from '@/lib/youtubeDuration';
 import { VisibilityIcon, visibilityLabel } from '@/components/Visibility';
+import { useRouteVisibility } from '@/lib/routeVisibility';
+import { useAuth } from '@/lib/auth';
 
 export default function YouTubeOverlay({ state, startAnimation, stopAnimation, initialPos, setActiveWindow, visibility }: any) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<any>(null);
   const [isReady, setIsReady] = useState(false);
   const isInternalChange = useRef(false);
-  const hasInitialized = useRef(false);
   const currentVideoIdRef = useRef<string>(state.videoId || '5EgtgRoC8NI');
 
   const [pos, setPos] = useState({ 
@@ -26,7 +25,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   const [size, setSize] = useState({ width: 320, height: 218 + CHANNEL_BAR_H });
   const hasSetInitial = useRef(false);
   const [isPositioned, setIsPositioned] = useState(false);
-  const [videoTitle, setVideoTitle] = useState("YOUTUBE VIDEO");
+  const [videoTitle, setVideoTitle] = useState('');
 
   // Fallback: the start position is only reported while progress is 0. When the page opens
   // mid-route (deep link ?t=), show the window at its default position anyway.
@@ -63,6 +62,14 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   }, [initialPos]);
 
   useEffect(() => {
+    // read at creation time (the isMobile state below is still false on the first render)
+    const mobile = () => window.innerWidth < 768;
+    // The chosen tempo (0.25×–2×) must also apply to a freshly created or switched video –
+    // YouTube starts every player at 1×, while the ride would keep running at the chosen tempo.
+    const applyRate = () => {
+      const want = (window as any).__EDITOR_STATE?.animSpeed ?? 1;
+      try { if (playerRef.current?.getPlaybackRate?.() !== want) playerRef.current?.setPlaybackRate?.(want); } catch {}
+    };
     const initPlayer = () => {
       if (playerRef.current) return;
       playerRef.current = new (window as any).YT.Player('youtube-player', {
@@ -75,12 +82,13 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
           rel: 0,
           showinfo: 0,
           origin: window.location.origin,
-          vq: isMobile ? 'hd1080' : undefined
+          vq: mobile() ? 'hd1080' : undefined
         },
         events: {
           'onReady': () => { 
             setIsReady(true); 
             (window as any).__YT_PLAYER = playerRef.current; 
+            applyRate();
             // The route (and its video) may have changed while the player was still loading –
             // the switch effect skipped it then, so catch up here (cue = load without playing).
             try {
@@ -88,7 +96,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
               if (want && playerRef.current.getVideoData?.()?.video_id !== want) playerRef.current.cueVideoById(want, 0);
             } catch {}
             try {
-              if (isMobile && playerRef.current.setPlaybackQuality) {
+              if (mobile() && playerRef.current.setPlaybackQuality) {
                  playerRef.current.setPlaybackQuality('hd1080');
               }
               const data = playerRef.current.getVideoData();
@@ -104,10 +112,11 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
               if (t) setVideoTitle(prev => (prev === t ? prev : t));
             } catch {}
             try {
-              if (isMobile && event.data === 1 && playerRef.current.setPlaybackQuality) {
+              if (mobile() && event.data === 1 && playerRef.current.setPlaybackQuality) {
                  playerRef.current.setPlaybackQuality('hd1080');
               }
             } catch(e) {}
+            if (event.data === 1) applyRate();
             
             if (isInternalChange.current || (window as any).__IS_SCRUBBING) return;
             const isPlaying = event.data === 1;
@@ -299,7 +308,10 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
     return () => window.removeEventListener('resize', fit);
   }, [cssFullDesktop]);
   const fmt = (sec: number) => { const m = Math.floor(sec / 60), x = Math.floor(sec % 60); return `${m}:${String(x).padStart(2, '0')}`; };
-  const routeName = state.routes?.find((r: any) => r.id === state.activeRouteId)?.name ?? '';
+  const activeRoute = state.routes?.find((r: any) => r.id === state.activeRouteId);
+  const routeName = activeRoute?.name ?? '';
+  // rides aligned in the sync editor follow the video exactly; others are spread evenly
+  const estimated = !activeRoute?.synced;
 
   const headerContent = (
     <div className="drag-handle w-full flex items-center justify-between cursor-move text-white/50 hover:text-white/90 transition-colors px-3" style={{ height: '38px', minHeight: '38px', flexShrink: 0 }}>
@@ -310,11 +322,13 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
       )}
       <div className="flex-1 min-w-0 flex flex-col justify-center overflow-hidden mr-2 pointer-events-none select-none h-full pt-0.5">
         <span className="text-white text-[11px] font-bold tracking-wide uppercase opacity-80 truncate">
-          {videoTitle}
+          {videoTitle || routeName}
         </span>
-        <span className="text-[#CCFF00]/80 text-[8px] tracking-wider uppercase font-medium truncate mt-[-1px]">
-          *Video might not be 100% synced with route
-        </span>
+        {estimated && (
+          <span className="text-[#CCFF00]/80 text-[8px] tracking-wider uppercase font-medium truncate mt-[-1px]" title="Ohne Zeitstempel wird die Position gleichmäßig über die Strecke verteilt">
+            Position auf der Karte geschätzt
+          </span>
+        )}
       </div>
       {!isMobile && (
         <button type="button" onClick={toggleFullscreen} title="Vollbild" aria-label="Video im Vollbild"
@@ -327,13 +341,18 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   );
 
   // whose ride is this → their RouteCam channel (owner is resolved on the client; localStorage)
+  // count = what the channel page shows: public rides, or all of them on your own channel
+  const { visibilityOf } = useRouteVisibility();
+  const { user } = useAuth();
   const [owner, setOwner] = useState<{ owner: RouteOwner; rides: number } | null>(null);
   useEffect(() => {
     const route = state.routes?.find((r: any) => r.id === state.activeRouteId);
     if (!route) { setOwner(null); return; }
     const o = ownerOf(route);
-    setOwner({ owner: o, rides: loadAllRoutes().filter(r => ownerOf(r).id === o.id).length });
-  }, [state.activeRouteId, state.routes]);
+    const mine = !!user && o.id === user.id;
+    const rides = loadAllRoutes().filter(r => ownerOf(r).id === o.id && (mine || visibilityOf(r.id, r.visibility) === 'public')).length;
+    setOwner({ owner: o, rides });
+  }, [state.activeRouteId, state.routes, visibilityOf, user]);
   const channelBar = <ChannelBar data={owner} />;
 
   const videoContent = (
