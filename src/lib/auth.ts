@@ -108,10 +108,11 @@ export function useAuth() {
   }, []);
 
   // Renders Google's official sign-in button into the given element
-  const renderSignInButton = useCallback(async (el: HTMLElement) => {
+  // theme: 'filled_black' (account menu) or 'outline' (white – sign-up wall)
+  const renderSignInButton = useCallback(async (el: HTMLElement, theme: 'filled_black' | 'outline' = 'filled_black') => {
     const g = await loadGsi();
     el.replaceChildren(); // effects can run twice (dev mode, re-open) – never stack two buttons
-    g.renderButton(el, { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', locale: 'de', width: 240 });
+    g.renderButton(el, { theme, size: 'large', shape: 'pill', text: 'signin_with', locale: 'de', width: 240 });
   }, []);
 
   // Google "One Tap": the small account prompt in the corner. Google itself decides whether it

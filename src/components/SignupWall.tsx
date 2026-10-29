@@ -41,6 +41,7 @@ export default function SignupWall() {
   const [reason, setReason] = useState<WallReason | null>(null);
   const btnRef = useRef<HTMLDivElement>(null);
   const [btnError, setBtnError] = useState(false);
+  const [btnReady, setBtnReady] = useState(false);
 
   // A playing ride pauses while the wall is open, and continues on "Später"
   const resumeRef = useRef(false);
@@ -96,7 +97,12 @@ export default function SignupWall() {
   useEffect(() => {
     if (!reason || user || !configured || !btnRef.current) return;
     setBtnError(false);
-    renderSignInButton(btnRef.current).catch(() => setBtnError(true));
+    setBtnReady(false);
+    const el = btnRef.current;
+    renderSignInButton(el, 'outline')
+      // Google swaps in its (sometimes personalised) button a moment later – fade it in once it's there
+      .then(() => setTimeout(() => setBtnReady(true), 250))
+      .catch(() => setBtnError(true));
   }, [reason, user, configured, renderSignInButton]);
 
   // Escape = later
@@ -141,7 +147,8 @@ export default function SignupWall() {
           <div className="mt-6 flex flex-col items-center gap-3">
             {configured && !btnError ? (
               <>
-                <div ref={btnRef} className="min-h-[44px] flex justify-center" />
+                {/* fixed box: the window must not jump while Google renders its button */}
+                <div ref={btnRef} className={`h-11 w-[240px] flex items-center justify-center overflow-hidden transition-opacity duration-200 ${btnReady ? 'opacity-100' : 'opacity-0'}`} />
                 <span className="inline-flex items-center rounded-full bg-[#CCFF00] text-black text-[11px] font-semibold px-2.5 py-1">Kostenlos</span>
               </>
             ) : (
