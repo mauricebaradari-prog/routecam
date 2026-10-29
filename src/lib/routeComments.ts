@@ -90,8 +90,14 @@ export function useRouteComments(routeId?: string) {
     window.dispatchEvent(new Event(REPORTS_EVENT));
   }, []);
 
-  // own = written by the signed-in account, or (no accounts yet) written in this browser
-  const isOwn = useCallback((c: RouteComment) => !c.authorId || c.authorId === currentUserId(), []);
+  // own = written by the signed-in account. Signed out, nothing is yours to delete.
+  // Comments saved before authorId existed were written in this browser by the account
+  // signed in here, so they count as own for whoever is signed in.
+  const isOwn = useCallback((c: RouteComment) => {
+    const me = currentUserId();
+    if (!me) return false;
+    return c.authorId ? c.authorId === me : true;
+  }, []);
 
   return { comments, countOf, addComment, deleteComment, isOwn };
 }
