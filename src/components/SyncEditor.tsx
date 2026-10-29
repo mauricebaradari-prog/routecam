@@ -158,7 +158,6 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     maplibregl.setWorkerUrl('/routecam/maplibre/maplibre-gl-worker.mjs');
     const map = new maplibregl.Map({ container: mapEl.current, style: buildMapStyle(style), attributionControl: { compact: true } });
     mapRef.current = map;
-    if (process.env.NODE_ENV !== 'production') (window as any).__SYNCMAP = map;
     const b = new maplibregl.LngLatBounds();
     line.coords.forEach(c => b.extend(c));
     map.fitBounds(b, { padding: { top: 70, bottom: 40, left: 40, right: 440 }, duration: 0 });

@@ -172,7 +172,7 @@ export default function AboutPage() {
             <H>Dienste, die beim Nutzen geladen werden</H>
             <p>Damit Karten, Videos und Höhenprofile funktionieren, lädt dein Browser Inhalte direkt von diesen Anbietern. Dabei erhalten sie deine IP-Adresse und technische Browserdaten:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Google / YouTube</strong> (Google Ireland Ltd.): Anmeldung, eingebettete Videos, Vorschaubilder, Schriftarten. Beim Abspielen eines Videos gelten zusätzlich die Datenschutzbestimmungen von YouTube.</li>
+              <li><strong>Google / YouTube</strong> (Google Ireland Ltd.): Anmeldung, eingebettete Videos, Vorschaubilder. Beim Abspielen eines Videos gelten zusätzlich die Datenschutzbestimmungen von YouTube.</li>
               <li><strong>Esri</strong> (USA): Satellitenkarten.</li>
               <li><strong>OSRM / Project OSRM</strong>: Berechnung von Straßenverläufen aus Wegpunkten.</li>
               <li><strong>Open-Meteo</strong> (Schweiz): Höhendaten zu Koordinaten der Strecke.</li>

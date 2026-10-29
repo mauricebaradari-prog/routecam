@@ -74,7 +74,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
           disablekb: 1,
           rel: 0,
           showinfo: 0,
-          origin: 'http://localhost:3005',
+          origin: window.location.origin,
           vq: isMobile ? 'hd1080' : undefined
         },
         events: {

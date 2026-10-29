@@ -1,6 +1,12 @@
 import ErrorLogger from "@/components/ErrorLogger";
 import type { Metadata } from "next";
 import "./globals.css";
+import { Geist, Geist_Mono } from "next/font/google";
+
+// Fonts are downloaded at build time and served from our own server –
+// visitors' browsers never contact Google Fonts.
+const geist = Geist({ subsets: ["latin", "latin-ext"], variable: "--font-geist-sans", display: "swap" });
+const geistMono = Geist_Mono({ subsets: ["latin", "latin-ext"], variable: "--font-geist-mono", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Create your Travel Route Animation - Editor",
@@ -36,16 +42,12 @@ export const viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full bg-black">
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} h-full bg-black`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap" rel="stylesheet" />
         {/*
          * MapLibre GL CSS is served as a static public file to avoid Turbopack
          * PostCSS processing issues with this particular stylesheet.
          */}
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link rel="stylesheet" href="/routecam/maplibre-gl.css" />
       </head>
       <body className="h-full antialiased font-sans">

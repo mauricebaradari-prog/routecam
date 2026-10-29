@@ -487,7 +487,6 @@ export default function GlobeMap({
       map.on('moveend', () => updateClustersRef.current());
       mapInstance = map;
       mapRef.current = map;
-      if (process.env.NODE_ENV !== "production") (window as any).__MAP = map;
       prevStyleRef.current = mapStyle;
 
       const updateSvgOverlay = () => {
