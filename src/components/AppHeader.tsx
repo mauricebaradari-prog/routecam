@@ -2,9 +2,10 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, Heart, LogOut, Settings, LifeBuoy, Info, SquareUser as UserSquare } from 'lucide-react';
+import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Info, Layers, SquareUser as UserSquare } from 'lucide-react';
 import { channelHref, ownerOf } from '@/lib/channels';
 import { useAllRoutes } from '@/lib/userRoutes';
+import { useRouteGroups } from '@/lib/routeGroups';
 import { leaveWhilePlaying } from '@/lib/nav';
 import { useRouteInteractions } from '@/lib/routeInteractions';
 import type { RouteConfig } from '@/hooks/useEditorState';
@@ -46,6 +47,17 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
   // "Meine Routen" = rides of the signed-in account (all of them, also private / unlisted)
   const allRoutes = useAllRoutes();
   const myRoutes = useMemo(() => (user ? allRoutes.filter(r => ownerOf(r).id === user.id) : []), [allRoutes, user]);
+  // "Meine Gruppen": groups made of own rides (e.g. a trip), each opens to its rides
+  const { groups } = useRouteGroups();
+  const [groupsOpen, setGroupsOpen] = useState(false);
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  const myGroups = useMemo(() => {
+    const mine = new Map(myRoutes.map(r => [r.id, r]));
+    return groups
+      .map(g => ({ group: g, rides: g.routeIds.map(id => mine.get(id)).filter((r): r is RouteConfig => !!r) }))
+      .filter(x => x.rides.length > 0)
+      .sort((a, b) => (b.group.updatedAt ?? b.group.createdAt).localeCompare(a.group.updatedAt ?? a.group.createdAt));
+  }, [groups, myRoutes]);
   const [mobileSearch, setMobileSearch] = useState(false);
 
   useEffect(() => {
@@ -163,6 +175,45 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
               </DrawerGroup>}
 
               {user && <>
+              <div className="mx-3 my-2 border-t border-white/10" />
+
+              <DrawerGroup
+                title="Meine Gruppen"
+                icon={<Layers size={14} className="text-white/60" />}
+                count={myGroups.length}
+                open={groupsOpen}
+                onToggle={() => setGroupsOpen(o => !o)}
+              >
+                {myGroups.length === 0 ? (
+                  <p className="pl-6 pr-3 py-2 text-xs text-white/40">Noch keine Gruppe – im Dashboard mehrere Fahrten auswählen und zusammenfassen, z. B. zu einer Reise.</p>
+                ) : (
+                  myGroups.map(({ group, rides }) => {
+                    const isOpen = openGroupId === group.id;
+                    return (
+                      <div key={group.id}>
+                        <button
+                          type="button"
+                          onClick={() => setOpenGroupId(isOpen ? null : group.id)}
+                          aria-expanded={isOpen}
+                          className="w-full pl-6 pr-3 h-10 rounded-lg flex items-center gap-2 text-sm text-white/80 hover:bg-white/5 hover:text-white"
+                        >
+                          <ChevronRight size={14} className={`shrink-0 text-white/50 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                          <span className="truncate flex-1 text-left">{group.name}</span>
+                          <span className="text-xs font-mono text-white/40">{rides.length}</span>
+                        </button>
+                        {isOpen && (
+                          <div className="flex flex-col gap-0.5 ml-4 border-l border-white/10">
+                            {rides.map(r => (
+                              <RouteItem key={r.id} name={r.name} active={r.id === activeRouteId} onClick={() => select(r.id)} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </DrawerGroup>
+
               <div className="mx-3 my-2 border-t border-white/10" />
 
               <DrawerGroup

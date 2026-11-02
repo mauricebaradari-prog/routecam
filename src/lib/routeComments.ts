@@ -14,6 +14,8 @@ export interface RouteComment {
   text: string;
   createdAt: string;
   authorId?: string; // account that wrote it (missing on comments from before accounts)
+  parentId?: string; // a reply: the comment it answers (one level – replies to a reply join the same thread)
+  editedAt?: string; // set when the author changed the text
 }
 
 const STORAGE_KEY = 'routecam.comments';
@@ -61,16 +63,20 @@ export function useRouteComments(routeId?: string) {
 
   const countOf = useCallback((id: string) => all.filter(c => c.routeId === id).length, [all]);
 
-  const addComment = useCallback((rId: string, seconds: number, text: string, author = 'Du') => {
+  const addComment = useCallback((rId: string, seconds: number, text: string, author = 'Du', parentId?: string) => {
+    // a reply sits at its thread's video position and always hangs off the top comment
+    const parent = parentId ? loadOwn().find(c => c.id === parentId) : undefined;
+    const root = parent?.parentId ? loadOwn().find(c => c.id === parent.parentId) ?? parent : parent;
     const comment: RouteComment = {
       id: `c-${Date.now().toString(36)}`,
       routeId: rId,
-      seconds: Math.max(0, Math.round(seconds)),
+      seconds: root ? root.seconds : Math.max(0, Math.round(seconds)),
       author,
       color: '#CCFF00',
       text: text.trim(),
       createdAt: new Date().toISOString(),
       authorId: currentUserId(),
+      ...(root ? { parentId: root.id } : {}),
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify([...loadOwn(), comment]));
@@ -78,11 +84,21 @@ export function useRouteComments(routeId?: string) {
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }, []);
 
-  // Delete an own comment. Reports this browser made on it go too (reporting your own comment
-  // means nothing); reports by others stay for moderation once a database exists.
+  // Change the text of an own comment
+  const editComment = useCallback((id: string, text: string) => {
+    const t = text.trim();
+    if (!t) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(loadOwn().map(c => (c.id === id ? { ...c, text: t, editedAt: new Date().toISOString() } : c))));
+    } catch {}
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+  }, []);
+
+  // Delete an own comment – with its replies. Reports this browser made on it go too (reporting
+  // your own comment means nothing); reports by others stay for moderation once a database exists.
   const deleteComment = useCallback((id: string) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(loadOwn().filter(c => c.id !== id)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(loadOwn().filter(c => c.id !== id && c.parentId !== id)));
       const me = currentUserId();
       localStorage.setItem(REPORTS_KEY, JSON.stringify(loadReports().filter(r => !(r.commentId === id && r.reporterId === me))));
     } catch {}
@@ -99,7 +115,7 @@ export function useRouteComments(routeId?: string) {
     return c.authorId ? c.authorId === me : true;
   }, []);
 
-  return { comments, countOf, addComment, deleteComment, isOwn };
+  return { comments, countOf, addComment, editComment, deleteComment, isOwn };
 }
 
 // ── Reporting comments ───────────────────────────────────────────────────────

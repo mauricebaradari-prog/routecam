@@ -71,7 +71,9 @@ export default function Home() {
   const { visibilityOf, setVisibility } = useRouteVisibility();
   const [createOpen, setCreateOpen] = useState(false);
   const [focus, setFocus] = useState<{ routeId: string; progress: number } | null>(null);
-  const { comments: routeComments, addComment } = useRouteComments(state.activeRouteId);
+  const { comments: allRouteComments, addComment } = useRouteComments(state.activeRouteId);
+  // the map shows a thread once – at its top comment; replies live in the community list
+  const routeComments = useMemo(() => allRouteComments.filter(c => !c.parentId), [allRouteComments]);
   const { user: authUser } = useAuth(); // signed-in Google user names their comments
 
   // Comments the vehicle is near: from 3 s before until 6 s after their video position.
@@ -355,9 +357,9 @@ export default function Home() {
           setActiveWindow={setActiveWindow}
           defaultY={showVelocity ? 504 : 248}
           currentSeconds={state.animationProgress * state.durationSeconds}
-          commentCount={routeComments.length}
-          onAddComment={(seconds, text) => addComment(state.activeRouteId, seconds, text, authUser?.name)}
-          comments={routeComments}
+          commentCount={allRouteComments.length}
+          onAddComment={(seconds, text, parentId) => addComment(state.activeRouteId, seconds, text, authUser?.name, parentId)}
+          comments={allRouteComments}
           activeCommentIds={activeCommentIds}
           isAnimating={state.isAnimating}
           onSeekToSeconds={sec => handleSeek(Math.min(1, sec / (state.durationSeconds || 1)))}

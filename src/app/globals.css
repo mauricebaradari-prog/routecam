@@ -103,6 +103,19 @@ body.is-dragging iframe {
 .rc-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 2px; font-weight: 600; font-size: 11px; }
 .rc-time { color: #CCFF00; font-family: var(--font-geist-mono, ui-monospace, monospace); font-weight: 500; font-size: 10px; }
 
+/* Several comments close together on the map: stacked avatars + count (GlobeMap.clusterComments) */
+.rc-stack { position: relative; display: flex; align-items: center; transition: transform 150ms ease; }
+.rc-stack .rc-avatar + .rc-avatar { margin-left: -10px; }
+.rc-count {
+  margin-left: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 9999px;
+  display: flex; align-items: center; justify-content: center;
+  background: #CCFF00; color: #0b0d10; border: 2px solid #0b0d10;
+  font: 700 10px/1 var(--font-geist-mono, ui-monospace, monospace);
+}
+.rc-comment-group:hover .rc-stack { transform: scale(1.12); }
+.rc-group-row + .rc-group-row { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
+.rc-more { margin-top: 6px; color: rgba(255,255,255,0.5); font-size: 11px; }
+
 /* Hover indicator for "click on the route to jump there" (GlobeMap) */
 .rc-route-hover { position: absolute; left: 0; top: 0; display: none; pointer-events: none; z-index: 15; will-change: transform; }
 .rc-route-hover-dot {

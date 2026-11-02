@@ -1018,7 +1018,7 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
                   );
                 })}
               </svg>
-              {comments.map(c => {
+              {comments.filter(c => !c.parentId).map(c => {
                 const p = Math.min(1, c.seconds / duration);
                 const e = elevationAt(ele, p);
                 if (e === null) return null;
@@ -1067,7 +1067,8 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 text-xs">
                     <span className="font-semibold text-white">{c.author}</span>
-                    <span className="font-mono text-[#CCFF00]">{formatCommentTime(c.seconds)}</span>
+                    {c.parentId ? <span className="text-white/45">Antwort</span> : <span className="font-mono text-[#CCFF00]">{formatCommentTime(c.seconds)}</span>}
+                    {c.editedAt && <span className="text-white/35">bearbeitet</span>}
                     {e !== null && <span className="font-mono text-white/50" title="Höhe an dieser Stelle">{Math.round(e)} m</span>}
                     <span className="ml-auto text-white/30">{formatDate(c.createdAt)}</span>
                   </div>

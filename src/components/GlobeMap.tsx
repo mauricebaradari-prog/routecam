@@ -244,6 +244,93 @@ export default function GlobeMap({
       if (activeCommentIdsRef.current.includes(c.id)) el.classList.add('is-active');
       commentMarkersRef.current.push({ id: c.id, marker, el, progress });
     }
+    clusterComments();
+  }
+
+  // Many comments close together on screen become one stacked avatar with a count. Comments the
+  // vehicle is passing always stay single (their bubble shows). Recomputed after every move/zoom.
+  const commentClustersRef = useRef<maplibregl.Marker[]>([]);
+  const clusterListenerRef = useRef<maplibregl.Map | null>(null);
+  const clusterViewRef = useRef('');
+  const viewKeyOf = (m: maplibregl.Map) => `${m.getZoom().toFixed(1)}|${Math.round(m.getPitch() / 5)}|${Math.round(m.getBearing() / 10)}`;
+  function clusterComments() {
+    const map = mapRef.current;
+    commentClustersRef.current.forEach(m => m.remove());
+    commentClustersRef.current = [];
+    if (!map) return;
+    if (clusterListenerRef.current !== map) {
+      // Grouping only depends on zoom / tilt / rotation, not on panning – and the follow camera
+      // moves every frame. So: re-group after a move only when the view really changed, debounced.
+      let timer = 0;
+      map.on('moveend', () => {
+        const v = viewKeyOf(map);
+        if (v === clusterViewRef.current) return;
+        window.clearTimeout(timer);
+        timer = window.setTimeout(clusterComments, 150);
+      });
+      clusterListenerRef.current = map;
+    }
+    clusterViewRef.current = viewKeyOf(map);
+    const RADIUS = 26; // px
+    const groups: { at: maplibregl.Point; items: typeof commentMarkersRef.current }[] = [];
+    for (const m of [...commentMarkersRef.current].sort((a, b) => a.progress - b.progress)) {
+      m.el.style.display = '';
+      if (m.el.classList.contains('is-active')) continue;
+      const pt = map.project(m.marker.getLngLat());
+      const g = groups.find(x => Math.hypot(x.at.x - pt.x, x.at.y - pt.y) < RADIUS);
+      if (g) g.items.push(m); else groups.push({ at: pt, items: [m] });
+    }
+    for (const g of groups) {
+      if (g.items.length < 2) continue;
+      g.items.forEach(m => { m.el.style.display = 'none'; });
+      const cs = g.items.map(m => commentsRef.current.find(c => c.id === m.id)).filter((c): c is RouteComment => !!c);
+      const el = document.createElement('div');
+      el.className = 'rc-comment rc-comment-group';
+      const stack = document.createElement('div');
+      stack.className = 'rc-stack';
+      cs.slice(0, 2).forEach(c => {
+        const a = document.createElement('div');
+        a.className = 'rc-avatar';
+        a.style.background = c.color;
+        a.textContent = initials(c.author);
+        stack.append(a);
+      });
+      const count = document.createElement('span');
+      count.className = 'rc-count';
+      count.textContent = String(cs.length);
+      stack.append(count);
+      // hover: the first few comments of the group
+      const bubble = document.createElement('div');
+      bubble.className = 'rc-bubble';
+      cs.slice(0, 3).forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'rc-group-row';
+        const head = document.createElement('div');
+        head.className = 'rc-head';
+        const who = document.createElement('span'); who.textContent = c.author;
+        const when = document.createElement('span'); when.className = 'rc-time'; when.textContent = formatCommentTime(c.seconds);
+        head.append(who, when);
+        const body = document.createElement('div'); body.textContent = c.text;
+        row.append(head, body);
+        bubble.append(row);
+      });
+      if (cs.length > 3) {
+        const more = document.createElement('div');
+        more.className = 'rc-more';
+        more.textContent = `+ ${cs.length - 3} weitere – heranzoomen`;
+        bubble.append(more);
+      }
+      el.append(bubble, stack);
+      el.title = `${cs.length} Kommentare – klicken zum Heranzoomen`;
+      const center = g.items[0].marker.getLngLat();
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        // zoom in until they separate; at the closest zoom, jump to the first one instead
+        if (map.getZoom() < map.getMaxZoom() - 1.5) map.easeTo({ center, zoom: Math.min(map.getMaxZoom(), map.getZoom() + 2.5), duration: 700 });
+        else onSeekRef.current?.(g.items[0].progress);
+      });
+      commentClustersRef.current.push(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(center).addTo(map));
+    }
   }
 
   // Deep link focus: remembered until the route geometry is ready, then the camera flies there
@@ -316,6 +403,7 @@ export default function GlobeMap({
   useEffect(() => {
     activeCommentIdsRef.current = activeCommentIds;
     for (const m of commentMarkersRef.current) m.el.classList.toggle('is-active', activeCommentIds.includes(m.id));
+    clusterComments(); // a passed comment leaves / rejoins its group
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey]);
   

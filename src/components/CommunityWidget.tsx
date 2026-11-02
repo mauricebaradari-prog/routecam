@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
-import { ThumbsUp, Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle } from 'lucide-react';
+import { ThumbsUp, Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
 import { shareUrl } from '@/lib/share';
 import { allowInteraction, requireAccount } from '@/lib/signupWall';
 import { formatCommentTime, initials, useCommentReports, useRouteComments, COMMENT_REPORT_REASONS, type RouteComment } from '@/lib/routeComments';
@@ -17,7 +17,7 @@ interface Props {
   defaultY: number;
   currentSeconds: number;
   commentCount: number;
-  onAddComment: (seconds: number, text: string) => void;
+  onAddComment: (seconds: number, text: string, parentId?: string) => void;
   comments: RouteComment[];
   activeCommentIds: string[]; // comments the vehicle is currently passing – highlighted
   isAnimating: boolean;
@@ -34,7 +34,12 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const [reportOpen, setReportOpen] = useState(false);
   const [reportComment, setReportComment] = useState<RouteComment | null>(null);
   const { reportComment: sendCommentReport, reportedByMe } = useCommentReports();
-  const { deleteComment, isOwn } = useRouteComments();
+  const { deleteComment, editComment, isOwn } = useRouteComments();
+  // inline reply / edit (one at a time)
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyDraft, setReplyDraft] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [hoverStars, setHoverStars] = useState(0);
@@ -267,60 +272,144 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
             </div>
             <ol ref={listRef} className="no-scrollbar relative overflow-y-auto flex flex-col gap-1" style={{ maxHeight: listMax }}>
               {comments.length === 0 && <li className="text-xs text-white/40 py-4 text-center">Noch keine Kommentare auf dieser Route.</li>}
-              {comments.map(c => {
-                const active = activeCommentIds.includes(c.id);
-                const passed = !active && c.seconds < currentSeconds;
-                const flagged = reportedByMe(c.id);
+              {comments.filter(c => !c.parentId).map(top => {
+                const thread = [top, ...comments.filter(c => c.parentId === top.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt))];
                 return (
-                  <li key={c.id} data-comment-id={c.id} className="group/c relative">
-                    <button
-                      type="button"
-                      onClick={() => onSeekToSeconds(c.seconds)}
-                      title="Zu dieser Stelle springen"
-                      className={`w-full text-left flex gap-2.5 rounded-lg p-2 border transition-all duration-300 ${
-                        active ? 'border-[#CCFF00]/60 bg-[#CCFF00]/10 shadow-[0_0_16px_rgba(204,255,0,0.15)]' : 'border-transparent hover:bg-white/5'
-                      } ${passed ? 'opacity-50' : ''}`}
-                    >
-                      <span className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold text-[#0b0d10]" style={{ background: c.color }}>
-                        {initials(c.author)}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-baseline gap-2 text-[11px]">
-                          <span className="font-semibold text-white">{c.author}</span>
-                          <span className="font-mono text-[#CCFF00]">{formatCommentTime(c.seconds)}</span>
-                        </span>
-                        <span className="block text-xs text-white/80 leading-snug mt-0.5 break-words pr-6">{c.text}</span>
-                        {flagged && <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-300/80"><Flag size={10} /> Von dir gemeldet</span>}
-                      </span>
-                    </button>
-                    {isOwn(c) ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirmDelete === c.id) { deleteComment(c.id); setConfirmDelete(null); showToast('Kommentar gelöscht'); }
-                          else setConfirmDelete(c.id);
+                  <li key={top.id} data-comment-id={top.id} className="flex flex-col gap-0.5">
+                    {thread.map(c => {
+                      const reply = !!c.parentId;
+                      const active = !reply && activeCommentIds.includes(c.id);
+                      const passed = !active && c.seconds < currentSeconds;
+                      const flagged = reportedByMe(c.id);
+                      const own = isOwn(c);
+                      if (editing === c.id) {
+                        return (
+                          <form
+                            key={c.id}
+                            className={`rounded-lg border border-[#CCFF00]/40 bg-white/[0.03] p-2 ${reply ? 'ml-8' : ''}`}
+                            onSubmit={e => { e.preventDefault(); if (editDraft.trim()) { editComment(c.id, editDraft); setEditing(null); showToast('Kommentar geändert'); } }}
+                          >
+                            <textarea
+                              autoFocus
+                              value={editDraft}
+                              onChange={e => setEditDraft(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setEditing(null); } if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
+                              maxLength={280}
+                              rows={2}
+                              className="w-full resize-none rounded-md bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-2.5 py-1.5 text-xs text-white"
+                            />
+                            <div className="mt-1.5 flex justify-end gap-1.5">
+                              <button type="button" onClick={() => setEditing(null)} className="h-7 px-2.5 rounded-full text-[11px] hover:bg-white/10">Abbrechen</button>
+                              <button type="submit" disabled={!editDraft.trim()} className="h-7 px-3 rounded-full text-[11px] font-semibold bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">Speichern</button>
+                            </div>
+                          </form>
+                        );
+                      }
+                      return (
+                        <div key={c.id} className={`group/c relative ${reply ? 'ml-8' : ''}`}>
+                          <button
+                            type="button"
+                            onClick={() => onSeekToSeconds(c.seconds)}
+                            title="Zu dieser Stelle springen"
+                            className={`w-full text-left flex gap-2.5 rounded-lg p-2 border transition-all duration-300 ${
+                              active ? 'border-[#CCFF00]/60 bg-[#CCFF00]/10 shadow-[0_0_16px_rgba(204,255,0,0.15)]' : 'border-transparent hover:bg-white/5'
+                            } ${passed ? 'opacity-50' : ''}`}
+                          >
+                            <span className={`${reply ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[9px]'} shrink-0 rounded-full flex items-center justify-center font-bold text-[#0b0d10]`} style={{ background: c.color }}>
+                              {initials(c.author)}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-baseline gap-2 text-[11px]">
+                                <span className="font-semibold text-white">{c.author}</span>
+                                {!reply && <span className="font-mono text-[#CCFF00]">{formatCommentTime(c.seconds)}</span>}
+                                {c.editedAt && <span className="text-white/35">bearbeitet</span>}
+                              </span>
+                              <span className="block text-xs text-white/80 leading-snug mt-0.5 break-words pr-12">{c.text}</span>
+                              {flagged && <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-300/80"><Flag size={10} /> Von dir gemeldet</span>}
+                            </span>
+                          </button>
+                          {/* actions: answer (everyone), edit + delete (own), report (others) */}
+                          <div className="absolute right-1.5 top-1.5 flex items-center gap-0.5">
+                            {confirmDelete !== c.id && (
+                              <button
+                                type="button"
+                                onClick={() => { setReplyTo(top.id); setReplyDraft(''); setEditing(null); }}
+                                title="Antworten"
+                                aria-label={`${c.author} antworten`}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                              >
+                                <CornerDownRight size={12} />
+                              </button>
+                            )}
+                            {own && confirmDelete !== c.id && (
+                              <button
+                                type="button"
+                                onClick={() => { setEditing(c.id); setEditDraft(c.text); setReplyTo(null); }}
+                                title="Bearbeiten"
+                                aria-label="Eigenen Kommentar bearbeiten"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                              >
+                                <Pencil size={11} />
+                              </button>
+                            )}
+                            {own ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirmDelete === c.id) { deleteComment(c.id); setConfirmDelete(null); showToast('Kommentar gelöscht'); }
+                                  else setConfirmDelete(c.id);
+                                }}
+                                onBlur={() => setConfirmDelete(id => (id === c.id ? null : id))}
+                                title={confirmDelete === c.id ? 'Zum Löschen noch einmal klicken' : !reply && thread.length > 1 ? 'Löschen – die Antworten gehen mit' : 'Eigenen Kommentar löschen'}
+                                aria-label={confirmDelete === c.id ? 'Löschen bestätigen' : 'Eigenen Kommentar löschen'}
+                                className={`h-6 rounded-full flex items-center justify-center gap-1 transition-opacity ${
+                                  confirmDelete === c.id
+                                    ? 'px-2 bg-red-500 text-white text-[10px] font-semibold opacity-100'
+                                    : 'w-6 text-white/40 hover:text-red-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100'
+                                }`}
+                              >
+                                <Trash2 size={12} />{confirmDelete === c.id && (!reply && thread.length > 1 ? `Mit ${thread.length - 1} ${thread.length === 2 ? 'Antwort' : 'Antworten'} löschen?` : 'Löschen?')}
+                              </button>
+                            ) : !flagged && (
+                              <button
+                                type="button"
+                                onClick={() => setReportComment(c)}
+                                title="Kommentar melden"
+                                aria-label={`Kommentar von ${c.author} melden`}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-amber-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+                              >
+                                <Flag size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {replyTo === top.id && (
+                      <form
+                        className="ml-8 flex items-center gap-1.5 py-1"
+                        onSubmit={e => {
+                          e.preventDefault();
+                          if (!replyDraft.trim()) return;
+                          if (!requireAccount('comment')) return; // the typed reply stays
+                          onAddComment(top.seconds, replyDraft, top.id);
+                          setReplyDraft(''); setReplyTo(null);
+                          showToast('Antwort gesendet');
                         }}
-                        onBlur={() => setConfirmDelete(id => (id === c.id ? null : id))}
-                        title={confirmDelete === c.id ? 'Zum Löschen noch einmal klicken' : 'Eigenen Kommentar löschen'}
-                        aria-label={confirmDelete === c.id ? 'Löschen bestätigen' : 'Eigenen Kommentar löschen'}
-                        className={`absolute right-1.5 top-1.5 h-6 rounded-full flex items-center justify-center gap-1 transition-opacity ${
-                          confirmDelete === c.id
-                            ? 'px-2 bg-red-500 text-white text-[10px] font-semibold opacity-100'
-                            : 'w-6 text-white/40 hover:text-red-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100'
-                        }`}
                       >
-                        <Trash2 size={12} />{confirmDelete === c.id && 'Löschen?'}
-                      </button>
-                    ) : !flagged && (
-                      <button
-                        type="button"
-                        onClick={() => setReportComment(c)}
-                        title="Kommentar melden"
-                        aria-label={`Kommentar von ${c.author} melden`}
-                        className="absolute right-1.5 top-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-amber-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
-                      >
-                        <Flag size={12} />
-                      </button>
+                        <input
+                          autoFocus
+                          value={replyDraft}
+                          onChange={e => setReplyDraft(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setReplyTo(null); } }}
+                          maxLength={280}
+                          placeholder={`Antwort an ${top.author} …`}
+                          className="flex-1 min-w-0 h-8 rounded-full bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-3 text-xs text-white placeholder:text-white/35"
+                        />
+                        <button type="submit" disabled={!replyDraft.trim()} title="Antwort senden" className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">
+                          <SendHorizontal size={14} />
+                        </button>
+                      </form>
                     )}
                   </li>
                 );
