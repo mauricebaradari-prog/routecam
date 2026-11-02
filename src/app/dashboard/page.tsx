@@ -13,6 +13,7 @@ import type { RouteConfig } from '@/hooks/useEditorState';
 import { haversineDistance } from '@/lib/geo';
 import { useAllRoutes, deleteRoute, routeFromTrack, saveUserRoute } from '@/lib/userRoutes';
 import { placeNamesOf, setPlaceNames, originalPlaceNames } from '@/lib/placeNames';
+import { useYouTubeDuration } from '@/lib/youtubeDuration';
 import AppHeader from '@/components/AppHeader';
 import CreateRideModal, { type NewRide } from '@/components/CreateRideModal';
 import { useRouteGroups, relativeTime, type RouteGroup } from '@/lib/routeGroups';
@@ -538,7 +539,7 @@ function Dashboard() {
                         <ExternalLink size={14} />
                       </a>
                       <SyncButton route={r.route} />
-                      <button onClick={() => setToRename(r.route)} title="Start & Ziel umbenennen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                      <button onClick={() => setToRename(r.route)} title="Fahrt bearbeiten: Titel, Start & Ziel" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
                         <Pencil size={14} />
                       </button>
                       <button onClick={() => setToDelete(r.route)} title="Route löschen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-red-300 hover:bg-red-500/15 transition-colors">
@@ -595,7 +596,7 @@ function Dashboard() {
                         <ExternalLink size={14} />
                       </a>
                       <SyncButton route={r.route} />
-                      <button onClick={() => setToRename(r.route)} title="Start & Ziel umbenennen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                      <button onClick={() => setToRename(r.route)} title="Fahrt bearbeiten: Titel, Start & Ziel" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
                         <Pencil size={14} />
                       </button>
                         <button onClick={() => setToDelete(r.route)} title="Route löschen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-red-300 hover:bg-red-500/15 transition-colors">
@@ -665,10 +666,10 @@ function Dashboard() {
       )}
 
       {toRename && (
-        <PlaceNamesDialog
+        <EditRideDialog
           route={toRename}
           onCancel={() => setToRename(null)}
-          onSave={names => { setPlaceNames(toRename.id, names); setToRename(null); showToast('Start & Ziel gespeichert'); }}
+          onSave={names => { setPlaceNames(toRename.id, names); setToRename(null); showToast('Fahrt gespeichert'); }}
         />
       )}
 
@@ -1100,27 +1101,39 @@ function ConfirmDelete({ name, onCancel, onConfirm }: { name: string; onCancel: 
   );
 }
 
-// Own names for start and end point – also changes the "A → B" name in the navigation
-function PlaceNamesDialog({ route, onCancel, onSave }: {
+// Edit a ride: its title (YouTube title or an own one – the same choice as when creating it)
+// and own names for start and end point (map pins, search, the "A → B" name)
+function EditRideDialog({ route, onCancel, onSave }: {
   route: RouteConfig;
   onCancel: () => void;
-  onSave: (names: { start: string; end: string }) => void;
+  onSave: (names: { start: string; end: string; title: string }) => void;
 }) {
   const orig = originalPlaceNames(route);
   const own = placeNamesOf(route.id);
   const [start, setStart] = useState(own.start ?? '');
   const [end, setEnd] = useState(own.end ?? '');
+  const [titleMode, setTitleMode] = useState<'youtube' | 'custom'>('custom');
+  const [customTitle, setCustomTitle] = useState(route.name);
+  const yt = useYouTubeDuration(titleMode === 'youtube' ? route.videoId : null);
+  const ytTitle = yt.status === 'ok' ? yt.title : '';
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
   }, [onCancel]);
-  const preview = `${start.trim() || orig.start} → ${end.trim() || orig.end}`;
-  const field = (label: string, value: string, set: (v: string) => void, placeholder: string, auto = false) => (
+
+  // an unchanged name is not stored as a title, so "A → B" names keep following start/end
+  // an emptied field goes back to the original title
+  const typed = customTitle.trim();
+  const changedTitle = titleMode === 'youtube' ? ytTitle : !typed ? '' : typed !== route.name ? typed : (own.title ?? '');
+  const derived = `${start.trim() || orig.start} → ${end.trim() || orig.end}`;
+  const shownTitle = changedTitle || (own.start || own.end || start.trim() || end.trim() ? derived : route.originalName ?? route.name);
+  const canSave = titleMode === 'custom' || !!ytTitle;
+
+  const field = (label: string, value: string, set: (v: string) => void, placeholder: string) => (
     <label className="block">
       <span className="text-xs text-white/50">{label}</span>
       <input
-        autoFocus={auto}
         value={value}
         onChange={e => set(e.target.value)}
         maxLength={60}
@@ -1129,29 +1142,65 @@ function PlaceNamesDialog({ route, onCancel, onSave }: {
       />
     </label>
   );
+  const radio = (mode: 'youtube' | 'custom', label: string, children: React.ReactNode) => (
+    <label className={`block rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
+      titleMode === mode ? 'border-[#CCFF00]/50 bg-[#CCFF00]/[0.06]' : 'border-white/10 hover:bg-white/[0.03]'
+    }`}>
+      <span className="flex items-center gap-2.5 text-sm">
+        <input type="radio" name="title-mode" checked={titleMode === mode} onChange={() => setTitleMode(mode)} className="accent-[#CCFF00]" />
+        {label}
+      </span>
+      {children}
+    </label>
+  );
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
       <form
         role="dialog"
         aria-modal="true"
-        onSubmit={e => { e.preventDefault(); onSave({ start, end }); }}
-        className="relative w-full max-w-md rounded-2xl bg-[#1f1f1f] border border-white/10 shadow-2xl p-6"
+        onSubmit={e => { e.preventDefault(); if (canSave) onSave({ start, end, title: changedTitle }); }}
+        className="relative w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl bg-[#1f1f1f] border border-white/10 shadow-2xl p-6"
       >
-        <h2 className="text-lg font-semibold">Start & Ziel umbenennen</h2>
-        <p className="mt-1 text-sm text-white/50 truncate">{route.originalName ?? route.name}</p>
-        <div className="mt-5 flex flex-col gap-3">
-          {field('Startpunkt', start, setStart, orig.start, true)}
+        <h2 className="text-lg font-semibold">Fahrt bearbeiten</h2>
+
+        <div className="mt-5">
+          <div className="text-xs text-white/50 mb-1.5">Titel</div>
+          <div className="flex flex-col gap-2">
+            {radio('youtube', 'YouTube-Titel übernehmen',
+              titleMode === 'youtube' && (
+                <span className={`mt-1 ml-6 block text-sm truncate ${yt.status === 'error' ? 'text-red-300' : 'text-white/60'}`}>
+                  {yt.status === 'ok' ? yt.title : yt.status === 'error' ? yt.message : 'Titel wird geladen …'}
+                </span>
+              ))}
+            {radio('custom', 'Eigener Titel',
+              titleMode === 'custom' && (
+                <input
+                  autoFocus
+                  value={customTitle}
+                  onChange={e => setCustomTitle(e.target.value)}
+                  maxLength={100}
+                  placeholder={`Leer = ursprünglich (${route.originalName ?? route.name})`}
+                  className="mt-2 w-full h-10 rounded-lg bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-3 text-sm text-white placeholder:text-white/30"
+                />
+              ))}
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          {field('Startpunkt', start, setStart, orig.start)}
           {field('Endpunkt', end, setEnd, orig.end)}
         </div>
+        <p className="mt-2 text-[11px] text-white/35">Leeres Feld = ursprünglicher Name. Gilt für die Pins auf der Karte und die Suche.</p>
+
         <div className="mt-4 rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2">
-          <div className="text-[10px] uppercase tracking-widest text-white/40">In der Navigation</div>
-          <div className="mt-0.5 text-sm font-medium text-white truncate">{preview}</div>
+          <div className="text-[10px] uppercase tracking-widest text-white/40">So heißt die Fahrt</div>
+          <div className="mt-0.5 text-sm font-medium text-white truncate">{shownTitle}</div>
         </div>
-        <p className="mt-2 text-[11px] text-white/35">Leeres Feld = ursprünglicher Name. Gilt auch für die Pins auf der Karte und die Suche.</p>
+
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" onClick={onCancel} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">Abbrechen</button>
-          <button type="submit" className="h-10 px-5 rounded-full text-sm font-semibold bg-[#CCFF00] text-black hover:brightness-110 transition">Speichern</button>
+          <button type="submit" disabled={!canSave} className="h-10 px-5 rounded-full text-sm font-semibold bg-[#CCFF00] text-black hover:brightness-110 transition disabled:bg-white/10 disabled:text-white/30">Speichern</button>
         </div>
       </form>
     </div>
