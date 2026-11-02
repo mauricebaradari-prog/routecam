@@ -27,6 +27,8 @@ export function loadAllRoutes(): RouteConfig[] {
 }
 
 // User routes are removed from storage; built-in routes (defined in code) can only be hidden.
+// Everything that belongs to the ride goes with it: comments, likes/ratings, visibility, own names.
+// (Comment reports stay – they carry a copy of the comment for moderation.)
 export function deleteRoute(id: string) {
   try {
     if (loadUserRoutes().some(r => r.id === id)) {
@@ -34,8 +36,15 @@ export function deleteRoute(id: string) {
     } else {
       localStorage.setItem(DELETED_KEY, JSON.stringify([...new Set([...loadDeletedIds(), id])]));
     }
+    const comments = JSON.parse(localStorage.getItem('routecam.comments') || '[]');
+    if (Array.isArray(comments)) localStorage.setItem('routecam.comments', JSON.stringify(comments.filter((c: { routeId?: string }) => c.routeId !== id)));
+    for (const key of ['routecam.interactions', 'routecam.visibility', 'routecam.placeNames']) {
+      const map = JSON.parse(localStorage.getItem(key) || '{}');
+      if (map && typeof map === 'object' && id in map) { delete map[id]; localStorage.setItem(key, JSON.stringify(map)); }
+    }
   } catch {}
   window.dispatchEvent(new Event(CHANGE_EVENT));
+  for (const ev of ['routecam:comments', 'routecam:interactions', 'routecam:visibility']) window.dispatchEvent(new Event(ev));
 }
 
 export function loadUserRoutes(): RouteConfig[] {

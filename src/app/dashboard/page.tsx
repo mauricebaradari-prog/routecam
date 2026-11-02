@@ -676,8 +676,18 @@ function Dashboard() {
       {toDelete && (
         <ConfirmDelete
           name={toDelete.name}
+          comments={commentsOf(toDelete.id)}
+          likes={interactionsOf(toDelete.id).likeCount}
+          ratings={interactionsOf(toDelete.id).ratingCount}
+          groups={groupsOf(toDelete.id).length}
           onCancel={() => setToDelete(null)}
-          onConfirm={() => { deleteRoute(toDelete.id); setToDelete(null); }}
+          onConfirm={() => {
+            for (const g of groupsOf(toDelete.id)) removeFromGroup(g.id, [toDelete.id]);
+            deleteRoute(toDelete.id);
+            setSelected(sel => sel.filter(id => id !== toDelete.id));
+            setToDelete(null);
+            showToast(`„${toDelete.name}“ gelöscht`);
+          }}
         />
       )}
     </div>
@@ -1077,24 +1087,69 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
   );
 }
 
-function ConfirmDelete({ name, onCancel, onConfirm }: { name: string; onCancel: () => void; onConfirm: () => void }) {
+// Deleting is final: list what goes with the ride, and when people already reacted to it,
+// require an explicit "yes, I understand" before the delete button works.
+function ConfirmDelete({ name, comments, likes, ratings, groups, onCancel, onConfirm }: {
+  name: string; comments: number; likes: number; ratings: number; groups: number;
+  onCancel: () => void; onConfirm: () => void;
+}) {
+  const [sure, setSure] = useState(false);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
   }, [onCancel]);
 
+  const losses = [
+    comments > 0 && `${comments} ${comments === 1 ? 'Kommentar' : 'Kommentare'}`,
+    likes > 0 && `${likes} ${likes === 1 ? 'Like' : 'Likes'}`,
+    ratings > 0 && `${ratings} ${ratings === 1 ? 'Bewertung' : 'Bewertungen'}`,
+  ].filter(Boolean) as string[];
+  const reacted = losses.length > 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-      <div role="alertdialog" aria-modal="true" className="relative w-full max-w-sm rounded-2xl bg-[#1f1f1f] border border-white/10 shadow-2xl p-6">
-        <h2 className="text-lg font-semibold">Route löschen?</h2>
+      <div role="alertdialog" aria-modal="true" aria-labelledby="del-title" className="relative w-full max-w-md rounded-2xl bg-[#1f1f1f] border border-white/10 shadow-2xl p-6">
+        <h2 id="del-title" className="text-lg font-semibold">Fahrt endgültig löschen?</h2>
         <p className="mt-2 text-sm text-white/60">
-          „{name}“ wird aus deinen Routen und von der Karte entfernt. Das kann nicht rückgängig gemacht werden.
+          „{name}“ verschwindet von der Karte, aus deinem Kanal und aus dem Dashboard. Dein Video auf YouTube bleibt unberührt.
         </p>
+
+        {reacted ? (
+          <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center" aria-hidden="true">!</span>
+              <div className="text-sm text-red-100">
+                <p className="font-semibold">Damit gehen auch verloren:</p>
+                <ul className="mt-1.5 flex flex-col gap-0.5">
+                  {losses.map(l => <li key={l} className="font-mono tabular-nums">{l}</li>)}
+                </ul>
+                <p className="mt-2 text-red-100/80">Das sind Reaktionen anderer auf deine Fahrt. Sie lassen sich nicht wiederherstellen, auch nicht, wenn du die Fahrt neu anlegst.</p>
+              </div>
+            </div>
+            <label className="mt-3 flex items-center gap-2.5 text-sm text-white cursor-pointer">
+              <input type="checkbox" checked={sure} onChange={e => setSure(e.target.checked)} className="w-4 h-4 accent-red-500" />
+              Ja, ich will die Fahrt mit allem löschen
+            </label>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-white/50">Noch niemand hat auf diese Fahrt reagiert.</p>
+        )}
+        {groups > 0 && (
+          <p className="mt-3 text-xs text-white/45">Sie wird außerdem aus {groups === 1 ? 'einer Gruppe' : `${groups} Gruppen`} entfernt.</p>
+        )}
+        <p className="mt-3 text-xs text-white/45">Das kann nicht rückgängig gemacht werden.</p>
+
         <div className="mt-6 flex justify-end gap-2">
           <button autoFocus onClick={onCancel} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">Abbrechen</button>
-          <button onClick={onConfirm} className="h-10 px-5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-400 transition-colors">Löschen</button>
+          <button
+            onClick={onConfirm}
+            disabled={reacted && !sure}
+            className="h-10 px-5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-400 transition-colors disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed"
+          >
+            Endgültig löschen
+          </button>
         </div>
       </div>
     </div>
