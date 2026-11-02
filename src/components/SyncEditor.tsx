@@ -1,14 +1,17 @@
 'use client';
 
 // Sync editor: align ONE continuous YouTube video with a recorded GPS track.
-// The only value being edited is the offset: track time = video time + offset.
+// Edited values: the offset (track time = video time + offset) and the trim – the part of the
+// recording that stays in the ride. By default the trim follows the video, so whatever the
+// video doesn't show is cut away; the rider can move both ends by hand (e.g. cut more at the
+// start to hide their home). The cut is applied for good on "Fertig".
 // Map (track + covered stretch + vehicle), video, and a timeline with the speed curve
 // where the video is a bar that can be dragged along the track.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as maplibregl from 'maplibre-gl';
-import { ArrowLeft, Pause, Play, RotateCcw, Check, Info, ZoomIn, ZoomOut, GripHorizontal } from 'lucide-react';
+import { ArrowLeft, Pause, Play, RotateCcw, Check, Info, ZoomIn, ZoomOut, GripHorizontal, Scissors } from 'lucide-react';
 import { Rnd } from 'react-rnd';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import type { RouteConfig } from '@/hooks/useEditorState';
@@ -16,6 +19,7 @@ import { loadAllRoutes, updateUserRoute, loadUserRoutes } from '@/lib/userRoutes
 import { buildMapStyle, MAP_STYLES, type MapStyleId } from '@/lib/mapStyles';
 import { distAtTrackTime, speedCurve, findStops, clampOffset, type TrackTimeline } from '@/lib/trackSync';
 import { waitForYT } from '@/lib/youtubeDuration';
+import { trimRoute, MIN_TRIM_SECONDS } from '@/lib/trimRoute';
 
 const LIME = '#CCFF00';
 const SPEED_STEP = 2; // seconds per speed sample in the timeline
@@ -91,6 +95,22 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   const coverFrom = tl ? distAtTrackTime(tl, offset) : 0;
   const coverTo = tl ? distAtTrackTime(tl, offset + videoDur) : 0;
 
+  // ── Trim: [start, end] in track seconds. `auto` = follows the video window ──
+  const [trimAuto, setTrimAuto] = useState(true);
+  const [manualTrim, setManualTrim] = useState<[number, number]>([0, 0]);
+  const trackDur = tl?.durationSeconds ?? 0;
+  const videoTrim: [number, number] = [Math.max(0, Math.min(trackDur, offset)), Math.max(0, Math.min(trackDur, offset + videoDur))];
+  const trim: [number, number] = trimAuto ? videoTrim : manualTrim;
+  const setTrim = useCallback((a: number, b: number) => {
+    const lo = Math.max(0, Math.min(a, trackDur - MIN_TRIM_SECONDS));
+    const hi = Math.min(trackDur, Math.max(b, lo + MIN_TRIM_SECONDS));
+    setManualTrim([+lo.toFixed(1), +hi.toFixed(1)]);
+    setTrimAuto(false);
+  }, [trackDur]);
+  const trimFrom = tl ? distAtTrackTime(tl, trim[0]) : 0;
+  const trimTo = tl ? distAtTrackTime(tl, trim[1]) : 1;
+  const cutsSomething = !!tl && (trim[0] > 0.5 || trim[1] < trackDur - 0.5);
+
   // floating video window: top right of the map, 400 px wide
   const videoWindowDefault = useMemo(() => {
     const w = 400, h = Math.round(w * 9 / 16) + 34;
@@ -164,8 +184,11 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     map.on('load', () => {
       const empty = { type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: line.coords } };
       map.addSource('track', { type: 'geojson', data: empty });
+      map.addSource('cut', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addSource('covered', { type: 'geojson', data: { ...empty, geometry: { ...empty.geometry, coordinates: [] } } });
-      map.addLayer({ id: 'track', type: 'line', source: 'track', paint: { 'line-color': '#ffffff', 'line-opacity': 0.35, 'line-width': 3 }, layout: { 'line-cap': 'round', 'line-join': 'round' } });
+      // parts that will be cut away: thin, dashed, reddish
+      map.addLayer({ id: 'cut', type: 'line', source: 'cut', paint: { 'line-color': '#ff6b5a', 'line-opacity': 0.75, 'line-width': 2, 'line-dasharray': [1.5, 1.5] }, layout: { 'line-cap': 'round', 'line-join': 'round' } });
+      map.addLayer({ id: 'track', type: 'line', source: 'track', paint: { 'line-color': '#ffffff', 'line-opacity': 0.45, 'line-width': 3 }, layout: { 'line-cap': 'round', 'line-join': 'round' } });
       map.addLayer({ id: 'covered', type: 'line', source: 'covered', paint: { 'line-color': LIME, 'line-width': 5 }, layout: { 'line-cap': 'round', 'line-join': 'round' } });
       setMapReady(true);
     });
@@ -192,6 +215,17 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     const src = map.getSource('covered') as maplibregl.GeoJSONSource | undefined;
     src?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.slice(coverFrom, coverTo) } });
   }, [mapReady, coverFrom, coverTo, line]);
+  // kept part of the track vs. the parts the trim cuts away
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    (map.getSource('track') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.slice(trimFrom, trimTo) } });
+    const parts = [line.slice(0, trimFrom), line.slice(trimTo, 1)].filter(c => c.length > 1);
+    (map.getSource('cut') as maplibregl.GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: parts.map(c => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: c } })),
+    });
+  }, [mapReady, trimFrom, trimTo, line]);
   useEffect(() => {
     const p = line.pointAt(posFrac);
     if (p) markerRef.current?.setLngLat(p);
@@ -216,7 +250,8 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
 
   function finish() {
     if (!route) return;
-    updateUserRoute(route.id, { syncOffset: offset, synced: true });
+    const cut = cutsSomething ? trimRoute({ ...route, syncOffset: offset }, trim[0], trim[1]) : null;
+    updateUserRoute(route.id, { syncOffset: offset, ...(cut ?? {}), synced: true });
     router.push(`/?route=${route.id}`);
   }
 
@@ -252,8 +287,8 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <button
-            onClick={() => setOffset(savedOffset)}
-            disabled={Math.abs(offset - savedOffset) < 0.05}
+            onClick={() => { setOffset(savedOffset); setTrimAuto(true); }}
+            disabled={Math.abs(offset - savedOffset) < 0.05 && trimAuto}
             className="h-9 px-3 rounded-full text-sm text-white/70 hover:bg-white/10 disabled:opacity-30 flex items-center gap-1.5"
           ><RotateCcw size={14} /> Zurücksetzen</button>
           <button onClick={finish} className="h-9 px-4 rounded-full text-sm font-semibold bg-[#CCFF00] text-black hover:brightness-110 flex items-center gap-1.5">
@@ -272,7 +307,17 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
             <span><span className="text-white/40">Video</span> <span className="font-mono">{fmt(videoDur)}</span></span>
             <span><span className="text-white/40">Aufzeichnung</span> <span className="font-mono">{fmt(tl.durationSeconds)} · {tl.distanceKm.toFixed(1)} km</span></span>
             <span><span className="text-white/40">Video zeigt</span> <span className="font-mono">km {(coverFrom * tl.distanceKm).toFixed(1)} – {(coverTo * tl.distanceKm).toFixed(1)}</span></span>
+            <span className={cutsSomething ? 'text-[#ff8a7a]' : ''}>
+              <span className="text-white/40">Fahrt</span>{' '}
+              <span className="font-mono">{fmt(trim[1] - trim[0])} · {((trimTo - trimFrom) * tl.distanceKm).toFixed(1)} km</span>
+              {cutsSomething && <span className="text-white/40"> (gekürzt)</span>}
+            </span>
           </div>
+          {cutsSomething && (
+            <p className="rounded-lg bg-black/70 backdrop-blur-md border border-[#ff6b5a]/30 px-3 py-2 text-xs text-[#ffb0a6] flex gap-1.5 max-w-md"><Scissors size={14} className="shrink-0 mt-px" />
+              Die rot gestrichelten Teile werden mit „Fertig“ endgültig entfernt – sie gehören dann nicht mehr zur Fahrt.
+            </p>
+          )}
           {(overhangStart || overhangEnd) && (
             <p className="rounded-lg bg-black/70 backdrop-blur-md border border-amber-400/30 px-3 py-2 text-xs text-amber-300 flex gap-1.5 max-w-md"><Info size={14} className="shrink-0 mt-px" />
               Das Video ragt {overhangStart && overhangEnd ? 'an beiden Enden' : overhangStart ? 'vorne' : 'hinten'} über die Aufzeichnung hinaus. Dort bleibt der Punkt am {overhangStart && !overhangEnd ? 'Start' : 'Ende'} stehen.
@@ -308,6 +353,10 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
         tl={tl}
         videoDur={videoDur}
         offset={offset}
+        trim={trim}
+        trimAuto={trimAuto}
+        onTrim={setTrim}
+        onTrimToVideo={() => setTrimAuto(true)}
         videoTime={videoTime}
         playing={playing}
         onTogglePlay={togglePlay}
@@ -319,8 +368,9 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
 }
 
 // ── Timeline: track speed curve + draggable video bar ──
-function SyncTimeline({ tl, videoDur, offset, videoTime, playing, onTogglePlay, onOffset, onSeekVideo }: {
+function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVideo, videoTime, playing, onTogglePlay, onOffset, onSeekVideo }: {
   tl: TrackTimeline; videoDur: number; offset: number; videoTime: number; playing: boolean;
+  trim: [number, number]; trimAuto: boolean; onTrim: (a: number, b: number) => void; onTrimToVideo: () => void;
   onTogglePlay: () => void; onOffset: (o: number) => void; onSeekVideo: (s: number) => void;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -440,6 +490,26 @@ function SyncTimeline({ tl, videoDur, offset, videoTime, playing, onTogglePlay, 
     dragging.current = null;
     if (wasNull) setView(null);
   }
+  // trim handles on the track lane: drag the start or the end of what stays in the ride
+  const trimDrag = useRef<{ side: 0 | 1; startX: number; start: number } | null>(null);
+  function onTrimDown(side: 0 | 1) {
+    return (e: React.PointerEvent) => {
+      e.stopPropagation();
+      (e.target as Element).setPointerCapture(e.pointerId);
+      trimDrag.current = { side, startX: e.clientX, start: trim[side] };
+    };
+  }
+  function onTrimMove(e: React.PointerEvent) {
+    const d = trimDrag.current;
+    if (!d) return;
+    let t = d.start + ((e.clientX - d.startX) / plotW) * (r1 - r0);
+    // snap to the video's edges and the track's ends (within 6 px)
+    const snap = ((r1 - r0) / plotW) * 6;
+    for (const target of [offset, offset + videoDur, 0, tl.durationSeconds]) if (Math.abs(t - target) < snap) t = target;
+    if (d.side === 0) onTrim(t, trim[1]); else onTrim(trim[0], t);
+  }
+  function onTrimUp() { trimDrag.current = null; }
+
   // click on the track lane / ruler → move the video to that moment (if the video covers it)
   function onLaneClick(e: React.MouseEvent<SVGSVGElement>) {
     if (dragging.current) return;
@@ -451,7 +521,7 @@ function SyncTimeline({ tl, videoDur, offset, videoTime, playing, onTogglePlay, 
   const head = offset + videoTime;
   return (
     <div className="shrink-0 border-t border-white/10 bg-[#0b0d10]">
-      <div className="h-11 flex items-center gap-3 px-4 border-b border-white/5">
+      <div className="min-h-11 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 border-b border-white/5">
         <button onClick={onTogglePlay} className="h-8 px-3 rounded-full bg-[#CCFF00] text-black font-semibold hover:brightness-110 text-sm flex items-center gap-1.5">
           {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Play'}
         </button>
@@ -468,6 +538,15 @@ function SyncTimeline({ tl, videoDur, offset, videoTime, playing, onTogglePlay, 
             </button>
           ))}
         </div>
+        <div className="flex items-center gap-1.5 ml-2 pl-3 border-l border-white/10" title="Was außerhalb der Griffe liegt, wird beim Fertigstellen von der Fahrt abgeschnitten">
+          <Scissors size={14} className="text-white/45" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-white/45">Kürzen</span>
+          <span className="font-mono text-xs text-white/70">{fmt(trim[0])} – {fmt(trim[1])}</span>
+          <button onClick={onTrimToVideo} disabled={trimAuto} title="Anfang und Ende wieder genau auf das Video setzen" className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-40 text-xs">
+            {trimAuto ? 'folgt dem Video' : 'Auf Video setzen'}
+          </button>
+          <button onClick={() => onTrim(0, tl.durationSeconds)} disabled={trim[0] < 0.5 && trim[1] > tl.durationSeconds - 0.5} title="Nichts abschneiden" className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 text-xs">Nichts kürzen</button>
+        </div>
         <div className="ml-auto flex items-center gap-1">
           <span className="text-[10px] font-bold uppercase tracking-widest text-white/35 mr-1">Zoom</span>
           <button onClick={() => zoomAt(Math.max(r0, Math.min(r1, head)), 1.6)} disabled={!view} title="Herauszoomen" className="w-8 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 flex items-center justify-center"><ZoomOut size={15} /></button>
@@ -478,7 +557,13 @@ function SyncTimeline({ tl, videoDur, offset, videoTime, playing, onTogglePlay, 
       </div>
       <div ref={wrap} className="px-2 select-none">
         <svg width={width} height={H} onClick={onLaneClick} style={{ display: 'block', cursor: 'pointer' }}>
-          <defs><clipPath id="sync-plot"><rect x={LABEL_W} y={0} width={plotW} height={H} /></clipPath></defs>
+          <defs>
+            <clipPath id="sync-plot"><rect x={LABEL_W} y={0} width={plotW} height={H} /></clipPath>
+            <pattern id="sync-cut" width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <rect width={6} height={6} fill="rgba(11,13,16,0.72)" />
+              <line x1={0} y1={0} x2={0} y2={6} stroke="rgba(255,107,90,0.45)" strokeWidth={2} />
+            </pattern>
+          </defs>
           <g clipPath="url(#sync-plot)">
           {/* ruler */}
           {ticks.map(t => (
@@ -499,6 +584,18 @@ function SyncTimeline({ tl, videoDur, offset, videoTime, playing, onTogglePlay, 
             <rect key={s.from} x={x(s.from)} y={TRACK_Y + TRACK_H - 4} width={Math.max(2, x(s.to) - x(s.from))} height={4} fill="#f59e0b" opacity={0.8}>
               <title>Stopp {fmt(s.to - s.from)}</title>
             </rect>
+          ))}
+
+          {/* trimmed-away parts of the recording + the two trim handles */}
+          {trim[0] > 0 && <rect x={x(0)} y={TRACK_Y} width={Math.max(0, x(trim[0]) - x(0))} height={TRACK_H} fill="url(#sync-cut)" pointerEvents="none" />}
+          {trim[1] < tl.durationSeconds && <rect x={x(trim[1])} y={TRACK_Y} width={Math.max(0, x(tl.durationSeconds) - x(trim[1]))} height={TRACK_H} fill="url(#sync-cut)" pointerEvents="none" />}
+          {([0, 1] as const).map(side => (
+            <g key={side} onPointerDown={onTrimDown(side)} onPointerMove={onTrimMove} onPointerUp={onTrimUp} onClick={e => e.stopPropagation()} style={{ cursor: 'ew-resize' }}>
+              <title>{side === 0 ? 'Anfang der Fahrt – ziehen zum Kürzen' : 'Ende der Fahrt – ziehen zum Kürzen'}</title>
+              <rect x={x(trim[side]) - 8} y={TRACK_Y - 4} width={16} height={TRACK_H + 8} fill="transparent" />
+              <rect x={x(trim[side]) - (side === 0 ? 0 : 5)} y={TRACK_Y - 3} width={5} height={TRACK_H + 6} rx={2} fill="#ffffff" />
+              <line x1={x(trim[side]) + (side === 0 ? 2.5 : -2.5)} x2={x(trim[side]) + (side === 0 ? 2.5 : -2.5)} y1={TRACK_Y + TRACK_H / 2 - 6} y2={TRACK_Y + TRACK_H / 2 + 6} stroke="#0b0d10" strokeWidth={1.5} />
+            </g>
           ))}
 
           {/* video bar = the covered window, also tinted on the track lane */}
