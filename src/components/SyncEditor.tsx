@@ -213,8 +213,9 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     const src = map.getSource('covered') as maplibregl.GeoJSONSource | undefined;
-    src?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.slice(coverFrom, coverTo) } });
-  }, [mapReady, coverFrom, coverTo, line]);
+    // only what stays in the ride – a part cut away shows as dashed red even where the video covers it
+    src?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.slice(Math.max(coverFrom, trimFrom), Math.min(coverTo, trimTo)) } });
+  }, [mapReady, coverFrom, coverTo, trimFrom, trimTo, line]);
   // kept part of the track vs. the parts the trim cuts away
   useEffect(() => {
     const map = mapRef.current;
