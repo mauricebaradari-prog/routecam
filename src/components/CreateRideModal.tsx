@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Upload, FileCheck2, AlertTriangle, Video, Trash2, Clock } from 'lucide-react';
+import { X, Upload, FileCheck2, AlertTriangle, Video, Trash2, Clock, Camera } from 'lucide-react';
+import { CAMERA_VIDEO_FILES, isCameraVideo, readCameraGps } from '@/lib/cameraGps';
 import {
   ACCEPTED_TRACK_FILES, parseTrackFile, trackStats, parseYouTubeId, formatClock,
   type TrackPoint, type TrackStats,
@@ -18,6 +19,7 @@ export interface NewRide {
   points: TrackPoint[];
   visibility: Visibility;
   align: boolean; // open the sync editor right after creating
+  syncOffset?: number; // known from the camera file: track seconds at video second 0
 }
 
 interface Props {
@@ -29,7 +31,9 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
   const [ytInput, setYtInput] = useState('');
   const [titleMode, setTitleMode] = useState<'youtube' | 'custom'>('youtube');
   const [customTitle, setCustomTitle] = useState('');
-  const [file, setFile] = useState<{ name: string; points: TrackPoint[]; stats: TrackStats } | null>(null);
+  // camera: GPS read from the camera's own video file (then the video offset is exact, too)
+  const [file, setFile] = useState<{ name: string; points: TrackPoint[]; stats: TrackStats; camera?: string; syncOffset?: number } | null>(null);
+  const [reading, setReading] = useState<number | null>(null); // progress 0–1 while a camera file is read
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>(() => loadSettings().defaultVisibility); // see /settings
@@ -56,8 +60,28 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
     return () => document.removeEventListener('keydown', esc);
   }, [onClose]);
 
-  async function handleFile(f: File) {
+  async function handleFiles(list: File[]) {
+    if (!list.length) return;
     setFileError(null);
+    // camera video(s): read the GPS from the file itself – locally, nothing is uploaded
+    if (list.every(f => isCameraVideo(f.name))) {
+      setFile(null);
+      setReading(0);
+      try {
+        const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name));
+        const cam = await readCameraGps(sorted, p => setReading(p));
+        setFile({
+          name: sorted.length > 1 ? `${sorted.length} Videodateien (${sorted[0].name} …)` : sorted[0].name,
+          points: cam.points, stats: trackStats(cam.points), camera: cam.camera, syncOffset: cam.videoOffset,
+        });
+      } catch (e) {
+        setFileError(e instanceof Error ? e.message : 'Die Videodatei konnte nicht gelesen werden.');
+      } finally {
+        setReading(null);
+      }
+      return;
+    }
+    const f = list[0];
     try {
       const parsed = parseTrackFile(await f.text(), f.name);
       const stats = trackStats(parsed.points);
@@ -79,7 +103,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
     setSaving(true);
     setSaveError(null);
     try {
-      await onCreate({ title, videoId, durationSeconds, points: file.points, visibility, align });
+      await onCreate({ title, videoId, durationSeconds, points: file.points, visibility, align, syncOffset: file.syncOffset });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen.');
       setSaving(false);
@@ -140,26 +164,33 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
             </Field>
 
             {/* Geodaten */}
-            <Field label="Geodaten" required hint="GPX oder KML">
-              {!file ? (
+            <Field label="Geodaten" required hint="GPX, KML oder Kamera-Video">
+              {reading !== null ? (
+                <div className="w-full h-[244px] rounded-xl border border-white/10 bg-white/[0.03] px-6 flex flex-col items-center justify-center gap-3">
+                  <span className="w-11 h-11 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] flex items-center justify-center"><Camera size={20} /></span>
+                  <span className="text-sm font-medium">GPS wird aus dem Video gelesen …</span>
+                  <span className="w-48 h-1 rounded-full bg-white/10 overflow-hidden"><span className="block h-full bg-[#CCFF00] transition-[width]" style={{ width: `${Math.round(reading * 100)}%` }} /></span>
+                  <span className="text-xs text-white/40">Direkt auf deinem Gerät – das Video wird nicht hochgeladen.</span>
+                </div>
+              ) : !file ? (
                 <button
                   type="button"
                   onClick={() => fileInput.current?.click()}
                   onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
-                  onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+                  onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles([...e.dataTransfer.files]); }}
                   className={`w-full h-[244px] rounded-xl border-2 border-dashed px-6 flex flex-col items-center justify-center gap-2 transition-colors ${
                     dragOver ? 'border-[#CCFF00] bg-[#CCFF00]/5' : 'border-white/15 hover:border-white/30 hover:bg-white/[0.03]'
                   }`}
                 >
                   <span className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"><Upload size={20} /></span>
                   <span className="text-sm font-medium">Datei hierher ziehen oder auswählen</span>
-                  <span className="text-xs text-white/40">aus einer Tracking-App, einem Navi oder der Kamera</span>
+                  <span className="text-xs text-white/40 text-center">GPX/KML aus einer Tracking-App oder einem Navi – oder das Original-Video deiner GoPro oder Insta360: dann kommt das GPS direkt aus der Kamera</span>
                 </button>
               ) : (
                 <div className="h-[244px] rounded-xl border border-white/10 bg-white/[0.03] p-3 flex flex-col">
                   <div className="flex items-center gap-3">
-                    <FileCheck2 size={18} className="text-[#CCFF00] shrink-0" />
+                    {file.camera ? <Camera size={18} className="text-[#CCFF00] shrink-0" /> : <FileCheck2 size={18} className="text-[#CCFF00] shrink-0" />}
                     <span className="text-sm font-medium truncate flex-1">{file.name}</span>
                     <button type="button" onClick={() => { setFile(null); if (fileInput.current) fileInput.current.value = ''; }} title="Datei entfernen" className="w-8 h-8 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10">
                       <Trash2 size={16} />
@@ -174,7 +205,12 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                   </dl>
                   {/* fixed-height status line: timestamps / video coverage */}
                   <p className={`mt-2 h-4 flex gap-2 text-xs truncate ${!file.stats.hasTime || videoTooLong ? 'text-amber-300' : 'text-white/50'}`}>
-                    {!file.stats.hasTime ? (<>
+                    {file.camera ? (<>
+                      <Camera size={14} className="shrink-0 text-[#CCFF00]" />
+                      <span>{file.syncOffset !== undefined
+                        ? <>GPS aus der Kamera ({file.camera}) – Video und Strecke passen auf die Sekunde</>
+                        : <>GPS aus der Kamera ({file.camera}) – den Start richtest du im nächsten Schritt aus</>}</span>
+                    </>) : !file.stats.hasTime ? (<>
                       <AlertTriangle size={14} className="shrink-0" />
                       Keine Zeitstempel – die Position im Video wird gleichmäßig geschätzt.
                     </>) : videoTooLong ? (<>
@@ -187,7 +223,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                   </p>
                 </div>
               )}
-              <input ref={fileInput} type="file" accept={ACCEPTED_TRACK_FILES} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+              <input ref={fileInput} type="file" multiple accept={`${ACCEPTED_TRACK_FILES},${CAMERA_VIDEO_FILES}`} className="hidden" onChange={e => { handleFiles([...(e.target.files ?? [])]); e.target.value = ''; }} />
               <p className="mt-1.5 h-4 text-xs text-red-300 truncate">{fileError}</p>
             </Field>
           </div>
