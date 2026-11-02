@@ -178,7 +178,7 @@ export function computeOverlap(a: RouteConfig, b: RouteConfig, cache = loadOsrmC
 export function useRouteOverlaps(active: RouteConfig | undefined, routes: RouteConfig[]) {
   const [overlaps, setOverlaps] = useState<RouteOverlap[]>([]);
   useEffect(() => {
-    if (!active) { setOverlaps([]); return; }
+    if (!active) return;
     let timer = 0;
     const run = () => {
       window.clearTimeout(timer);
@@ -196,5 +196,5 @@ export function useRouteOverlaps(active: RouteConfig | undefined, routes: RouteC
     window.addEventListener('routecam:geometry', run);
     return () => { window.clearTimeout(timer); window.removeEventListener('routecam:geometry', run); };
   }, [active, routes]);
-  return overlaps;
+  return active ? overlaps : [];
 }

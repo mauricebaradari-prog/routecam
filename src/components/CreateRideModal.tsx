@@ -50,7 +50,11 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
   const effectiveMode = titleMode;
 
   // The YouTube title is always the default – also after switching to another video
-  useEffect(() => { setTitleMode('youtube'); }, [videoId]);
+  const [prevVideoId, setPrevVideoId] = useState(videoId);
+  if (videoId !== prevVideoId) {
+    setPrevVideoId(videoId);
+    setTitleMode('youtube');
+  }
   const title = (effectiveMode === 'youtube' ? ytTitle : customTitle).trim();
   const canSave = !!videoId && !!file && title !== '' && !!durationSeconds && !saving;
 

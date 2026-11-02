@@ -24,7 +24,9 @@ const STORAGE_KEY = 'routecam.user';
 const CHANGE_EVENT = 'routecam:auth';
 const GSI_SRC = 'https://accounts.google.com/gsi/client';
 
-function decodeJwt(token: string): Record<string, any> | null {
+interface GoogleClaims { sub?: string; name?: string; email?: string; picture?: string; exp?: number }
+
+function decodeJwt(token: string): GoogleClaims | null {
   try {
     const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
     const json = decodeURIComponent(
@@ -62,8 +64,8 @@ function handleCredential(resp: { credential: string }) {
   if (!p?.sub) return;
   save({
     id: p.sub,
-    name: p.name || p.email,
-    email: p.email,
+    name: p.name || p.email || 'Google-Konto',
+    email: p.email || '',
     picture: p.picture,
     credential: resp.credential,
     expiresAt: (p.exp || 0) * 1000,
@@ -71,18 +73,18 @@ function handleCredential(resp: { credential: string }) {
 }
 
 // Loads the GIS script once and initialises it once per page.
-let gsiReady: Promise<any> | null = null;
-function loadGsi(): Promise<any> {
+let gsiReady: Promise<GsiId> | null = null;
+function loadGsi(): Promise<GsiId> {
   if (!GOOGLE_CLIENT_ID) return Promise.reject(new Error('NEXT_PUBLIC_GOOGLE_CLIENT_ID fehlt'));
   if (gsiReady) return gsiReady;
   gsiReady = new Promise((resolve, reject) => {
     const init = () => {
-      const g = (window as any).google?.accounts?.id;
+      const g = window.google?.accounts?.id;
       if (!g) return reject(new Error('Google-Login konnte nicht geladen werden'));
       g.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredential, auto_select: false, cancel_on_tap_outside: true });
       resolve(g);
     };
-    if ((window as any).google?.accounts?.id) return init();
+    if (window.google?.accounts?.id) return init();
     const tag = document.createElement('script');
     tag.src = GSI_SRC;
     tag.async = true;
@@ -123,7 +125,7 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(() => {
-    try { (window as any).google?.accounts?.id?.disableAutoSelect(); } catch {}
+    try { window.google?.accounts?.id?.disableAutoSelect(); } catch {}
     save(null);
   }, []);
 

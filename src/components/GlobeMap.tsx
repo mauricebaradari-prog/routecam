@@ -109,7 +109,6 @@ export default function GlobeMap({
 
   cities,
   routes,
-  vehicle,
   mapStyle,
   animationProgress,
   isAnimating,
@@ -148,7 +147,6 @@ export default function GlobeMap({
   const prevStyleRef = useRef<string | null>(null);
   const routeInitializedRef = useRef(false);
   const markersRef = useRef<maplibregl.Marker[]>([]);
-  const routeMarkersRef = useRef<maplibregl.Marker[]>([]);
   const inactiveMarkersRef = useRef<maplibregl.Marker[]>([]);
   // per inactive ride: id, centre and bounds – used for the zoomed-out count bubbles
   const inactiveInfoRef = useRef<{ id: string; center: [number, number]; bbox: [[number, number], [number, number]] }[]>([]);
@@ -177,6 +175,12 @@ export default function GlobeMap({
     setFollowDetachedState(v);
   };
   const durationRef = useRef(durationSeconds);
+
+  // per-map state that used to live on window (only this component uses it)
+  const updateSvgOverlayRef = useRef<(() => void) | null>(null);
+  const smoothSpeedRef = useRef<number | undefined>(undefined);
+  const smoothHeadingRef = useRef<number | undefined>(undefined);
+  const lastP1Ref = useRef<{ x: number; y: number; key: string } | undefined>(undefined);
 
   // ── Timed comments on the route (SoundCloud-style) ──
   const commentsRef = useRef<RouteComment[]>(comments);
@@ -439,7 +443,7 @@ export default function GlobeMap({
     try {
       saveRoadCache(osrmCacheRef.current);
       window.dispatchEvent(new Event('routecam:geometry')); // lets the route-overlap detection recompute
-    } catch(e) {}
+    } catch {}
   };
 
   const osrmDistCacheRef = useRef<Record<string, number[]>>({});
@@ -462,7 +466,6 @@ export default function GlobeMap({
   useEffect(() => {
     if (!containerRef.current) return;
     if (!mapRef.current) {
-      let mapInstance: MaplibreMap;
 
       const styleUrl = buildMapStyle(mapStyle);
 
@@ -480,7 +483,7 @@ export default function GlobeMap({
       // Zoom/compass control removed (not needed – zoom via scroll/pinch, compass lives in the Heading window)
 
       // Only user gestures carry an originalEvent – programmatic camera moves (follow cam, fitBounds) don't.
-      const onUserMove = (e: any) => { if (e.originalEvent) setFollowDetached(true); };
+      const onUserMove = (e: { originalEvent?: unknown }) => { if (e.originalEvent) setFollowDetached(true); };
       map.on('movestart', onUserMove);
       map.on('zoomstart', onUserMove);
       map.on('rotatestart', onUserMove);
@@ -546,10 +549,10 @@ export default function GlobeMap({
       });
       map.on('mouseout', () => { hoverEl.style.display = 'none'; map.getCanvas().style.cursor = ''; });
       map.on('click', e => {
-        const hit = nearestOnRoute(e.point, (e.originalEvent as any)?.pointerType === 'touch' ? 24 : 14);
+        const hit = nearestOnRoute(e.point, (e.originalEvent as PointerEvent | undefined)?.pointerType === 'touch' ? 24 : 14);
         if (!hit) {
           // only real clicks on the map canvas – marker / badge clicks bubble up here too
-          if ((e.originalEvent as any)?.target === map.getCanvas() && onBackgroundClickRef.current) {
+          if ((e.originalEvent as Event | undefined)?.target === map.getCanvas() && onBackgroundClickRef.current) {
             keepCameraRef.current = true;
             onBackgroundClickRef.current();
             setTimeout(() => { keepCameraRef.current = false; }, 500); // if nothing was deselected
@@ -564,7 +567,6 @@ export default function GlobeMap({
       });
       map.on('zoomend', () => updateClustersRef.current());
       map.on('moveend', () => updateClustersRef.current());
-      mapInstance = map;
       mapRef.current = map;
       prevStyleRef.current = mapStyle;
 
@@ -572,7 +574,7 @@ export default function GlobeMap({
         try {
           if (!mapRef.current) return;
           
-          let fullPts = fullRouteCoordsRef.current;
+          const fullPts = fullRouteCoordsRef.current;
           const currentProgress = animProgressRef.current;
           const currentDuration = durationRef.current;
           
@@ -583,9 +585,9 @@ export default function GlobeMap({
              const ahead = fullPts[Math.min(fullPts.length - 1, Math.max(1, Math.floor(fullPts.length * 0.2)))];
              const pa = mapRef.current.project([ahead[0], ahead[1]]);
              const key = geometryKeyRef.current;
-             const last = (window as any)._lastP1;
+             const last = lastP1Ref.current;
              if (!last || last.key !== key || Math.abs(last.x - p1.x) > 10 || Math.abs(last.y - p1.y) > 10) {
-               (window as any)._lastP1 = { x: p1.x, y: p1.y, key };
+               lastP1Ref.current = { x: p1.x, y: p1.y, key };
                Promise.resolve().then(() => onP1(p1.x, p1.y, pa.x, pa.y, key));
              }
           }
@@ -593,8 +595,8 @@ export default function GlobeMap({
           // Decimate for performance
           const step = Math.max(1, Math.floor(fullPts.length / 500));
           const screenPts: string[] = [];
-          let lastP: any = null;
-          const pushPt = (p: any, arr: string[]) => {
+          let lastP: { x: number; y: number } | null = null;
+          const pushPt = (p: { x: number; y: number }, arr: string[]) => {
               if (!lastP) arr.push(`M ${p.x},${p.y}`);
               else if (Math.hypot(p.x - lastP.x, p.y - lastP.y) > window.innerWidth / 2) arr.push(`M ${p.x},${p.y}`);
               else arr.push(`L ${p.x},${p.y}`);
@@ -619,7 +621,7 @@ export default function GlobeMap({
           const inactiveSegments: string[] = [];
           for (const seg of (clusteredRef.current ? [] : inactiveRouteCoordsRef.current)) {
             const segPts: string[] = [];
-            let lastP: any = null;
+            let lastP: { x: number; y: number } | null = null;
             for (const c of seg) {
               if (!mapRef.current) continue;
               const p = mapRef.current.project([c[0], c[1]]);
@@ -635,7 +637,7 @@ export default function GlobeMap({
           }
 
           const pts: string[] = [];
-          let lastActiveP: any = null;
+          let lastActiveP: { x: number; y: number } | null = null;
           routeCoordsRef.current.forEach((feat) => {
             if (feat.geometry.type === 'LineString') {
                const coords = feat.geometry.coordinates as [number, number][];
@@ -694,16 +696,16 @@ export default function GlobeMap({
                    segDistKm = getDistanceKm(wp1[1], wp1[0], wp2[1], wp2[0]);
                 }
                 const timeSecs = currentDuration / Math.max(1, fullPts.length - 1);
-                let speedKmh = speedAtRef.current ? speedAtRef.current(currentProgress) : (segDistKm / timeSecs) * 3600;
+                const speedKmh = speedAtRef.current ? speedAtRef.current(currentProgress) : (segDistKm / timeSecs) * 3600;
                 
                  // Extremely simple low-pass filter for smooth velocity numbers
-                 if (!(window as any)._smoothSpeed || Math.abs((window as any)._smoothSpeed - speedKmh) > 50) {
-                     (window as any)._smoothSpeed = speedKmh;
+                 if (!smoothSpeedRef.current || Math.abs(smoothSpeedRef.current - speedKmh) > 50) {
+                     smoothSpeedRef.current = speedKmh;
                  } else {
-                     (window as any)._smoothSpeed = (window as any)._smoothSpeed * 0.95 + speedKmh * 0.05;
+                     smoothSpeedRef.current = smoothSpeedRef.current * 0.95 + speedKmh * 0.05;
                  }
                  
-                 const currentSpeed = (window as any)._smoothSpeed;
+                 const currentSpeed = smoothSpeedRef.current;
                  velocityTextRef.current.textContent = `${Math.round(currentSpeed)}`;
                  if (velocityNeedleRef.current) {
                      // Map 0 - 150 km/h to -90 to +90 degrees
@@ -720,19 +722,19 @@ export default function GlobeMap({
                  const wp2 = fullPts[pIdx + 1];
                  if (wp1 && wp2) {
                      const rawHeading = headingOnPath(fullPts, currentProgress);
-                     let normalized = rawHeading < 0 ? rawHeading + 360 : rawHeading;
+                     const normalized = rawHeading < 0 ? rawHeading + 360 : rawHeading;
                      
-                     if ((window as any)._smoothHeading === undefined) {
-                         (window as any)._smoothHeading = normalized;
+                     if (smoothHeadingRef.current === undefined) {
+                         smoothHeadingRef.current = normalized;
                      } else {
-                         let diff = normalized - (window as any)._smoothHeading;
+                         let diff = normalized - smoothHeadingRef.current;
                          // Handle wraparound for shortest path
                          while (diff > 180) diff -= 360;
                          while (diff < -180) diff += 360;
-                         (window as any)._smoothHeading += diff * 0.05;
+                         smoothHeadingRef.current += diff * 0.05;
                      }
                      
-                     const currentHeading = (window as any)._smoothHeading;
+                     const currentHeading = smoothHeadingRef.current;
 
                      if (compassNeedleRef.current) {
                          compassNeedleRef.current.style.transform = `rotate(${currentHeading}deg)`;
@@ -763,7 +765,7 @@ export default function GlobeMap({
            console.error(e);
         }
       };
-      (window as any)._updateSvgOverlay = updateSvgOverlay;
+      updateSvgOverlayRef.current = updateSvgOverlay;
 
       map.on('move', updateSvgOverlay);
       map.on('zoom', updateSvgOverlay);
@@ -771,18 +773,9 @@ export default function GlobeMap({
       // map.on('render', updateSvgOverlay); removed to prevent infinite loops
 
       map.once('style.load', () => {
-        (map as any).setProjection({ type: 'globe' });
-        try {
-          if (globeAtmosphere && (map as any).setFog) {
-             (map as any).setFog({
-               color: 'rgba(255, 255, 255, 0.2)',
-               'high-color': 'rgba(0, 0, 0, 0.8)',
-               'space-color': 'rgba(0, 0, 0, 1)'
-             });
-          }
-        } catch (e) {}
+        map.setProjection({ type: 'globe' });
 
-        initRouteLayers(map, routeColor, routeWidth);
+        initRouteLayers(map);
         routeInitializedRef.current = true;
         const L = latestRef.current!;
         const cs = L.cities;
@@ -813,9 +806,10 @@ export default function GlobeMap({
         mapRef.current = null;
       };
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on purpose only when these values change; the map functions it calls are recreated on every render
   }, []);
 
-  function initRouteLayers(map: MaplibreMap, color: string, width: number) {
+  function initRouteLayers(map: MaplibreMap) {
     if (!map.getSource('route')) {
       map.addSource('route', {
         type: 'geojson',
@@ -855,18 +849,9 @@ export default function GlobeMap({
 
       map.setStyle(styleUrl);
       map.once('style.load', () => {
-        (map as any).setProjection({ type: 'globe' });
-        try {
-          if (globeAtmosphere && (map as any).setFog) {
-             (map as any).setFog({
-               color: 'rgba(255, 255, 255, 0.2)',
-               'high-color': 'rgba(0, 0, 0, 0.8)',
-               'space-color': 'rgba(0, 0, 0, 1)'
-             });
-          }
-        } catch (e) {}
+        map.setProjection({ type: 'globe' });
 
-        initRouteLayers(map, routeColor, routeWidth);
+        initRouteLayers(map);
         const L = latestRef.current!;
         L.updateRouteData(map, ++renderPassRef.current); // Reset to full line
         L.rebuildMarkers(map, L.cities);
@@ -1014,7 +999,7 @@ export default function GlobeMap({
           if (idx === 0) {
             el.style.cursor = 'pointer';
             el.addEventListener('click', () => {
-              onPlayRoute && onPlayRoute(route.id);
+              onPlayRoute?.(route.id);
             });
           }
           const marker = new Marker({ element: el, anchor: 'bottom' })
@@ -1026,8 +1011,8 @@ export default function GlobeMap({
       updateClustersRef.current();
     });
     // Trigger SVG update
-    if ((window as any)._updateSvgOverlay) {
-      (window as any)._updateSvgOverlay();
+    if (updateSvgOverlayRef.current) {
+      updateSvgOverlayRef.current();
     }
   }
 
@@ -1035,6 +1020,7 @@ export default function GlobeMap({
     if (mapRef.current && routeInitializedRef.current) {
       updateInactiveRoutes(mapRef.current);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on purpose only when these values change; the map functions it calls are recreated on every render
   }, [routes, cities, mapStyle]);
 
   // Zoomed out: replace the other rides (lines, pins, previews) by bubbles with the number of rides.
@@ -1048,7 +1034,7 @@ export default function GlobeMap({
     inactiveMarkersRef.current.forEach(m => { m.getElement().style.display = clustered ? 'none' : ''; });
     clusterMarkersRef.current.forEach(m => m.remove());
     clusterMarkersRef.current = [];
-    if (changed && (window as any)._updateSvgOverlay) (window as any)._updateSvgOverlay();
+    if (changed) updateSvgOverlayRef.current?.();
     if (!clustered) return;
 
     // greedy clustering in screen space
@@ -1088,7 +1074,7 @@ export default function GlobeMap({
           if (!m) return;
           const cam = m.cameraForBounds([[minX, minY], [maxX, maxY]], { padding: 120, maxZoom: 13 });
           const zoom = Math.max(cam?.zoom ?? CLUSTER_ZOOM, CLUSTER_ZOOM + 0.5);
-          m.flyTo({ center: (cam?.center as any) ?? [(minX + maxX) / 2, (minY + maxY) / 2], zoom, duration: 1200 });
+          m.flyTo({ center: (cam?.center as maplibregl.LngLatLike | undefined) ?? [(minX + maxX) / 2, (minY + maxY) / 2], zoom, duration: 1200 });
         });
         const marker = new Marker({ element: el })
           .setLngLat([(minX + maxX) / 2, (minY + maxY) / 2])
@@ -1105,6 +1091,7 @@ export default function GlobeMap({
     // Find the active route ID
     const activeRoute = routes?.find(r => r.cities.length === cities.length && r.cities.every((c, i) => c.id === cities[i].id));
     rebuildMarkers(map, cities, activeRoute?.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on purpose only when these values change; the map functions it calls are recreated on every render
   }, [isAnimating]);
 
   // ── 3. Cities update ─────────────────────────────────────────────────────────
@@ -1133,10 +1120,12 @@ export default function GlobeMap({
       );
     } else {
       // no route selected → overview of all rides
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the old profile when another ride is shown
       setElevationProfile(null);
       if (keepCameraRef.current) keepCameraRef.current = false;
       else fitAllRoutes(map, 1200);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on purpose only when these values change; the map functions it calls are recreated on every render
   }, [cities]);
 
   // Overview without a selected route (first load): Cyprus, Paphos region
@@ -1224,7 +1213,7 @@ export default function GlobeMap({
     });
 
     if (allFeatures.length > 0) {
-      const allCoords = allFeatures.flatMap(f => (f.geometry as any).coordinates);
+      const allCoords = allFeatures.flatMap(f => (f.geometry as GeoJSON.LineString).coordinates as [number, number][]);
       fullRouteCoordsRef.current = allCoords;
       geometryKeyRef.current = `${cities[0]?.id}:${cities.length}`;
       rebuildCommentMarkers();
@@ -1246,15 +1235,15 @@ export default function GlobeMap({
     }
     
     updateRouteProgress(map, cities, animProgressRef.current, totalPathDist, lDists);
-    if ((window as any)._updateSvgOverlay) {
-      (window as any)._updateSvgOverlay();
+    if (updateSvgOverlayRef.current) {
+      updateSvgOverlayRef.current();
     }
     
 
     
     // Fetch elevation profile (not in the overview without a route)
     if (allFeatures.length > 0 && cities.length >= 2) {
-      const allCoords = allFeatures.flatMap(f => (f.geometry as any).coordinates);
+      const allCoords = allFeatures.flatMap(f => (f.geometry as GeoJSON.LineString).coordinates as [number, number][]);
       const sampledPts = [];
       const numSamples = 60;
       for (let i = 0; i < numSamples; i++) {
@@ -1434,8 +1423,8 @@ export default function GlobeMap({
       lastFollowTargetRef.current = null;
     }
 
-    if ((window as any)._updateSvgOverlay) {
-      (window as any)._updateSvgOverlay();
+    if (updateSvgOverlayRef.current) {
+      updateSvgOverlayRef.current();
     }
   }
 
@@ -1455,9 +1444,9 @@ export default function GlobeMap({
           el.style.cursor = 'pointer';
           el.addEventListener('click', () => {
             if (isAnimating) {
-              onStopRoute && onStopRoute();
+              onStopRoute?.();
             } else {
-              onPlayRoute && onPlayRoute(activeRouteId || '');
+              onPlayRoute?.(activeRouteId || '');
             }
           });
         }
@@ -1474,10 +1463,11 @@ export default function GlobeMap({
       const activeRoute = routes?.find(r => r.cities.length === cities.length && r.cities.every((c, idx) => c.id === cities[idx].id));
       const cs = (useGpsTrace || activeRoute?.forceStraight) && cities.length > 0 ? [cities[0], cities[cities.length-1]] : cities;
       updateRouteProgress(mapRef.current, cs, animationProgress, totalDistRef.current, legDistancesRef.current);
-      if ((window as any)._updateSvgOverlay) {
-        (window as any)._updateSvgOverlay();
+      if (updateSvgOverlayRef.current) {
+        updateSvgOverlayRef.current();
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on purpose only when these values change; the map functions it calls are recreated on every render
   }, [animationProgress]);
 
 
@@ -1720,7 +1710,7 @@ export default function GlobeMap({
             enableResizing={false}
             className="z-50"
             style={{ zIndex: activeWindow === 'elevation' ? 60 : 50 }}
-            onDragStart={() => { lockIframes(); setActiveWindow && setActiveWindow('elevation'); }}
+            onDragStart={() => { lockIframes(); setActiveWindow?.('elevation'); }}
             onDragStop={unlockIframes}
             onMouseDown={() => setActiveWindow && setActiveWindow('elevation')}
           >
@@ -1735,7 +1725,7 @@ export default function GlobeMap({
           enableResizing={false}
           className="z-50"
           style={{ zIndex: activeWindow === 'velocity' ? 60 : 50 }}
-          onDragStart={() => { lockIframes(); setActiveWindow && setActiveWindow('velocity'); }}
+          onDragStart={() => { lockIframes(); setActiveWindow?.('velocity'); }}
             onDragStop={unlockIframes}
           onMouseDown={() => setActiveWindow && setActiveWindow('velocity')}
         >

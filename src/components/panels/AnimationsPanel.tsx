@@ -5,7 +5,6 @@ import type { EditorState } from '@/hooks/useEditorState';
 
 interface AnimationsPanelProps {
   animSpeed: number;
-  cameraMode: 'static' | 'follow' | 'orbit';
   onChange: <K extends keyof EditorState>(key: K, value: EditorState[K]) => void;
 }
 
@@ -16,7 +15,7 @@ const SPEED_PRESETS = [
   { label: '2.0x', value: 2 },
 ];
 
-export default function AnimationsPanel({ animSpeed, cameraMode, onChange }: AnimationsPanelProps) {
+export default function AnimationsPanel({ animSpeed, onChange }: AnimationsPanelProps) {
   return (
     <div className="p-4 space-y-6">
       {/* Speed */}

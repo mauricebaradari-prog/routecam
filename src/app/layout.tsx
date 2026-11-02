@@ -45,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
          * MapLibre GL CSS is served as a static public file to avoid Turbopack
          * PostCSS processing issues with this particular stylesheet.
          */}
+        {/* eslint-disable-next-line @next/next/no-css-tags -- MapLibre's stylesheet is served as a static file on purpose (Turbopack can't process it) */}
         <link rel="stylesheet" href="/routecam/maplibre-gl.css" />
       </head>
       <body className="h-full antialiased font-sans">

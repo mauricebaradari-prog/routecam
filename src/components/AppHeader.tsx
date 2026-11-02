@@ -271,7 +271,11 @@ function AccountMenu() {
   }, [open, user, configured, renderSignInButton]);
 
   // close the menu once the sign-in went through
-  useEffect(() => { if (user) setOpen(false); }, [user]);
+  const [prevUser, setPrevUser] = useState(user);
+  if (user !== prevUser) {
+    setPrevUser(user);
+    if (user) setOpen(false);
+  }
 
   return (
     <div ref={ref} className="relative ml-1">

@@ -8,7 +8,7 @@
 // Map (track + covered stretch + vehicle), video, and a timeline with the speed curve
 // where the video is a bar that can be dragged along the track.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as maplibregl from 'maplibre-gl';
 import { ArrowLeft, Pause, Play, RotateCcw, Check, Info, ZoomIn, ZoomOut, GripHorizontal, Scissors } from 'lucide-react';
@@ -70,6 +70,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   const [route, setRoute] = useState<RouteConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- rides live in localStorage – read in the browser only
     setRoute(loadAllRoutes().find(r => r.id === routeId) ?? null);
     setLoaded(true);
   }, [routeId]);
@@ -80,7 +81,11 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
 
   const [offset, setOffsetState] = useState(0);
   const savedOffset = route?.syncOffset ?? 0;
-  useEffect(() => { if (route) setOffsetState(route.syncOffset ?? 0); }, [route]);
+  const [prevRoute, setPrevRoute] = useState(route);
+  if (route !== prevRoute) {
+    setPrevRoute(route);
+    if (route) setOffsetState(route.syncOffset ?? 0);
+  }
   const setOffset = useCallback((o: number) => {
     if (!tl) return;
     setOffsetState(+clampOffset(o, videoDur, tl).toFixed(1));
@@ -119,7 +124,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   }, []);
 
   // ── YouTube player ──
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
   const playerMount = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!route || !playerMount.current) return;
@@ -134,7 +139,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
         width: '100%', height: '100%',
         playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
         events: {
-          onStateChange: (e: any) => setPlaying(e.data === 1),
+          onStateChange: (e: { data: number }) => setPlaying(e.data === 1),
         },
       });
       poll = setInterval(() => {
@@ -430,9 +435,10 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
   };
 
   // Mouse wheel / trackpad: vertical = zoom at the cursor (also pinch), horizontal or Shift = pan
-  const zoomAtRef = useRef(zoomAt); zoomAtRef.current = zoomAt;
-  const panByRef = useRef(panBy); panByRef.current = panBy;
-  const viewRef = useRef({ r0, r1, plotW }); viewRef.current = { r0, r1, plotW };
+  const zoomAtRef = useRef(zoomAt);
+  const panByRef = useRef(panBy);
+  const viewRef = useRef({ r0, r1, plotW });
+  useLayoutEffect(() => { zoomAtRef.current = zoomAt; panByRef.current = panBy; viewRef.current = { r0, r1, plotW }; });
   useEffect(() => {
     const el = wrap.current;
     if (!el) return;

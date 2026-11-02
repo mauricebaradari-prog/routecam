@@ -1,13 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { 
-  Play, Pause, RotateCcw, 
-  Map as MapIcon, Plane, Car, Palette, Settings, Download, Camera, Check, Search, Mountain
-} from 'lucide-react';
-import { Video } from 'lucide-react';
+import { Play, Pause, RotateCcw, Video } from 'lucide-react';
 import { useEditorState, NO_ROUTE, type RouteConfig } from '@/hooks/useEditorState';
 import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useRouteComments } from '@/lib/routeComments';
@@ -45,13 +41,12 @@ export default function Home() {
     };
   }, [openModal]);
   const [initialVideoPos, setInitialVideoPos] = useState<{ x: number; y: number; key?: string } | null>(null);
-  const [showElevation, setShowElevation] = useState(true);
-  const [showVelocity, setShowVelocity] = useState(false);
-  const [useGpsTrace, setUseGpsTrace] = useState(false);
+  // windows on the map: elevation profile on, speed window off (no switch in the UI today)
+  const showElevation = true;
+  const showVelocity = false;
 
   const {
     state,
-    setMapStyle,
     set,
     setActiveRoute,
     setActiveWindow,
@@ -61,7 +56,7 @@ export default function Home() {
   } = useEditorState();
 
   // shared with the video overlay (and handy for debugging) – also while no video window is mounted
-  useEffect(() => { (window as any).__EDITOR_STATE = state; }, [state]);
+  useEffect(() => { window.__EDITOR_STATE = state; }, [state]);
   const canAnimate = state.cities.length >= 2;
   // First load (and after deleting the active ride): no route selected → globe overview of all rides
   const hasRoute = !!state.activeRouteId && canAnimate;
@@ -120,6 +115,7 @@ export default function Home() {
       const progress = Math.min(1, t / route.durationSeconds);
       // while paused, the video overlay moves the (unstarted) video to this second without playing it
       setTimeout(() => set('animationProgress', progress), 400);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- deep link: the address is only known in the browser
       setFocus({ routeId: route.id, progress: syncMapper(route).toRoute(progress) });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,7 +152,7 @@ export default function Home() {
     setFocus({ routeId: route.id, progress });
     let tries = 0;
     const waitForVideo = () => {
-      const yt = (window as any).__YT_PLAYER;
+      const yt = window.__YT_PLAYER;
       // the overlay loads the new video and pauses it ~1.5 s later – seek after that
       if (yt?.getVideoData?.()?.video_id === route.videoId) {
         setTimeout(() => {
@@ -171,22 +167,25 @@ export default function Home() {
   // Notification click while the map is open: fly from the current view to the ride / the
   // commented spot and stay paused there (no page reload, no playback).
   const openRideRef = useRef<(routeId: string, seconds?: number) => void>(() => {});
-  openRideRef.current = (routeId, seconds) => {
-    const route = state.routes.find(r => r.id === routeId);
-    if (!route) return;
-    stopAnimation();
-    const videoFraction = seconds && route.durationSeconds ? Math.min(1, seconds / route.durationSeconds) : 0;
-    const routeFraction = syncMapper(route).toRoute(videoFraction);
-    if (routeId === state.activeRouteId) {
-      if (videoFraction > 0) {
-        set('animationProgress', videoFraction); // paused → the overlay moves the video there without playing
-        setFocus({ routeId, progress: routeFraction });
+  // keep the handler current – event listeners call it later (updated after each render)
+  useLayoutEffect(() => {
+    openRideRef.current = (routeId, seconds) => {
+      const route = state.routes.find(r => r.id === routeId);
+      if (!route) return;
+      stopAnimation();
+      const videoFraction = seconds && route.durationSeconds ? Math.min(1, seconds / route.durationSeconds) : 0;
+      const routeFraction = syncMapper(route).toRoute(videoFraction);
+      if (routeId === state.activeRouteId) {
+        if (videoFraction > 0) {
+          set('animationProgress', videoFraction); // paused → the overlay moves the video there without playing
+          setFocus({ routeId, progress: routeFraction });
+        }
+        return;
       }
-      return;
-    }
-    if (videoFraction > 0) jumpToRouteAt(route, routeFraction, false);
-    else setActiveRoute(routeId); // like / rating: show the ride
-  };
+      if (videoFraction > 0) jumpToRouteAt(route, routeFraction, false);
+      else setActiveRoute(routeId); // like / rating: show the ride
+    };
+  });
   useEffect(() => {
     const onOpen = (e: Event) => {
       const { routeId, seconds } = (e as CustomEvent<{ routeId: string; seconds?: number }>).detail;
@@ -215,7 +214,7 @@ export default function Home() {
       if (!route) return;
       let tries = 0;
       const waitForPlayer = () => {
-        const yt = (window as any).__YT_PLAYER;
+        const yt = window.__YT_PLAYER;
         // still-mounted player (not one destroyed on an earlier visit) with this ride's video
         if (yt?.playVideo && yt.getIframe?.()?.isConnected && yt.getVideoData?.()?.video_id === route.videoId) {
           startAnimation();
@@ -224,7 +223,7 @@ export default function Home() {
           // the video's own play button still starts both.
           setTimeout(() => {
             const st = yt.getPlayerState?.();
-            if ((st === -1 || st === 5) && !(window as any).__EDITOR_STATE?.isAnimating) startAnimation();
+            if ((st === -1 || st === 5) && !window.__EDITOR_STATE?.isAnimating) startAnimation();
           }, 1500);
         } else if (++tries < 80) setTimeout(waitForPlayer, 150);
       };
@@ -241,7 +240,7 @@ export default function Home() {
 
   // map markers keep the handler they were created with → always call the current one
   const playRouteRef = useRef(handlePlayRoute);
-  playRouteRef.current = handlePlayRoute;
+  useLayoutEffect(() => { playRouteRef.current = handlePlayRoute; });
 
   function handleStopRoute() {
     stopAnimation();
@@ -260,10 +259,10 @@ export default function Home() {
 
   function handleSeek(progress: number) {
     set('animationProgress', progress);
-    if ((window as any).__YT_PLAYER) {
-      (window as any).__IS_SCRUBBING = true;
-      (window as any).__YT_PLAYER.seekTo(progress * (state.durationSeconds || 2056), true);
-      setTimeout(() => { (window as any).__IS_SCRUBBING = false; }, 500);
+    if (window.__YT_PLAYER) {
+      window.__IS_SCRUBBING = true;
+      window.__YT_PLAYER.seekTo(progress * (state.durationSeconds || 2056), true);
+      setTimeout(() => { window.__IS_SCRUBBING = false; }, 500);
     }
   }
 
@@ -361,7 +360,6 @@ export default function Home() {
           onAddComment={(seconds, text, parentId) => addComment(state.activeRouteId, seconds, text, authUser?.name, parentId)}
           comments={allRouteComments}
           activeCommentIds={activeCommentIds}
-          isAnimating={state.isAnimating}
           onSeekToSeconds={sec => handleSeek(Math.min(1, sec / (state.durationSeconds || 1)))}
           syncHref={activeRoute?.timeline && loadUserRoutes().some(r => r.id === activeRoute.id) ? `/routecam/sync?route=${activeRoute.id}` : null}
         />
@@ -464,7 +462,6 @@ export default function Home() {
               {openModal === 'speed' && (
                 <AnimationsPanel
                   animSpeed={state.animSpeed}
-                  cameraMode={state.cameraMode}
                   onChange={set}
                 />
               )}

@@ -5,7 +5,7 @@ import type React from 'react';
 // never commits. During playback, follow the link with a normal page load instead.
 export function leaveWhilePlaying(e: React.MouseEvent<HTMLAnchorElement>) {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  if (!(window as any).__EDITOR_STATE?.isAnimating) return;
+  if (!window.__EDITOR_STATE?.isAnimating) return;
   e.preventDefault();
   window.location.assign(e.currentTarget.href);
 }

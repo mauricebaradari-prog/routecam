@@ -17,6 +17,7 @@ function SettingsPage() {
   const [cleared, setCleared] = useState(false);
   // browser language is only known on the client – read after mount (avoids a hydration mismatch)
   const [browserLang, setBrowserLang] = useState('de');
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reads browser-only state once after the static page has loaded
   useEffect(() => setBrowserLang(resolveLanguage('auto')), []);
 
   // size of each local data set (entries), so it's clear what "delete" would remove
@@ -30,6 +31,7 @@ function SettingsPage() {
     }
     setCounts(out);
   };
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reads browser-only state once after the static page has loaded
   useEffect(measure, []);
 
   function clearLocalData() {

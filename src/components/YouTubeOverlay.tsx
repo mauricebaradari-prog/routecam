@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
+import type { EditorState } from '@/hooks/useEditorState';
+import type { Visibility } from '@/lib/routeVisibility';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import Link from 'next/link';
 import { GripHorizontal, ChevronRight, Maximize2, Minimize2, Play, Pause } from 'lucide-react';
@@ -12,8 +14,18 @@ import { VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useAuth } from '@/lib/auth';
 
-export default function YouTubeOverlay({ state, startAnimation, stopAnimation, initialPos, setActiveWindow, visibility }: any) {
-  const playerRef = useRef<any>(null);
+type WindowId = 'video' | 'elevation' | 'velocity' | 'compass' | 'community';
+interface Props {
+  state: EditorState;
+  startAnimation: () => void;
+  stopAnimation: () => void;
+  initialPos: { x: number; y: number; key?: string } | null;
+  setActiveWindow?: (w: WindowId) => void;
+  visibility?: Visibility;
+}
+
+export default function YouTubeOverlay({ state, startAnimation, stopAnimation, initialPos, setActiveWindow, visibility }: Props) {
+  const playerRef = useRef<YTPlayer | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isInternalChange = useRef(false);
   const currentVideoIdRef = useRef<string>(state.videoId || '5EgtgRoC8NI');
@@ -32,7 +44,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   useEffect(() => {
     const t = setTimeout(() => {
       // only when opened mid-route; at progress 0 the start position arrives with the map
-      if (!hasSetInitial.current && (window as any).__EDITOR_STATE?.animationProgress > 0) setIsPositioned(true);
+      if (!hasSetInitial.current && (window.__EDITOR_STATE?.animationProgress ?? 0) > 0) setIsPositioned(true);
     }, 3000);
     return () => clearTimeout(t);
   }, []);
@@ -67,12 +79,14 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
     // The chosen tempo (0.25×–2×) must also apply to a freshly created or switched video –
     // YouTube starts every player at 1×, while the ride would keep running at the chosen tempo.
     const applyRate = () => {
-      const want = (window as any).__EDITOR_STATE?.animSpeed ?? 1;
+      const want = window.__EDITOR_STATE?.animSpeed ?? 1;
       try { if (playerRef.current?.getPlaybackRate?.() !== want) playerRef.current?.setPlaybackRate?.(want); } catch {}
     };
     const initPlayer = () => {
       if (playerRef.current) return;
-      playerRef.current = new (window as any).YT.Player('youtube-player', {
+      const YT = window.YT;
+      if (!YT) return;
+      playerRef.current = new YT.Player('youtube-player', {
         videoId: currentVideoIdRef.current,
         playerVars: {
           autoplay: 0,
@@ -86,58 +100,56 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
         },
         events: {
           'onReady': () => { 
+            const p = playerRef.current;
+            if (!p) return;
             setIsReady(true); 
-            (window as any).__YT_PLAYER = playerRef.current; 
+            window.__YT_PLAYER = p; 
             applyRate();
             // The route (and its video) may have changed while the player was still loading –
             // the switch effect skipped it then, so catch up here (cue = load without playing).
             try {
               const want = currentVideoIdRef.current;
-              if (want && playerRef.current.getVideoData?.()?.video_id !== want) playerRef.current.cueVideoById(want, 0);
+              if (want && p.getVideoData?.()?.video_id !== want) p.cueVideoById(want, 0);
             } catch {}
             try {
-              if (mobile() && playerRef.current.setPlaybackQuality) {
-                 playerRef.current.setPlaybackQuality('hd1080');
-              }
-              const data = playerRef.current.getVideoData();
+              if (mobile()) p.setPlaybackQuality?.('hd1080');
+              const data = p.getVideoData();
               if (data && data.title) {
                 setVideoTitle(data.title);
               }
-            } catch(e) {}
+            } catch {}
           },
-          'onStateChange': (event: any) => {
+          'onStateChange': (event: { data: number }) => {
             // keep the header title in sync when another video was loaded (route / perspective switch)
             try {
               const t = playerRef.current?.getVideoData?.()?.title;
               if (t) setVideoTitle(prev => (prev === t ? prev : t));
             } catch {}
             try {
-              if (mobile() && event.data === 1 && playerRef.current.setPlaybackQuality) {
-                 playerRef.current.setPlaybackQuality('hd1080');
-              }
-            } catch(e) {}
+              if (mobile() && event.data === 1) playerRef.current?.setPlaybackQuality?.('hd1080');
+            } catch {}
             if (event.data === 1) applyRate();
             
-            if (isInternalChange.current || (window as any).__IS_SCRUBBING) return;
+            if (isInternalChange.current || window.__IS_SCRUBBING) return;
             const isPlaying = event.data === 1;
             const isPaused = event.data === 2;
             // Buffering no longer stops the ride: the animation loop simply waits while the video
             // buffers (see useEditorState). Stopping here raced with the following "playing" event
             // and left the map stopped while the video played on.
-            const currentState = (window as any).__EDITOR_STATE;
+            const currentState = window.__EDITOR_STATE;
             
-            if (isPlaying && !currentState.isAnimating) {
-              if (!(window as any).__yt_throttle_play) {
-                (window as any).__yt_throttle_play = setTimeout(() => {
+            if (isPlaying && !currentState?.isAnimating) {
+              if (!window.__yt_throttle_play) {
+                window.__yt_throttle_play = setTimeout(() => {
                   startAnimation();
-                  (window as any).__yt_throttle_play = null;
+                  window.__yt_throttle_play = null;
                 }, 100);
               }
-            } else if (isPaused && currentState.isAnimating) {
-              if (!(window as any).__yt_throttle_pause) {
-                (window as any).__yt_throttle_pause = setTimeout(() => {
+            } else if (isPaused && currentState?.isAnimating) {
+              if (!window.__yt_throttle_pause) {
+                window.__yt_throttle_pause = setTimeout(() => {
                   stopAnimation();
-                  (window as any).__yt_throttle_pause = null;
+                  window.__yt_throttle_pause = null;
                 }, 100);
               }
             }
@@ -170,20 +182,20 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
     if (playerRef.current && playerRef.current.loadVideoById) {
       isInternalChange.current = true;
       // paused (e.g. opened from a notification): only cue – loadVideoById would start playing
-      if ((window as any).__EDITOR_STATE?.isAnimating) playerRef.current.loadVideoById(newVideoId, 0);
+      if (window.__EDITOR_STATE?.isAnimating) playerRef.current.loadVideoById(newVideoId, 0);
       else playerRef.current.cueVideoById(newVideoId, 0);
       // Wait for the new video to be ready, then update the title
       setTimeout(() => {
         try {
-          const data = playerRef.current.getVideoData();
+          const data = playerRef.current?.getVideoData();
           if (data && data.title) {
             setVideoTitle(data.title);
           }
-        } catch(e) {}
+        } catch {}
         // Pause it so it doesn't autoplay, but only if we are not animating!
-        const currentState = (window as any).__EDITOR_STATE;
+        const currentState = window.__EDITOR_STATE;
         if (!currentState?.isAnimating) {
-          try { playerRef.current.pauseVideo(); } catch(e) {}
+          try { playerRef.current?.pauseVideo(); } catch {}
         }
         isInternalChange.current = false;
       }, 1500);
@@ -191,7 +203,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   }, [state.videoId]);
 
   useEffect(() => {
-    (window as any).__EDITOR_STATE = state;
+    window.__EDITOR_STATE = state;
     
     const btn = document.getElementById('top-left-play-btn');
     if (btn) {
@@ -236,9 +248,9 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
         if (!state.isAnimating && (ps === -1 || ps === 5)) {
           // not started yet: seekTo would START the video (and with it the ride) –
           // cue it at that second instead, it stays paused there (deep link / notification)
-          (window as any).__IS_SCRUBBING = true;
+          window.__IS_SCRUBBING = true;
           playerRef.current.cueVideoById({ videoId: currentVideoIdRef.current, startSeconds: targetTime });
-          setTimeout(() => { (window as any).__IS_SCRUBBING = false; }, 800);
+          setTimeout(() => { window.__IS_SCRUBBING = false; }, 800);
         } else {
           playerRef.current.seekTo(targetTime, true);
         }
@@ -248,6 +260,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
       // Natural progression while playing, just update lastProgress so we don't seek next time
       lastProgress.current = state.animationProgress;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- seeks on progress changes only; the duration is read at that moment
   }, [state.animationProgress, isReady, state.isAnimating]);
 
   useEffect(() => {
@@ -284,7 +297,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   const toggleFullscreen = async () => {
     if (fullscreen === 'native') { try { await document.exitFullscreen(); } catch {} return; }
     if (fullscreen === 'css') { setFullscreen('off'); return; }
-    const el = fsRef.current as any;
+    const el = fsRef.current;
     if (el?.requestFullscreen) {
       // some embedded browsers never settle the promise – don't wait forever
       try { await Promise.race([el.requestFullscreen({ navigationUI: 'hide' }), new Promise(r => setTimeout(r, 700))]); } catch {}
@@ -308,7 +321,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
     return () => window.removeEventListener('resize', fit);
   }, [cssFullDesktop]);
   const fmt = (sec: number) => { const m = Math.floor(sec / 60), x = Math.floor(sec % 60); return `${m}:${String(x).padStart(2, '0')}`; };
-  const activeRoute = state.routes?.find((r: any) => r.id === state.activeRouteId);
+  const activeRoute = state.routes?.find(r => r.id === state.activeRouteId);
   const routeName = activeRoute?.name ?? '';
   // rides aligned in the sync editor follow the video exactly; others are spread evenly
   const estimated = !activeRoute?.synced;
@@ -344,14 +357,14 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   // count = what the channel page shows: public rides, or all of them on your own channel
   const { visibilityOf } = useRouteVisibility();
   const { user } = useAuth();
-  const [owner, setOwner] = useState<{ owner: RouteOwner; rides: number } | null>(null);
-  useEffect(() => {
-    const route = state.routes?.find((r: any) => r.id === state.activeRouteId);
-    if (!route) { setOwner(null); return; }
+  // (this component only runs in the browser – reading localStorage while rendering is fine)
+  const owner = useMemo(() => {
+    const route = state.routes?.find(r => r.id === state.activeRouteId);
+    if (!route) return null;
     const o = ownerOf(route);
     const mine = !!user && o.id === user.id;
     const rides = loadAllRoutes().filter(r => ownerOf(r).id === o.id && (mine || visibilityOf(r.id, r.visibility) === 'public')).length;
-    setOwner({ owner: o, rides });
+    return { owner: o, rides };
   }, [state.activeRouteId, state.routes, visibilityOf, user]);
   const channelBar = <ChannelBar data={owner} />;
 
@@ -433,8 +446,8 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
       cancel=".no-drag"
       className={`rounded-xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),0_0_30px_rgba(0,0,0,0.5)] border border-white/20 bg-black/60 backdrop-blur-md flex flex-col transition-opacity duration-1000 ${isPositioned ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       style={{ zIndex: cssFullDesktop ? 200 : state.activeWindow === 'video' ? 60 : 50, ...(cssFullDesktop ? { position: 'fixed', borderRadius: 0, border: 0 } : {}) }}
-      onDragStart={() => { lockIframes(); setActiveWindow && setActiveWindow('video'); }}
-      onMouseDown={() => setActiveWindow && setActiveWindow('video')}
+      onDragStart={() => { lockIframes(); setActiveWindow?.('video'); }}
+      onMouseDown={() => setActiveWindow?.('video')}
     >
       {!cssFullDesktop && headerContent}
       {videoContent}

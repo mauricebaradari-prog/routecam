@@ -161,7 +161,7 @@ export function useEditorState() {
       // The video is the clock. While YouTube hasn't started yet or is buffering, the ride
       // waits instead of running ahead (or – as before – being stopped by the buffering event
       // while the video then plays on: the "first play stops the map" bug).
-      const yt = (window as any).__YT_PLAYER;
+      const yt = window.__YT_PLAYER;
       const ps = yt?.getPlayerState?.();
       if (ps === 3 || ps === -1 || ps === 5) {
         lastTimeRef.current = now;
@@ -170,7 +170,7 @@ export function useEditorState() {
       }
       // About once a second, pull the ride back to the video's real position if they drifted
       // (stalls, tab in background). Small corrections only – big jumps are seeks, handled elsewhere.
-      if (ps === 1 && now - lastSync > 1000 && yt.getCurrentTime) {
+      if (yt && ps === 1 && now - lastSync > 1000) {
         lastSync = now;
         const videoTime = yt.getCurrentTime();
         setState((prev) => {

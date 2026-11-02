@@ -9,8 +9,8 @@ type DurationState =
   | { status: 'ok'; seconds: number; title: string }
   | { status: 'error'; message: string };
 
-export function waitForYT(timeoutMs = 10000): Promise<any> {
-  const w = window as any;
+export function waitForYT(timeoutMs = 10000): Promise<YTNamespace> {
+  const w = window;
   if (w.YT?.Player) return Promise.resolve(w.YT);
   // Load the API script if nobody did yet – without touching window.onYouTubeIframeAPIReady,
   // which the video overlay uses.
@@ -43,17 +43,15 @@ export function useYouTubeDuration(videoId: string | null): DurationState {
   const [state, setState] = useState<DurationState>({ status: 'idle' });
 
   useEffect(() => {
-    if (!videoId) {
-      setState({ status: 'idle' });
-      return;
-    }
+    if (!videoId) return;
     let cancelled = false;
-    let player: any = null;
+    let player: YTPlayer | null = null;
     const host = document.createElement('div');
     host.style.cssText = 'position:fixed;left:-10000px;top:0;width:320px;height:180px;pointer-events:none;';
     const mount = document.createElement('div');
     host.appendChild(mount);
     document.body.appendChild(host);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts loading the external YouTube player
     setState({ status: 'loading' });
 
     const finish = (s: DurationState) => { if (!cancelled) setState(s); };
@@ -76,7 +74,7 @@ export function useYouTubeDuration(videoId: string | null): DurationState {
               };
               read();
             },
-            onError: (e: any) => finish({ status: 'error', message: ERRORS[e.data] || 'Das Video kann nicht geladen werden.' }),
+            onError: (e: { data: number }) => finish({ status: 'error', message: ERRORS[e.data] || 'Das Video kann nicht geladen werden.' }),
           },
         });
       })
@@ -89,5 +87,5 @@ export function useYouTubeDuration(videoId: string | null): DurationState {
     };
   }, [videoId]);
 
-  return state;
+  return videoId ? state : { status: 'idle' };
 }

@@ -50,6 +50,7 @@ export default function Onboarding({ onCreate }: { onCreate?: () => void }) {
 
   // first sign-in of this account → show once
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the seen list lives in localStorage
     if (user && !seenIds().includes(user.id)) { setStep(0); setOpen(true); }
   }, [user]);
 
@@ -178,6 +179,7 @@ function VisualConnect() {
   useEffect(() => { if (pathRef.current) setLen(pathRef.current.getTotalLength()); }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- respects the reduced-motion setting, browser only
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setStill(true); setPhase('play'); setP(0.6); return; }
     let timers: ReturnType<typeof setTimeout>[] = [];
     const run = () => {
@@ -207,6 +209,7 @@ function VisualConnect() {
   const joining = phase === 'join';
   const merged = phase !== 'cards' && phase !== 'join';
   const showResult = phase === 'result' || phase === 'play' || phase === 'out';
+  // eslint-disable-next-line react-hooks/refs -- animation: position on the drawn SVG path (only after it was measured)
   const pin = pathRef.current && len ? pathRef.current.getPointAtLength(len * p) : { x: 22, y: 112 };
 
   return (
@@ -333,6 +336,7 @@ function VisualReact() {
   useEffect(() => {
     if (!pos) return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- respects the reduced-motion setting, browser only
       setStill(true); setF(x => ({ ...x, rating: 4, liked: true, hidden: true }));
       return;
     }
@@ -478,6 +482,7 @@ function VisualCommunity() {
   const routeRef = useRef<SVGPathElement>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- respects the reduced-motion setting, browser only
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setT(PLAY_START + (PLAY_END - PLAY_START) * 0.6); return; }
     let raf = 0;
     const t0 = performance.now();
@@ -486,6 +491,7 @@ function VisualCommunity() {
     return () => cancelAnimationFrame(raf);
   }, []);
   // the ride is only in the DOM once it has turned to the front – measure it then
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- measures the SVG path once it exists – no deps on purpose
   useEffect(() => { if (!len && routeRef.current) setLen(routeRef.current.getTotalLength()); });
 
   // camera
@@ -505,9 +511,11 @@ function VisualCommunity() {
   const fade = Math.min(clamp01(t / 400), t > PLAY_END + 300 ? 0 : 1);
   const dim = selected ? 1 - 0.7 * clamp01((t - SELECTED) / 400) : 1;
   const point = (f: number) => (routeRef.current && len ? routeRef.current.getPointAtLength(len * f) : { x: -2.1, y: 1.3 });
+  // eslint-disable-next-line react-hooks/refs -- animation: position on the drawn SVG path (only after it was measured)
   const pin = point(p);
 
   // cursor (viewBox units): glides in from the bottom right and clicks the ride
+  // eslint-disable-next-line react-hooks/refs -- animation: position on the drawn SVG path (only after it was measured)
   const hit = point(0); // play button sits on the start of the ride
   const hitX = VB_W / 2 + (tgt.x + hit.x - cx) * sc, hitY = VB_H / 2 + (tgt.y + hit.y - cy) * sc;
   const ct = easeOut(clamp01((t - CURSOR_IN) / (CURSOR_AT - CURSOR_IN)));

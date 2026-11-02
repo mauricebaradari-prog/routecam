@@ -49,8 +49,8 @@ function VisibilityPicker({ value, onChange }: { value: Visibility; onChange: (v
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setPos(null); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setPos(null); };
     const dismiss = () => setPos(null);
     document.addEventListener('mousedown', close);
     document.addEventListener('keydown', esc);
@@ -229,6 +229,7 @@ function Dashboard() {
   // "Anlegen" in the header – same flow as on the map page, the new ride appears in the list
   const [createOpen, setCreateOpen] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the address is only known in the browser, after the static page has loaded
     if (new URLSearchParams(window.location.search).get('create') === '1') setCreateOpen(true);
   }, []);
   function handleCreateRide(ride: NewRide) {
@@ -251,7 +252,7 @@ function Dashboard() {
     window.setTimeout(() => setToast(t => (t === msg ? null : t)), 2500);
   };
   // a deleted group must not stay active as filter
-  useEffect(() => { if (groupFilter && !groups.some(g => g.id === groupFilter)) setGroupFilter(null); }, [groups, groupFilter]);
+  if (groupFilter && groups.length && !groups.some(g => g.id === groupFilter)) setGroupFilter(null);
   const [view, setView] = useState<ViewMode>('table');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<Sort>({ key: 'index', dir: 1 });

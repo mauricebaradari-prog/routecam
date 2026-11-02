@@ -20,13 +20,12 @@ interface Props {
   onAddComment: (seconds: number, text: string, parentId?: string) => void;
   comments: RouteComment[];
   activeCommentIds: string[]; // comments the vehicle is currently passing – highlighted
-  isAnimating: boolean;
   onSeekToSeconds: (seconds: number) => void;
   syncHref?: string | null; // own ride with GPS timestamps → "Video ausrichten" in the ⋯ menu
 }
 
 // Floating "Community" window on the map: like, share, rate (1–5 stars), report (behind ⋯).
-export default function CommunityWidget({ routeId, routeName, activeWindow, setActiveWindow, defaultY, currentSeconds, commentCount, onAddComment, comments, activeCommentIds, isAnimating, onSeekToSeconds, syncHref }: Props) {
+export default function CommunityWidget({ routeId, routeName, activeWindow, setActiveWindow, defaultY, currentSeconds, commentCount, onAddComment, comments, activeCommentIds, onSeekToSeconds, syncHref }: Props) {
   const { statsOf, toggleLike, rate, report } = useRouteInteractions();
   const stats = statsOf(routeId);
   const [isMobile, setIsMobile] = useState(false);
@@ -73,7 +72,6 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
     const t = setTimeout(fitList, 50);
     window.addEventListener('resize', fitList);
     return () => { clearTimeout(t); window.removeEventListener('resize', fitList); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile, comments.length]);
 
   useEffect(() => {

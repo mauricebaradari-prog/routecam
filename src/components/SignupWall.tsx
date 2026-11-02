@@ -47,15 +47,15 @@ export default function SignupWall() {
   // A playing ride pauses while the wall is open, and continues on "Später"
   const resumeRef = useRef(false);
   const pauseRide = () => {
-    const st = (window as any).__EDITOR_STATE;
-    const player = (window as any).__YT_PLAYER;
+    const st = window.__EDITOR_STATE;
+    const player = window.__YT_PLAYER;
     if (st?.isAnimating && player?.pauseVideo) { resumeRef.current = true; try { player.pauseVideo(); } catch {} }
   };
   const dismiss = () => {
     setReason(null);
     if (resumeRef.current) {
       resumeRef.current = false;
-      try { (window as any).__YT_PLAYER?.playVideo?.(); } catch {}
+      try { window.__YT_PLAYER?.playVideo?.(); } catch {}
     }
   };
 
@@ -63,6 +63,7 @@ export default function SignupWall() {
   useEffect(() => onSignupWall(r => { pauseRide(); setReason(r); }), []);
 
   // signed in → wall closes (the first-login tutorial takes over)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- closes the wall when the login (another source) went through
   useEffect(() => { if (user) { resumeRef.current = false; setReason(null); } }, [user]);
 
   // engagement: ~3 min watched, or the 3rd ride opened → once per session
@@ -71,7 +72,7 @@ export default function SignupWall() {
     let watched = 0;
     const iv = setInterval(() => {
       if (ss.get(AUTO_KEY)) return;
-      const st = (window as any).__EDITOR_STATE;
+      const st = window.__EDITOR_STATE;
       if (!st) return;
       if (st.isAnimating) watched += 1;
       if (st.activeRouteId) {
@@ -95,7 +96,7 @@ export default function SignupWall() {
   }, [user, configured, promptOneTap]);
 
   // closed → the next opening starts hidden again
-  useEffect(() => { if (!reason) setBtnReady(false); }, [reason]);
+  if (!reason && btnReady) setBtnReady(false);
 
   // Google button inside the wall
   useEffect(() => {
