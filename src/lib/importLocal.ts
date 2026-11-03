@@ -24,7 +24,17 @@ interface OldComment { id: string; routeId: string; seconds: number; text: strin
 interface OldGroup { name: string; routeIds: string[]; visibility?: 'public' | 'unlisted' | 'private'; createdAt?: string }
 interface OldInteraction { liked?: boolean; rating?: number }
 
+// Every open tab learns about a sign-in at the same moment – a browser-wide lock makes sure
+// only one of them moves the data (the others then find the "done" flag and stop).
 export async function importLocalData() {
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    await navigator.locks.request('routecam-import', () => importOnce());
+  } else {
+    await importOnce();
+  }
+}
+
+async function importOnce() {
   const me = db().me;
   if (!me) return;
   const done: string[] = read(DONE_KEY, []);
