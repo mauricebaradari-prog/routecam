@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Info, Layers, SquareUser as UserSquare } from 'lucide-react';
+import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Info, Layers, ShieldCheck, SquareUser as UserSquare } from 'lucide-react';
+import { useDb } from '@/lib/db';
 import { channelHref, ownerOf } from '@/lib/channels';
 import { useAllRoutes } from '@/lib/userRoutes';
 import { useRouteGroups } from '@/lib/routeGroups';
@@ -263,6 +264,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
 // Avatar top right: "Sign in with Google" when signed out, profile + sign-out when signed in
 function AccountMenu() {
   const { user, signOut, renderSignInButton, configured } = useAuth();
+  const isFounder = !!useDb().me?.is_founder;
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -324,6 +326,7 @@ function AccountMenu() {
                 <MenuLink href="/dashboard" icon={<LayoutGrid size={16} />} onClick={() => setOpen(false)}>Dashboard</MenuLink>
                 <MenuLink href="/settings" icon={<Settings size={16} />} onClick={() => setOpen(false)}>Einstellungen</MenuLink>
                 <MenuLink href="/about#support" icon={<LifeBuoy size={16} />} onClick={() => setOpen(false)}>Support</MenuLink>
+                {isFounder && <MenuLink href="/admin" icon={<ShieldCheck size={16} />} onClick={() => setOpen(false)}>Admin</MenuLink>}
               </div>
               <div className="border-t border-white/10 py-1.5">
                 <button onClick={() => { signOut(); setOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/10">
