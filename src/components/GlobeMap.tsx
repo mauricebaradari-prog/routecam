@@ -470,7 +470,7 @@ export default function GlobeMap({
       const styleUrl = buildMapStyle(mapStyle);
 
       // worker is served from public/ (see scripts/copy-maplibre-worker.mjs)
-      maplibregl.setWorkerUrl('/routecam/maplibre/maplibre-gl-worker.mjs');
+      maplibregl.setWorkerUrl(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/maplibre/maplibre-gl-worker.mjs`);
       const map = new maplibregl.Map({
         container: containerRef.current,
         style: styleUrl,

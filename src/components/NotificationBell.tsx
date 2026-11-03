@@ -52,7 +52,7 @@ export default function NotificationBell() {
     // Elsewhere nobody listens → open the map with ?route / ?t.
     const handled = !window.dispatchEvent(new CustomEvent('routecam:open-ride', { detail: { routeId: n.routeId, seconds }, cancelable: true }));
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full page load on purpose: the map page reads ?route/&t when it starts
-    if (!handled) window.location.assign(`/routecam/?route=${n.routeId}${seconds ? `&t=${seconds}` : ''}`);
+    if (!handled) window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/?route=${n.routeId}${seconds ? `&t=${seconds}` : ''}`);
   }
 
   return (

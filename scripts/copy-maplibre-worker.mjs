@@ -1,7 +1,7 @@
 // MapLibre GL v6 loads its tile worker from a file next to its own bundle.
 // Next.js bundles MapLibre into a chunk, so that file is missing (404) and no
 // vector/GeoJSON source can load. Copy the worker files into public/ so they
-// are served at /routecam/maplibre/… — runs automatically before dev/build.
+// are served at /maplibre/… — runs automatically before dev/build.
 import { copyFileSync, mkdirSync } from 'node:fs';
 
 const files = ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs'];

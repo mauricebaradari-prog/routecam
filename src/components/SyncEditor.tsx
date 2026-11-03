@@ -185,7 +185,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
       const s = localStorage.getItem('routecam.mapStyle') as MapStyleId | null;
       if (s && MAP_STYLES.some(m => m.id === s)) style = s;
     } catch {}
-    maplibregl.setWorkerUrl('/routecam/maplibre/maplibre-gl-worker.mjs');
+    maplibregl.setWorkerUrl(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/maplibre/maplibre-gl-worker.mjs`);
     const map = new maplibregl.Map({ container: mapEl.current, style: buildMapStyle(style), attributionControl: { compact: true } });
     mapRef.current = map;
     const b = new maplibregl.LngLatBounds();

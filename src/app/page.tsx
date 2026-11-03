@@ -360,7 +360,7 @@ export default function Home() {
           comments={allRouteComments}
           activeCommentIds={activeCommentIds}
           onSeekToSeconds={sec => handleSeek(Math.min(1, sec / (state.durationSeconds || 1)))}
-          syncHref={activeRoute?.timeline && loadUserRoutes().some(r => r.id === activeRoute.id) ? `/routecam/sync?route=${activeRoute.id}` : null}
+          syncHref={activeRoute?.timeline && loadUserRoutes().some(r => r.id === activeRoute.id) ? `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/sync?route=${activeRoute.id}` : null}
         />
         )}
 

@@ -11,7 +11,8 @@ const geistMono = Geist_Mono({ subsets: ["latin", "latin-ext"], variable: "--fon
 const TITLE = "RouteCam – Fahrvideos auf dem 3D-Globus";
 const DESCRIPTION =
   "Fahrvideo und GPS-Strecke synchron: Während das YouTube-Video läuft, fährt die Route über einen 3D-Globus mit Höhenprofil. Kostenlos, im Browser, ohne Download.";
-const OG_IMAGE = "https://maurice-baradari.de/routecam/og-image.jpg";
+const SITE = "https://routecam.app";
+const OG_IMAGE = `${SITE}/og-image.jpg`;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
-    url: "https://maurice-baradari.de/routecam/",
+    url: `${SITE}/`,
     siteName: "RouteCam",
     images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "RouteCam" }],
     locale: "de_DE",
@@ -45,8 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
          * MapLibre GL CSS is served as a static public file to avoid Turbopack
          * PostCSS processing issues with this particular stylesheet.
          */}
-        {/* eslint-disable-next-line @next/next/no-css-tags -- MapLibre's stylesheet is served as a static file on purpose (Turbopack can't process it) */}
-        <link rel="stylesheet" href="/routecam/maplibre-gl.css" />
+        <link rel="stylesheet" href={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/maplibre-gl.css`} />
       </head>
       <body className="h-full antialiased font-sans">
         <ErrorLogger />
