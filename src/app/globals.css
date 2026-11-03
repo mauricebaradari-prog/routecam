@@ -1,6 +1,9 @@
 @import 'maplibre-gl/dist/maplibre-gl.css';
 @import "tailwindcss";
 
+/* Admin dashboard: own light/dark switch (data-admin-theme on its wrapper), independent of the app */
+@custom-variant adark (&:where([data-admin-theme=dark], [data-admin-theme=dark] *));
+
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
