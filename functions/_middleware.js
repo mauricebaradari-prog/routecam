@@ -42,7 +42,7 @@ export async function onRequest(context) {
   const pageUrl = url.toString();
   const set = (name, value) => ({ element: el => el.setAttribute('content', value) });
   const rewritten = new HTMLRewriter()
-    .on('title', { element: el => el.setInnerContent(`${preview.title} – RouteCam`) })
+    .on('title', { element: el => el.setInnerContent(/RouteCam$/.test(preview.title) ? preview.title : `${preview.title} – RouteCam`) })
     .on('meta[name="description"]', set('description', preview.desc))
     .on('meta[property="og:title"]', set('og:title', preview.title))
     .on('meta[property="og:description"]', set('og:description', preview.desc))
@@ -150,10 +150,9 @@ async function channelPreview(context, u) {
   }
   const count = rides.length + builtIn.length;
   const latestVideo = rides[0]?.videoId || builtIn[0]?.videoId;
-  const totalKm = builtIn.reduce((s, r) => s + (r.km || 0), 0);
   return {
     title: `${profile.name || 'RouteCam-Kanal'} auf RouteCam`,
-    desc: `${count} ${count === 1 ? 'Fahrt' : 'Fahrten'}${totalKm ? ` · über ${totalKm.toLocaleString('de-DE')} km` : ''} – Fahrvideos auf dem 3D-Globus`,
+    desc: `${count} ${count === 1 ? 'Fahrt' : 'Fahrten'} – Fahrvideos auf dem 3D-Globus, mit Karte und Höhenprofil`,
     image: (await thumbnail(latestVideo)) || { url: 'https://routecam.app/og-image.jpg', width: 1200, height: 630 },
   };
 }
