@@ -2,9 +2,9 @@ import { ROUTES } from '@/data/routes';
 import { FOUNDER } from '@/lib/founder';
 import { haversineDistance } from '@/lib/geo';
 
-// Static JSON written to out/share-index.json at build time. public/r.php reads it to give
-// every shared ride its own link preview (title + video thumbnail) on WhatsApp, Facebook & co.
-// Rides created by users are not in here – r.php looks those up in Supabase once it exists.
+// Static JSON written to out/share-index.json at build time. functions/_middleware.js reads it to
+// give every shared built-in ride its own link preview (title + video thumbnail) on WhatsApp,
+// Facebook & co. Rides created by users are looked up in Supabase there.
 export const dynamic = 'force-static';
 
 export async function GET() {
