@@ -1,0 +1,17 @@
+{
+  // RouteCam alert mails: the database calls this Worker when someone reports a ride or a
+  // comment, and it mails the founder. Deployed by Cloudflare Workers Builds from this folder.
+  "name": "routecam-notify",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-01",
+  "routes": [{ "pattern": "routecam.app/api/notify", "zone_name": "routecam.app" }],
+  // sending to the address that is verified in Email Routing is free
+  "send_email": [{ "name": "MAIL", "destination_address": "maurice.baradari@gmail.com" }],
+  "vars": {
+    "ADMIN_URL": "https://routecam.app/admin",
+    "APP_URL": "https://routecam.app",
+    "SUPABASE_URL": "https://yagqzwufmmlmenurrlte.supabase.co",
+    // public key – the database function decides what it hands out (no secret needed here)
+    "SUPABASE_KEY": "sb_publishable_PpRt1eSGuFQJF2fzuCKF9g_Sw3cEdZq"
+  }
+}
