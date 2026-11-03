@@ -190,7 +190,7 @@ export default function AdminPage() {
         </>
       }
     >
-      <nav className="flex gap-1 border-b border-neutral-200 adark:border-neutral-800 mb-6 overflow-x-auto">
+      <nav className="flex gap-1 border-b border-neutral-200 adark:border-neutral-800 mb-6 overflow-x-auto overflow-y-hidden [scrollbar-width:none]">
         {TABS.map(t => (
           <button
             key={t.id}
@@ -201,7 +201,7 @@ export default function AdminPage() {
             {t.id === 'reports' && openReports > 0 && (
               <Num className="ml-1.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-red-600 text-white text-[11px]">{openReports}</Num>
             )}
-            {tab === t.id && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-black adark:bg-white" />}
+            {tab === t.id && <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-black adark:bg-white" />}
           </button>
         ))}
       </nav>
