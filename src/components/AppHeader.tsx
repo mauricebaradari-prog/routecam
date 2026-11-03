@@ -120,15 +120,29 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                   <IconButton label="Suchen" onClick={() => setMobileSearch(true)}><Search size={20} /></IconButton>
                 </span>
               )}
+              {/* signed out: the lime call to action – the one thing a new visitor should notice */}
               <button
                 onClick={onCreate}
-                className="hidden sm:inline-flex items-center gap-1.5 h-9 pl-3 pr-4 rounded-full bg-white/10 hover:bg-white/20 text-sm font-medium text-white transition-colors"
+                className={`hidden sm:inline-flex items-center gap-1.5 h-9 pl-3 pr-4 rounded-full text-sm transition-colors ${
+                  user ? 'bg-white/10 hover:bg-white/20 font-medium text-white' : 'bg-[#CCFF00] hover:brightness-110 font-semibold text-black'
+                }`}
               >
                 <Plus size={20} />
                 Anlegen
               </button>
               <span className="sm:hidden">
-                <IconButton label="Anlegen" onClick={onCreate}><Plus size={22} /></IconButton>
+                {user ? (
+                  <IconButton label="Anlegen" onClick={onCreate}><Plus size={22} /></IconButton>
+                ) : (
+                  <button
+                    onClick={onCreate}
+                    title="Anlegen"
+                    aria-label="Anlegen"
+                    className="w-9 h-9 rounded-full flex items-center justify-center bg-[#CCFF00] text-black hover:brightness-110 transition"
+                  >
+                    <Plus size={20} />
+                  </button>
+                )}
               </span>
               {user && <NotificationBell />}
               <AccountMenu />
