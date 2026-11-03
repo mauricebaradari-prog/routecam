@@ -1,5 +1,5 @@
 import { ROUTES } from '@/data/routes';
-import { FOUNDER } from '@/lib/channels';
+import { FOUNDER } from '@/lib/founder';
 import { haversineDistance } from '@/lib/geo';
 
 // Static JSON written to out/share-index.json at build time. public/r.php reads it to give

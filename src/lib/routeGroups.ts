@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { db, dbError, setDb, useDb, type GroupRow } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 import type { Visibility } from '@/lib/routeVisibility';
 
 // Groups of routes (e.g. a trip "Zypern 2026" made of several rides).
 //
-// INTERIM STORAGE: localStorage until Supabase exists (see 07_TODO.md).
+// Stored in the table `route_groups` (public/unlisted groups are readable by everyone,
+// changed only by their owner).
 
 export interface RouteGroup {
   id: string;
+  ownerId: string;
   name: string;
   routeIds: string[];
   createdAt: string;
@@ -14,25 +18,16 @@ export interface RouteGroup {
   visibility?: Visibility; // default 'public'
 }
 
-const STORAGE_KEY = 'routecam.groups';
-const CHANGE_EVENT = 'routecam:groups';
+const toGroup = (g: GroupRow): RouteGroup => ({
+  id: g.id, ownerId: g.owner_id, name: g.name, routeIds: g.route_ids, createdAt: g.created_at, updatedAt: g.updated_at, visibility: g.visibility,
+});
 
-function load(): RouteGroup[] {
-  try {
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
-}
-
-const touch = (g: RouteGroup, patch: Partial<RouteGroup>): RouteGroup => ({ ...g, ...patch, updatedAt: new Date().toISOString() });
-
-function save(groups: RouteGroup[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
-  } catch {}
-  window.dispatchEvent(new Event(CHANGE_EVENT));
+// Change one own group: shown at once, saved in the background, undone if saving fails
+async function patchGroup(id: string, patch: Partial<Pick<GroupRow, 'name' | 'route_ids' | 'visibility'>>) {
+  const before = db().groups;
+  setDb({ groups: before.map(g => (g.id === id ? { ...g, ...patch, updated_at: new Date().toISOString() } : g)) });
+  const { error } = await supabase().from('route_groups').update(patch).eq('id', id);
+  if (error) { setDb({ groups: before }); alert(dbError(error).message); }
 }
 
 // "vor 2 Tagen aktualisiert"
@@ -57,54 +52,54 @@ export function relativeTime(iso?: string): string {
   return '';
 }
 
+// groups = the signed-in account's own groups (menu, dashboard);
+// allGroups = every group this visitor may see (channel pages).
 export function useRouteGroups() {
-  const [groups, setGroups] = useState<RouteGroup[]>([]);
-
-  useEffect(() => {
-    const sync = () => setGroups(load());
-    sync();
-    window.addEventListener(CHANGE_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
+  const { groups: rows, me } = useDb();
+  const allGroups = useMemo(() => rows.map(toGroup), [rows]);
+  const groups = useMemo(() => allGroups.filter(g => !!me && g.ownerId === me.id), [allGroups, me]);
 
   const createGroup = useCallback((name: string, routeIds: string[]): RouteGroup => {
-    const group: RouteGroup = {
-      id: `g-${Date.now().toString(36)}`,
-      name: name.trim(),
-      routeIds: [...new Set(routeIds)],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      visibility: 'public',
+    const s = db();
+    const now = new Date().toISOString();
+    const row: GroupRow = {
+      id: `g-${crypto.randomUUID().replace(/-/g, '')}`, owner_id: s.me?.id ?? '', name: name.trim(),
+      route_ids: [...new Set(routeIds)], visibility: 'public', created_at: now, updated_at: now,
     };
-    save([...load(), group]);
-    return group;
+    if (s.me) {
+      setDb({ groups: [...s.groups, row] });
+      supabase().from('route_groups').insert({ id: row.id, name: row.name, route_ids: row.route_ids, visibility: row.visibility })
+        .then(({ error }) => { if (error) { setDb({ groups: db().groups.filter(g => g.id !== row.id) }); alert(dbError(error).message); } });
+    }
+    return toGroup(row);
   }, []);
 
+  const routeIdsOf = (groupId: string) => db().groups.find(g => g.id === groupId)?.route_ids ?? [];
+
   const addToGroup = useCallback((groupId: string, routeIds: string[]) => {
-    save(load().map(g => (g.id === groupId ? touch(g, { routeIds: [...new Set([...g.routeIds, ...routeIds])] }) : g)));
+    patchGroup(groupId, { route_ids: [...new Set([...routeIdsOf(groupId), ...routeIds])] });
   }, []);
 
   const removeFromGroup = useCallback((groupId: string, routeIds: string[]) => {
-    save(load().map(g => (g.id === groupId ? touch(g, { routeIds: g.routeIds.filter(id => !routeIds.includes(id)) }) : g)));
+    patchGroup(groupId, { route_ids: routeIdsOf(groupId).filter(id => !routeIds.includes(id)) });
   }, []);
 
   const renameGroup = useCallback((groupId: string, name: string) => {
-    save(load().map(g => (g.id === groupId ? touch(g, { name: name.trim() }) : g)));
+    patchGroup(groupId, { name: name.trim() });
   }, []);
 
   const setGroupVisibility = useCallback((groupId: string, visibility: Visibility) => {
-    save(load().map(g => (g.id === groupId ? touch(g, { visibility }) : g)));
+    patchGroup(groupId, { visibility });
   }, []);
 
-  const deleteGroup = useCallback((groupId: string) => {
-    save(load().filter(g => g.id !== groupId));
+  const deleteGroup = useCallback(async (groupId: string) => {
+    const before = db().groups;
+    setDb({ groups: before.filter(g => g.id !== groupId) });
+    const { error } = await supabase().from('route_groups').delete().eq('id', groupId);
+    if (error) { setDb({ groups: before }); alert(dbError(error).message); }
   }, []);
 
   const groupsOf = useCallback((routeId: string) => groups.filter(g => g.routeIds.includes(routeId)), [groups]);
 
-  return { groups, groupsOf, createGroup, addToGroup, removeFromGroup, renameGroup, setGroupVisibility, deleteGroup };
+  return { groups, allGroups, groupsOf, createGroup, addToGroup, removeFromGroup, renameGroup, setGroupVisibility, deleteGroup };
 }

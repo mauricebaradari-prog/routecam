@@ -1,75 +1,34 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
+import { setDb, useDb } from '@/lib/db';
 
-// Google login via "Sign in with Google" (Google Identity Services), client-side only.
+// Google login via "Sign in with Google" (Google Identity Services).
 //
-// The browser receives a signed Google ID token (JWT). We decode it here ONLY to show
-// name/picture in the UI – it is NOT verified, so nothing security-relevant may rely on it.
-// With Supabase, the same token is handed to supabase.auth.signInWithIdToken({ provider: 'google', token })
-// which verifies it server-side and creates the real session (see 07_TODO.md).
+// Google hands the browser a signed ID token; supabase.auth.signInWithIdToken checks it
+// server-side and creates the real session (an account in Supabase Auth plus a row in
+// public.profiles = the channel). The session is kept and refreshed by supabase-js.
 //
-// Needs NEXT_PUBLIC_GOOGLE_CLIENT_ID (OAuth client ID, type "Web application") in .env.local.
+// Needs NEXT_PUBLIC_GOOGLE_CLIENT_ID (OAuth client ID, type "Web application") in .env.local –
+// the same id is entered under Authentication → Sign In / Providers → Google in Supabase.
 
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
 export interface AuthUser {
-  id: string;        // Google "sub"
+  id: string;        // Supabase user id (= profiles.id, channel id)
   name: string;
   email: string;
   picture?: string;
-  credential: string; // raw ID token – pass to Supabase later
-  expiresAt: number;  // ms
 }
 
-const STORAGE_KEY = 'routecam.user';
-const CHANGE_EVENT = 'routecam:auth';
 const GSI_SRC = 'https://accounts.google.com/gsi/client';
 
-interface GoogleClaims { sub?: string; name?: string; email?: string; picture?: string; exp?: number }
-
-function decodeJwt(token: string): GoogleClaims | null {
-  try {
-    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const json = decodeURIComponent(
-      atob(part.padEnd(part.length + ((4 - (part.length % 4)) % 4), '='))
-        .split('')
-        .map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
-        .join(''),
-    );
-    return JSON.parse(json);
-  } catch {
-    return null;
+async function handleCredential(resp: { credential: string }) {
+  const { error } = await supabase().auth.signInWithIdToken({ provider: 'google', token: resp.credential });
+  if (error) {
+    console.error('[auth]', error.message);
+    setDb({ authError: 'Die Anmeldung hat nicht geklappt. Bitte versuch es noch einmal.' });
   }
-}
-
-function load(): AuthUser | null {
-  try {
-    const u = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') as AuthUser | null;
-    // Google ID tokens live ~1 h; the profile stays shown until sign-out (no server session yet)
-    return u && u.id ? u : null;
-  } catch {
-    return null;
-  }
-}
-
-function save(u: AuthUser | null) {
-  try {
-    if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    else localStorage.removeItem(STORAGE_KEY);
-  } catch {}
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-
-function handleCredential(resp: { credential: string }) {
-  const p = decodeJwt(resp.credential);
-  if (!p?.sub) return;
-  save({
-    id: p.sub,
-    name: p.name || p.email || 'Google-Konto',
-    email: p.email || '',
-    picture: p.picture,
-    credential: resp.credential,
-    expiresAt: (p.exp || 0) * 1000,
-  });
+  // success: db.ts reacts to the new session (profile, own data, import of old local data)
 }
 
 // Loads the GIS script once and initialises it once per page.
@@ -96,19 +55,11 @@ function loadGsi(): Promise<GsiId> {
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [ready, setReady] = useState(false); // false until the stored login has been read
-
-  useEffect(() => {
-    const sync = () => { setUser(load()); setReady(true); };
-    sync();
-    window.addEventListener(CHANGE_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
+  const { me, email, authReady } = useDb();
+  const user = useMemo<AuthUser | null>(
+    () => (me ? { id: me.id, name: me.name || email.split('@')[0] || 'Konto', email, picture: me.picture ?? undefined } : null),
+    [me, email],
+  );
 
   // Renders Google's official sign-in button into the given element
   // theme: 'filled_black' (account menu) or 'outline' (white – sign-up wall)
@@ -126,8 +77,8 @@ export function useAuth() {
 
   const signOut = useCallback(() => {
     try { window.google?.accounts?.id?.disableAutoSelect(); } catch {}
-    save(null);
+    supabase().auth.signOut().catch(e => console.error('[auth]', e));
   }, []);
 
-  return { user, ready, signOut, renderSignInButton, promptOneTap, configured: !!GOOGLE_CLIENT_ID };
+  return { user, ready: authReady, signOut, renderSignInButton, promptOneTap, configured: !!GOOGLE_CLIENT_ID };
 }

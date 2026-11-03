@@ -232,10 +232,9 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the address is only known in the browser, after the static page has loaded
     if (new URLSearchParams(window.location.search).get('create') === '1') setCreateOpen(true);
   }, []);
-  function handleCreateRide(ride: NewRide) {
+  async function handleCreateRide(ride: NewRide) {
     const route = routeFromTrack(ride);
-    saveUserRoute(route); // throws if storage is full – the modal shows the error
-    setVisibility(route.id, ride.visibility);
+    await saveUserRoute({ ...route, visibility: ride.visibility }); // throws on failure – the modal shows the error
     setCreateOpen(false);
     if (ride.align && route.timeline) router.push(`/sync?route=${route.id}`);
   }
@@ -670,7 +669,10 @@ function Dashboard() {
         <EditRideDialog
           route={toRename}
           onCancel={() => setToRename(null)}
-          onSave={names => { setPlaceNames(toRename.id, names); setToRename(null); showToast('Fahrt gespeichert'); }}
+          onSave={names => {
+            setPlaceNames(toRename.id, names).then(() => showToast('Fahrt gespeichert'), e => showToast(e.message));
+            setToRename(null);
+          }}
         />
       )}
 
@@ -684,10 +686,10 @@ function Dashboard() {
           onCancel={() => setToDelete(null)}
           onConfirm={() => {
             for (const g of groupsOf(toDelete.id)) removeFromGroup(g.id, [toDelete.id]);
-            deleteRoute(toDelete.id);
+            const name = toDelete.name;
+            deleteRoute(toDelete.id).then(() => showToast(`„${name}“ gelöscht`), e => showToast(e.message));
             setSelected(sel => sel.filter(id => id !== toDelete.id));
             setToDelete(null);
-            showToast(`„${toDelete.name}“ gelöscht`);
           }}
         />
       )}

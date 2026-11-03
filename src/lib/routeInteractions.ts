@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { db, dbError, setDb, useDb } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 
 // Likes, star ratings and reports per route.
 //
-// INTERIM STORAGE: until the Supabase backend exists (see 07_TODO.md) everything is kept in
-// this browser's localStorage – so the counts only contain *this* browser's own actions.
-// The hook's API (counts + actions) is what the UI uses; swapping the storage for database
-// calls later doesn't change the components.
+// Stored in the tables likes, ratings and route_reports. Counts are from everyone; who
+// reported a ride is never shown – owners only see reason and note (my_route_reports()).
 
 export const REPORT_REASONS = [
   { value: 'inappropriate', label: 'Unangemessener oder anstößiger Inhalt' },
@@ -25,90 +25,74 @@ export interface Report {
   createdAt: string;
 }
 
-interface StoredEntry {
-  liked?: boolean;
-  rating?: number; // 1–5, absent = not rated
-  reports?: Report[];
-}
-
 export interface RouteStats {
   liked: boolean;
   likeCount: number;
   myRating: number | null;
   avgRating: number | null;
   ratingCount: number;
-  reportCount: number;
+  reportCount: number;   // reports on this ride (owner: all, others: their own)
   reports: Report[];
-}
-
-const STORAGE_KEY = 'routecam.interactions';
-const CHANGE_EVENT = 'routecam:interactions';
-
-type Store = Record<string, StoredEntry>;
-
-function load(): Store {
-  try {
-    const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return s && typeof s === 'object' ? s : {};
-  } catch {
-    return {};
-  }
-}
-
-function update(routeId: string, fn: (e: StoredEntry) => StoredEntry) {
-  const store = load();
-  store[routeId] = fn(store[routeId] ?? {});
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  } catch {}
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-
-function toStats(e: StoredEntry | undefined): RouteStats {
-  const liked = !!e?.liked;
-  const rating = e?.rating ?? null;
-  const reports = e?.reports ?? [];
-  return {
-    liked,
-    likeCount: liked ? 1 : 0,
-    myRating: rating,
-    avgRating: rating,
-    ratingCount: rating ? 1 : 0,
-    reportCount: reports.length,
-    reports,
-  };
+  reportedByMe: boolean;
 }
 
 export function useRouteInteractions() {
-  const [store, setStore] = useState<Store>({});
+  const { me, likes, ratings, myRouteReports, reportsOnMine } = useDb();
 
-  useEffect(() => {
-    const sync = () => setStore(load());
-    sync();
-    window.addEventListener(CHANGE_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, sync);
-      window.removeEventListener('storage', sync);
+  const statsOf = useCallback((routeId: string): RouteStats => {
+    const rs = ratings.filter(r => r.route_id === routeId);
+    const mine = rs.find(r => r.user_id === me?.id);
+    const onMine = reportsOnMine.filter(r => r.route_id === routeId);
+    const byMe = myRouteReports.filter(r => r.route_id === routeId);
+    const reports = (onMine.length ? onMine : byMe).map(r => ({ reason: r.reason as ReportReason, note: r.note ?? undefined, createdAt: r.created_at }));
+    return {
+      liked: !!me && likes.some(l => l.route_id === routeId && l.user_id === me.id),
+      likeCount: likes.filter(l => l.route_id === routeId).length,
+      myRating: mine?.stars ?? null,
+      avgRating: rs.length ? rs.reduce((s, r) => s + r.stars, 0) / rs.length : null,
+      ratingCount: rs.length,
+      reportCount: reports.length,
+      reports,
+      reportedByMe: byMe.length > 0,
     };
-  }, []);
+  }, [me, likes, ratings, myRouteReports, reportsOnMine]);
 
-  const statsOf = useCallback((routeId: string) => toStats(store[routeId]), [store]);
-
-  const toggleLike = useCallback((routeId: string) => {
-    update(routeId, e => ({ ...e, liked: !e.liked }));
+  const toggleLike = useCallback(async (routeId: string) => {
+    const s = db();
+    if (!s.me) return;
+    const uid = s.me.id;
+    const before = s.likes;
+    const liked = before.some(l => l.route_id === routeId && l.user_id === uid);
+    setDb({ likes: liked ? before.filter(l => !(l.route_id === routeId && l.user_id === uid)) : [...before, { route_id: routeId, user_id: uid }] });
+    const q = supabase().from('likes');
+    const { error } = liked ? await q.delete().eq('route_id', routeId).eq('user_id', uid) : await q.insert({ route_id: routeId });
+    if (error) { setDb({ likes: before }); alert(dbError(error).message); }
   }, []);
 
   // Clicking the current rating again removes it
-  const rate = useCallback((routeId: string, stars: number) => {
-    update(routeId, e => ({ ...e, rating: e.rating === stars ? undefined : Math.max(1, Math.min(5, Math.round(stars))) }));
+  const rate = useCallback(async (routeId: string, stars: number) => {
+    const s = db();
+    if (!s.me) return;
+    const uid = s.me.id;
+    const before = s.ratings;
+    const current = before.find(r => r.route_id === routeId && r.user_id === uid)?.stars;
+    const value = Math.max(1, Math.min(5, Math.round(stars)));
+    const rest = before.filter(r => !(r.route_id === routeId && r.user_id === uid));
+    setDb({ ratings: current === value ? rest : [...rest, { route_id: routeId, user_id: uid, stars: value }] });
+    const q = supabase().from('ratings');
+    const { error } = current === value
+      ? await q.delete().eq('route_id', routeId).eq('user_id', uid)
+      : await q.upsert({ route_id: routeId, user_id: uid, stars: value });
+    if (error) { setDb({ ratings: before }); alert(dbError(error).message); }
   }, []);
 
-  const report = useCallback((routeId: string, reason: ReportReason, note?: string) => {
-    update(routeId, e => ({
-      ...e,
-      reports: [...(e.reports ?? []), { reason, note: note?.trim() || undefined, createdAt: new Date().toISOString() }],
-    }));
+  const report = useCallback(async (routeId: string, reason: ReportReason, note?: string) => {
+    const s = db();
+    if (!s.me) return;
+    const row = { route_id: routeId, reason, note: note?.trim() || null };
+    setDb({ myRouteReports: [...s.myRouteReports, { ...row, created_at: new Date().toISOString() }] });
+    const { error } = await supabase().from('route_reports').insert(row);
+    if (error) { setDb({ myRouteReports: s.myRouteReports }); alert(dbError(error, 'Die Meldung konnte nicht gesendet werden.').message); }
   }, []);
 
   return { statsOf, toggleLike, rate, report };

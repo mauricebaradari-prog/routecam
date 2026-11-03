@@ -69,7 +69,8 @@ export function useSettings() {
   return { settings, update };
 }
 
-// Everything RouteCam keeps in this browser (until accounts + database exist)
+// What RouteCam kept in this browser before accounts + database existed. On the first sign-in
+// it is moved into the account (lib/importLocal.ts); the old copy stays here until deleted.
 export const LOCAL_DATA_KEYS: { key: string; label: string }[] = [
   { key: 'routecam.userRoutes', label: 'Angelegte Fahrten' },
   { key: 'routecam.visibility', label: 'Sichtbarkeit der Routen' },

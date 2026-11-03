@@ -3,94 +3,113 @@ import { ROUTES, type RouteConfig } from '@/hooks/useEditorState';
 import { simplifyTrack, sampleElevation, type TrackPoint } from '@/lib/track';
 import { buildTimeline } from '@/lib/trackSync';
 import { applyPlaceNamesAll } from '@/lib/placeNames';
-import { withOwner } from '@/lib/channels';
+import { ownerFromId } from '@/lib/channels';
+import { db, dbError, setDb, type RouteRow } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 
-// INTERIM STORAGE: routes created via "Anlegen" live in this browser's localStorage
-// until accounts + database exist (see 07_TODO.md). Only visible in this browser.
-const STORAGE_KEY = 'routecam.userRoutes';
-const DELETED_KEY = 'routecam.deletedRoutes'; // ids of built-in routes hidden via "Löschen"
+// Rides: the built-in rides (src/data/routes.ts) plus the rides in the database (table
+// `routes`). A database row with a built-in id overrides that ride (the founder renamed,
+// hid or re-sync'ed it). Reads are synchronous from the store in lib/db.ts.
 const CHANGE_EVENT = 'routecam:userRoutes';
 
-function loadDeletedIds(): string[] {
-  try {
-    const list = JSON.parse(localStorage.getItem(DELETED_KEY) || '[]');
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
+const isBuiltIn = (id: string) => ROUTES.some(r => r.id === id);
+
+function rowToRoute(r: RouteRow): RouteConfig {
+  return { ...r.config, id: r.id, visibility: r.visibility, owner: ownerFromId(r.owner_id), createdAt: r.config.createdAt ?? r.created_at };
 }
 
-// Built-in routes + routes created in this browser, minus deleted ones.
+// What goes into routes.config: the ride without the parts that live in their own columns
+export function configOf(route: RouteConfig): RouteConfig {
+  const { owner: _o, visibility: _v, originalName: _n, placeOriginal: _p, ...rest } = route;
+  void _o; void _v; void _n; void _p;
+  return rest as RouteConfig;
+}
+
+// Built-in rides + rides from the database, minus hidden ones.
 export function loadAllRoutes(): RouteConfig[] {
-  const deleted = new Set(loadDeletedIds());
-  return applyPlaceNamesAll([...ROUTES, ...loadUserRoutes()].filter(r => !deleted.has(r.id)));
+  const rows = new Map(db().routes.map(r => [r.id, r]));
+  const builtIn = ROUTES.map(b => { const row = rows.get(b.id); return row ? rowToRoute(row) : b; });
+  const created = db().routes.filter(r => !isBuiltIn(r.id)).map(rowToRoute);
+  return applyPlaceNamesAll([...builtIn, ...created].filter(r => !rows.get(r.id)?.hidden));
 }
 
-// User routes are removed from storage; built-in routes (defined in code) can only be hidden.
-// Everything that belongs to the ride goes with it: comments, likes/ratings, visibility, own names.
-// (Comment reports stay – they carry a copy of the comment for moderation.)
-export function deleteRoute(id: string) {
-  try {
-    if (loadUserRoutes().some(r => r.id === id)) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(loadUserRoutes().filter(r => r.id !== id)));
-    } else {
-      localStorage.setItem(DELETED_KEY, JSON.stringify([...new Set([...loadDeletedIds(), id])]));
-    }
-    const comments = JSON.parse(localStorage.getItem('routecam.comments') || '[]');
-    if (Array.isArray(comments)) localStorage.setItem('routecam.comments', JSON.stringify(comments.filter((c: { routeId?: string }) => c.routeId !== id)));
-    for (const key of ['routecam.interactions', 'routecam.visibility', 'routecam.placeNames']) {
-      const map = JSON.parse(localStorage.getItem(key) || '{}');
-      if (map && typeof map === 'object' && id in map) { delete map[id]; localStorage.setItem(key, JSON.stringify(map)); }
-    }
-  } catch {}
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-  for (const ev of ['routecam:comments', 'routecam:interactions', 'routecam:visibility']) window.dispatchEvent(new Event(ev));
-}
-
+// Rides of the signed-in account that were created in the app
 export function loadUserRoutes(): RouteConfig[] {
-  try {
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
+  const me = db().me?.id;
+  return me ? db().routes.filter(r => r.owner_id === me && !isBuiltIn(r.id)).map(rowToRoute) : [];
 }
 
-export function saveUserRoute(input: RouteConfig) {
-  const route = withOwner(input); // new rides belong to the signed-in account's channel
-  const list = loadUserRoutes().filter(r => r.id !== route.id);
-  list.push(route);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    throw new Error('Der lokale Speicher des Browsers ist voll.');
+// Change the database row of a ride. A built-in ride gets its row on the first change –
+// only the founder may do that (the database refuses everyone else).
+export async function patchRouteRow(id: string, patch: Partial<Pick<RouteRow, 'visibility' | 'config' | 'place_names' | 'hidden'>>) {
+  const me = db().me;
+  if (!me) throw new Error('Bitte melde dich an.');
+  const before = db().routes;
+  const row = before.find(r => r.id === id);
+  const sb = supabase();
+  if (row) {
+    setDb({ routes: before.map(r => (r.id === id ? { ...r, ...patch } : r)) });
+    const { error } = await sb.from('routes').update(patch).eq('id', id);
+    if (error) { setDb({ routes: before }); throw dbError(error); }
+    return;
   }
-  window.dispatchEvent(new Event(CHANGE_EVENT));
+  const builtIn = ROUTES.find(r => r.id === id);
+  if (!builtIn || !me.is_founder) throw new Error('Diese Fahrt gehört nicht zu deinem Konto.');
+  const now = new Date().toISOString();
+  const fresh: RouteRow = { id, owner_id: me.id, visibility: 'public', config: configOf(builtIn), place_names: null, hidden: false, created_at: now, updated_at: now, ...patch };
+  setDb({ routes: [...before, fresh] });
+  const { error } = await sb.from('routes').insert({ id, visibility: fresh.visibility, config: fresh.config, place_names: fresh.place_names, hidden: fresh.hidden });
+  if (error) { setDb({ routes: before }); throw dbError(error); }
 }
 
-// All visible routes (built-in + own, without deleted). Before mount: built-in only.
+// Delete a ride. Comments, likes, ratings and notifications go with it (database trigger);
+// a built-in ride is only hidden.
+export async function deleteRoute(id: string) {
+  if (isBuiltIn(id)) return patchRouteRow(id, { hidden: true });
+  const before = db().routes;
+  setDb({
+    routes: before.filter(r => r.id !== id),
+    comments: db().comments.filter(c => c.route_id !== id),
+    likes: db().likes.filter(l => l.route_id !== id),
+    ratings: db().ratings.filter(r => r.route_id !== id),
+    groups: db().groups.map(g => (g.route_ids.includes(id) ? { ...g, route_ids: g.route_ids.filter(x => x !== id) } : g)),
+  });
+  const { error } = await supabase().from('routes').delete().eq('id', id);
+  if (error) { setDb({ routes: before }); throw dbError(error, 'Löschen hat nicht geklappt. Bitte versuch es noch einmal.'); }
+}
+
+// Save a new ride (or replace an own one) – belongs to the signed-in account.
+export async function saveUserRoute(input: RouteConfig) {
+  const me = db().me;
+  if (!me) throw new Error('Bitte melde dich an, um eine Fahrt anzulegen.');
+  const before = db().routes;
+  const existing = before.find(r => r.id === input.id);
+  const now = new Date().toISOString();
+  const row: RouteRow = {
+    id: input.id, owner_id: me.id, visibility: input.visibility ?? existing?.visibility ?? 'public',
+    config: configOf(input), place_names: existing?.place_names ?? null, hidden: false,
+    created_at: existing?.created_at ?? now, updated_at: now,
+  };
+  setDb({ routes: [...before.filter(r => r.id !== row.id), row] });
+  const { error } = await supabase().from('routes').upsert({ id: row.id, visibility: row.visibility, config: row.config, place_names: row.place_names });
+  if (error) { setDb({ routes: before }); throw dbError(error); }
+}
+
+// All visible routes (built-in + database, without hidden). Before mount: built-in only.
 export function useAllRoutes(): RouteConfig[] {
   const [routes, setRoutes] = useState<RouteConfig[]>(ROUTES);
   useEffect(() => {
     const sync = () => setRoutes(loadAllRoutes());
     sync();
     window.addEventListener(CHANGE_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
+    return () => window.removeEventListener(CHANGE_EVENT, sync);
   }, []);
   return routes;
 }
 
 export function onUserRoutesChange(cb: () => void): () => void {
   window.addEventListener(CHANGE_EVENT, cb);
-  window.addEventListener('storage', cb);
-  return () => {
-    window.removeEventListener(CHANGE_EVENT, cb);
-    window.removeEventListener('storage', cb);
-  };
+  return () => window.removeEventListener(CHANGE_EVENT, cb);
 }
 
 // A track becomes a route whose "cities" are the (simplified) track points, drawn
@@ -127,9 +146,10 @@ export function routeFromTrack(opts: {
   };
 }
 
-// Update one field set of an own route (e.g. the sync offset from the sync editor)
-export function updateUserRoute(id: string, patch: Partial<RouteConfig>) {
-  const route = loadUserRoutes().find(r => r.id === id);
-  if (!route) return;
-  saveUserRoute({ ...route, ...patch });
+// Update fields of an own ride (e.g. the sync offset from the sync editor)
+export async function updateUserRoute(id: string, patch: Partial<RouteConfig>) {
+  // the stored ride, without own place names applied (those live in their own column)
+  const raw = db().routes.find(r => r.id === id)?.config ?? ROUTES.find(r => r.id === id);
+  if (!raw) return;
+  await patchRouteRow(id, { config: configOf({ ...raw, ...patch }) });
 }

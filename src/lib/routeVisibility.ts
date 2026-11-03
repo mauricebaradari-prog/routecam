@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { useDb } from '@/lib/db';
+import { patchRouteRow } from '@/lib/userRoutes';
 
 // Visibility of a route on RouteCam itself (not the YouTube video):
 //   public   – listed in the route menu and on the map
@@ -14,50 +16,18 @@ export const VISIBILITY_OPTIONS: { value: Visibility; label: string; hint: strin
 
 export const DEFAULT_VISIBILITY: Visibility = 'public';
 
-// INTERIM STORAGE: until accounts + database exist, the setting lives in this
-// browser's localStorage. It therefore only affects this browser, not other visitors.
-// Swap load/save for a database call later; the hook's API stays the same.
-const STORAGE_KEY = 'routecam.visibility';
-const CHANGE_EVENT = 'routecam:visibility';
-
-type VisibilityMap = Record<string, Visibility>;
-
-function load(): VisibilityMap {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as VisibilityMap;
-  } catch {
-    return {};
-  }
-}
-
-function save(map: VisibilityMap) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-  } catch {}
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-
+// Stored in routes.visibility (database). The database enforces it too: private rides are
+// only delivered to their owner (Row Level Security).
 export function useRouteVisibility() {
-  const [map, setMap] = useState<VisibilityMap>({});
-
-  useEffect(() => {
-    const sync = () => setMap(load());
-    sync();
-    window.addEventListener(CHANGE_EVENT, sync);
-    window.addEventListener('storage', sync); // other tabs
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
+  const { routes } = useDb();
 
   const visibilityOf = useCallback(
-    (routeId: string, fallback?: Visibility): Visibility => map[routeId] ?? fallback ?? DEFAULT_VISIBILITY,
-    [map],
+    (routeId: string, fallback?: Visibility): Visibility => routes.find(r => r.id === routeId)?.visibility ?? fallback ?? DEFAULT_VISIBILITY,
+    [routes],
   );
 
   const setVisibility = useCallback((routeId: string, v: Visibility) => {
-    save({ ...load(), [routeId]: v });
+    patchRouteRow(routeId, { visibility: v }).catch(e => alert(e.message));
   }, []);
 
   return { visibilityOf, setVisibility };

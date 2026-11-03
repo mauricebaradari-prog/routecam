@@ -5,21 +5,16 @@ import type { RouteConfig } from '@/hooks/useEditorState';
 // "A → B" part of the route name shown in the navigation. A title, when set, is the ride's
 // name everywhere (it wins over the "A → B" name).
 //
-// INTERIM STORAGE: like visibility and user routes this lives in this browser's
-// localStorage until accounts + database exist.
-const STORAGE_KEY = 'routecam.placeNames';
-export const PLACE_NAMES_EVENT = 'routecam:userRoutes'; // same event as user routes → every route list refreshes
+// Stored in routes.place_names (database), read from the store in lib/db.ts.
+import { db } from '@/lib/db';
 
 export interface PlaceNames { start?: string; end?: string; title?: string }
 type PlaceNameMap = Record<string, PlaceNames>;
 
 function load(): PlaceNameMap {
-  try {
-    const m = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return m && typeof m === 'object' ? m : {};
-  } catch {
-    return {};
-  }
+  const map: PlaceNameMap = {};
+  for (const r of db().routes) if (r.place_names) map[r.id] = r.place_names;
+  return map;
 }
 
 export function placeNamesOf(routeId: string): PlaceNames {
@@ -27,15 +22,12 @@ export function placeNamesOf(routeId: string): PlaceNames {
 }
 
 /** Save own start/end names and title; empty strings reset to the original. */
-export function setPlaceNames(routeId: string, names: PlaceNames) {
-  const map = load();
+export async function setPlaceNames(routeId: string, names: PlaceNames) {
   const start = names.start?.trim() || undefined;
   const end = names.end?.trim() || undefined;
   const title = names.title?.trim() || undefined;
-  if (start || end || title) map[routeId] = { start, end, title };
-  else delete map[routeId];
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(map)); } catch {}
-  window.dispatchEvent(new Event(PLACE_NAMES_EVENT));
+  const { patchRouteRow } = await import('@/lib/userRoutes'); // (userRoutes imports this module)
+  await patchRouteRow(routeId, { place_names: start || end || title ? JSON.parse(JSON.stringify({ start, end, title })) : null });
 }
 
 /** Route with the own start/end names applied (returns the same object when there are none). */

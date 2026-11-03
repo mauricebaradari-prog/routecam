@@ -63,7 +63,7 @@ export default function Home() {
 
   // Only public routes appear in the menu and on the map. Unlisted/private ones stay
   // reachable via direct link (/?route=<id>) – the active route is therefore always kept.
-  const { visibilityOf, setVisibility } = useRouteVisibility();
+  const { visibilityOf } = useRouteVisibility();
   const [createOpen, setCreateOpen] = useState(false);
   const [focus, setFocus] = useState<{ routeId: string; progress: number } | null>(null);
   const { comments: allRouteComments, addComment } = useRouteComments(state.activeRouteId);
@@ -79,10 +79,9 @@ export default function Home() {
     : '';
   const activeCommentIds = useMemo(() => (activeCommentKey ? activeCommentKey.split(',') : []), [activeCommentKey]);
 
-  function handleCreateRide(ride: NewRide) {
+  async function handleCreateRide(ride: NewRide) {
     const route = routeFromTrack(ride);
-    saveUserRoute(route); // throws if storage is full – the modal shows the error
-    setVisibility(route.id, ride.visibility);
+    await saveUserRoute({ ...route, visibility: ride.visibility }); // throws on failure – the modal shows the error
     setCreateOpen(false);
     if (ride.align && route.timeline) { router.push(`/sync?route=${route.id}`); return; }
     setActiveRoute(route.id);

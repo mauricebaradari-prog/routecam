@@ -16,6 +16,7 @@ import { Rnd } from 'react-rnd';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import type { RouteConfig } from '@/hooks/useEditorState';
 import { loadAllRoutes, updateUserRoute, loadUserRoutes } from '@/lib/userRoutes';
+import { useDb } from '@/lib/db';
 import { buildMapStyle, MAP_STYLES, type MapStyleId } from '@/lib/mapStyles';
 import { distAtTrackTime, speedCurve, findStops, clampOffset, type TrackTimeline } from '@/lib/trackSync';
 import { waitForYT } from '@/lib/youtubeDuration';
@@ -69,15 +70,19 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   const router = useRouter();
   const [route, setRoute] = useState<RouteConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const { loaded: dbLoaded, authReady, me } = useDb();
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- rides live in localStorage – read in the browser only
+    // wait for the database and the login; then take the ride once – later refreshes of the
+    // store must not reset an offset that is being edited
+    if (!dbLoaded || !authReady || loaded) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- rides come from the browser-side store
     setRoute(loadAllRoutes().find(r => r.id === routeId) ?? null);
     setLoaded(true);
-  }, [routeId]);
+  }, [routeId, dbLoaded, authReady, loaded]);
 
   const tl = route?.timeline;
   const videoDur = route?.durationSeconds ?? 0;
-  const isOwn = useMemo(() => !!routeId && loaded && loadUserRoutes().some(r => r.id === routeId), [routeId, loaded]);
+  const isOwn = useMemo(() => !!routeId && loaded && !!me && loadUserRoutes().some(r => r.id === routeId), [routeId, loaded, me]);
 
   const [offset, setOffsetState] = useState(0);
   const savedOffset = route?.syncOffset ?? 0;
@@ -254,10 +259,15 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [offset, setOffset, togglePlay]);
 
-  function finish() {
+  async function finish() {
     if (!route) return;
     const cut = cutsSomething ? trimRoute({ ...route, syncOffset: offset }, trim[0], trim[1]) : null;
-    updateUserRoute(route.id, { syncOffset: offset, ...(cut ?? {}), synced: true });
+    try {
+      await updateUserRoute(route.id, { syncOffset: offset, ...(cut ?? {}), synced: true });
+    } catch (e) {
+      alert((e as Error).message);
+      return;
+    }
     router.push(`/?route=${route.id}`);
   }
 

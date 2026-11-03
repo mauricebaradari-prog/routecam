@@ -11,7 +11,8 @@ import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useRouteInteractions } from '@/lib/routeInteractions';
 import { VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { useAuth } from '@/lib/auth';
-import { ownerOf, distanceKm, FOUNDER, founderId, publicChannelId, type RouteOwner } from '@/lib/channels';
+import { ownerOf, ownerFromId, distanceKm, FOUNDER, resolveChannelId, publicChannelId, type RouteOwner } from '@/lib/channels';
+import { useDb } from '@/lib/db';
 import { useRouteGroups, relativeTime, type RouteGroup } from '@/lib/routeGroups';
 import ChannelAvatar from '@/components/ChannelAvatar';
 import sparklinesData from '@/data/sparklines.json';
@@ -26,16 +27,17 @@ export default function ChannelPage() {
   const { statsOf } = useRouteInteractions();
   const [channelId, setChannelId] = useState<string | null>(null);
 
+  const { profiles } = useDb();
   useEffect(() => {
-    // ?u=maurice is the founder channel; it resolves to his account when he is signed in
+    // ?u= is an account id or a short channel name ("maurice" = founder channel)
     const read = () => {
       const u = new URLSearchParams(window.location.search).get('u') || (user?.id ?? FOUNDER.id);
-      setChannelId(u === FOUNDER.id ? founderId() : u);
+      setChannelId(resolveChannelId(u));
     };
     read();
     window.addEventListener('popstate', read);
     return () => window.removeEventListener('popstate', read);
-  }, [user?.id]);
+  }, [user?.id, profiles]);
 
   const own = !!user && channelId === user.id;
   const all = useMemo(() => routes.filter(r => ownerOf(r).id === channelId), [routes, channelId]);
@@ -48,21 +50,24 @@ export default function ChannelPage() {
   );
 
   // groups: a group belongs to the channel that owns its rides
-  const { groups } = useRouteGroups();
+  const { allGroups } = useRouteGroups();
   const [tab, setTab] = useState<'rides' | 'groups'>('rides');
   const [groupFilter, setGroupFilter] = useState<RouteGroup | null>(null);
   const channelGroups = useMemo(() => {
     const byId = new Map(routes.map(r => [r.id, r]));
-    return groups
+    return allGroups
+      .filter(g => g.ownerId === channelId)
       .map(g => ({ group: g, rides: g.routeIds.map(id => byId.get(id)).filter((r): r is NonNullable<typeof r> => !!r && rides.includes(r)) }))
       .filter(({ group, rides: rs }) => rs.length > 0 && rs.every(r => ownerOf(r).id === channelId) && (own || (group.visibility ?? 'public') === 'public'))
       .sort((a, b) => (b.group.updatedAt ?? b.group.createdAt).localeCompare(a.group.updatedAt ?? a.group.createdAt));
-  }, [groups, routes, rides, channelId, own]);
+  }, [allGroups, routes, rides, channelId, own]);
   const shownRides = groupFilter ? rides.filter(r => groupFilter.routeIds.includes(r.id)) : rides;
 
   const owner: RouteOwner | null = own && user
     ? { id: user.id, name: user.name, picture: user.picture }
-    : all[0] ? ownerOf(all[0]) : channelId === FOUNDER.id ? FOUNDER : null;
+    : all[0] ? ownerOf(all[0])
+    : channelId && profiles[channelId] ? ownerFromId(channelId)
+    : channelId === FOUNDER.id ? FOUNDER : null;
 
   const totals = useMemo(() => ({
     km: rides.reduce((s, r) => s + distanceKm(r), 0),

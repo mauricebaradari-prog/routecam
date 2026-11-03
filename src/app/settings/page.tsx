@@ -128,9 +128,11 @@ function SettingsPage() {
         </div>
       </Card>
 
-      <Card title="Daten in diesem Browser">
+      <Card title="Alte Daten in diesem Browser">
         <p className="text-xs text-white/50 mb-3">
-          Bis Konten und Datenbank fertig sind, speichert RouteCam diese Daten nur hier im Browser. Sie hängen noch nicht an deinem Google-Konto.
+          Fahrten, Kommentare, Likes und Gruppen liegen jetzt in deinem Konto. Was RouteCam früher nur hier im Browser
+          gespeichert hat, wird bei der ersten Anmeldung in dein Konto übernommen. Danach ist das hier nur noch eine alte
+          Kopie, die du löschen kannst – dein Konto bleibt davon unberührt.
         </p>
         <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 text-sm mb-4">
           {LOCAL_DATA_KEYS.map(({ key, label }) => (
@@ -148,7 +150,7 @@ function SettingsPage() {
           </div>
         ) : (
           <button onClick={() => { setCleared(false); setConfirmClear(true); }} className="h-9 px-4 rounded-full text-sm border border-red-500/40 text-red-300 hover:bg-red-500/10">
-            Lokale Daten löschen
+            Alte Kopie löschen
           </button>
         )}
         {cleared && <p className="text-xs text-[#CCFF00] mt-3">Gelöscht.</p>}

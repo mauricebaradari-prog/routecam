@@ -1,70 +1,54 @@
 import type { RouteConfig } from '@/hooks/useEditorState';
 import { haversineDistance } from '@/lib/geo';
 
-// RouteCam channels: every account has its own channel page (/channel?u=<id>) listing its rides.
-// INTERIM: owners are stored on the route itself (localStorage); with Supabase this becomes
-// a `profiles` table and routes.owner_id.
+import { db } from '@/lib/db';
+
+// RouteCam channels: every account has its own channel page (/channel?u=<id or slug>) listing
+// its rides. Owners come from the database (routes.owner_id → profiles).
 
 export interface RouteOwner {
-  id: string;        // account id (Google "sub" today, Supabase user id later)
+  id: string;        // Supabase user id (profiles.id)
   name: string;
   picture?: string;
 }
 
-// The built-in Cyprus rides belong to the founder's channel
-export const FOUNDER: RouteOwner = { id: 'maurice', name: 'Maurice B.' };
-// The founder's Google account (FNV-1a hash of the e-mail, so the address isn't in the bundle).
-// When he is signed in, the built-in rides join his real channel – one channel, with his photo.
-const FOUNDER_EMAIL_HASH = 0xd39c81d0;
+import { FOUNDER } from '@/lib/founder';
+export { FOUNDER };
 
-function fnv1a(text: string) {
-  let h = 0x811c9dc5;
-  for (const b of new TextEncoder().encode(text)) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; }
-  return h >>> 0;
-}
-
-function currentUser(): (RouteOwner & { email?: string }) | null {
-  try {
-    const u = JSON.parse(localStorage.getItem('routecam.user') || 'null');
-    return u?.id ? { id: u.id, name: u.name, picture: u.picture, email: u.email } : null;
-  } catch {
-    return null;
-  }
+function profileOwner(id: string): RouteOwner | null {
+  const p = db().profiles[id];
+  return p ? { id: p.id, name: p.name || 'RouteCam-Nutzer', picture: p.picture ?? undefined } : null;
 }
 
 function founder(): RouteOwner {
-  const me = typeof window !== 'undefined' ? currentUser() : null;
-  return me?.email && fnv1a(me.email.trim().toLowerCase()) === FOUNDER_EMAIL_HASH
-    ? { id: me.id, name: me.name, picture: me.picture }
-    : FOUNDER;
+  const p = Object.values(db().profiles).find(x => x.is_founder);
+  return p ? profileOwner(p.id)! : FOUNDER;
 }
 
-// the founder channel's id as seen from this browser ('maurice', or his account id when signed in)
+// the founder channel's id ('maurice' until his profile is known)
 export function founderId() { return founder().id; }
 
-// Owner shown for a ride. Rides created before owners existed were made in this browser,
-// so they belong to whoever is signed in here.
+// Owner shown for a ride: the account from the database, built-in rides → founder.
 export function ownerOf(route: RouteConfig): RouteOwner {
-  if (route.owner) return route.owner.id === FOUNDER.id ? founder() : route.owner;
-  if (route.id.startsWith('user-')) {
-    const me = typeof window !== 'undefined' ? currentUser() : null;
-    return me ? { id: me.id, name: me.name, picture: me.picture } : { id: 'local', name: 'Du' };
-  }
+  if (route.owner) return profileOwner(route.owner.id) ?? route.owner;
   return founder();
 }
 
-// called when a ride is saved without an owner: stamp the signed-in account
-export function withOwner(route: RouteConfig): RouteConfig {
-  if (route.owner) return route;
-  const me = currentUser();
-  return me ? { ...route, owner: { id: me.id, name: me.name, picture: me.picture } } : route;
+// The account a ride belongs to, as stored with it
+export function ownerFromId(id: string): RouteOwner {
+  return profileOwner(id) ?? { id, name: 'RouteCam-Nutzer' };
 }
 
-// The id used in links. The founder's channel is always addressed as "maurice": his Google
-// account id only exists in his own browser, so a link carrying it would be "Kanal nicht
-// gefunden" for everyone else. (Goes away with Supabase, when profiles have one public id.)
+// The id used in links: the short channel name when the account has one ("maurice").
 export function publicChannelId(ownerId: string) {
-  return ownerId !== FOUNDER.id && typeof window !== 'undefined' && ownerId === founderId() ? FOUNDER.id : ownerId;
+  return db().profiles[ownerId]?.slug || ownerId;
+}
+
+// Channel address from a link (?u=…) → account id
+export function resolveChannelId(u: string) {
+  const bySlug = Object.values(db().profiles).find(p => p.slug === u);
+  if (bySlug) return bySlug.id;
+  return u === FOUNDER.id ? founderId() : u;
 }
 
 export function channelHref(ownerId: string) {

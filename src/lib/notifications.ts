@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { db, setDb, useDb, type NotificationRow, type Profile } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 
 // Notifications for the owner of a ride: someone commented, liked or rated it.
 //
-// INTERIM: no backend yet, so the list stays empty until real activity exists.
-// With Supabase: a database trigger writes a row into `notifications` for the ride owner
-// on every like / rating / comment (not for own actions); the app subscribes via Realtime
-// and calls pushNotification(). The hook API stays the same.
+// Written by a database trigger (notify_owner) into `notifications` for the ride owner on
+// every like / rating / comment by someone else. Loaded with the rest of the data (lib/db.ts).
 
 export type NotificationKind = 'comment' | 'like' | 'rating';
 
@@ -20,53 +20,33 @@ export interface AppNotification {
   seconds?: number;       // comment: position in the video
   text?: string;          // comment text
   stars?: number;         // rating 1–5
-  dummy?: boolean;        // old example data – removed on load
 }
 
-const STORAGE_KEY = 'routecam.notifications';
-const SEEDED_KEY = 'routecam.notifications.seeded';
-const CHANGE_EVENT = 'routecam:notifications';
-
-function load(): AppNotification[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    const list: AppNotification[] = Array.isArray(raw) ? raw : [];
-    // remove the example notifications earlier versions seeded into this browser
-    if (list.some(n => n.dummy) || localStorage.getItem(SEEDED_KEY)) {
-      const real = list.filter(n => !n.dummy);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(real));
-      localStorage.removeItem(SEEDED_KEY);
-      return real;
-    }
-    return list;
-  } catch {
-    return [];
-  }
+function toNotification(n: NotificationRow, profiles: Record<string, Profile>): AppNotification {
+  return {
+    id: n.id, kind: n.kind, routeId: n.route_id, actor: (n.actor_id && profiles[n.actor_id]?.name) || 'Jemand',
+    color: '#CCFF00', createdAt: n.created_at, read: n.read,
+    ...(n.seconds != null ? { seconds: n.seconds } : {}), ...(n.text ? { text: n.text } : {}), ...(n.stars ? { stars: n.stars } : {}),
+  };
 }
 
-function save(list: AppNotification[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-
-// Entry point for real notifications later (Supabase Realtime)
-export function pushNotification(n: Omit<AppNotification, 'id' | 'read' | 'createdAt'> & { createdAt?: string }) {
-  const item: AppNotification = { ...n, id: `n-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, read: false, createdAt: n.createdAt ?? new Date().toISOString() };
-  save([item, ...load()]);
+async function patchNotifications(ids: string[] | null, patch: { read: boolean } | 'delete') {
+  const s = db();
+  const hit = (id: string) => !ids || ids.includes(id);
+  const before = s.notifications;
+  setDb({ notifications: patch === 'delete' ? before.filter(n => !hit(n.id)) : before.map(n => (hit(n.id) ? { ...n, ...patch } : n)) });
+  let q = patch === 'delete' ? supabase().from('notifications').delete() : supabase().from('notifications').update(patch);
+  q = ids ? q.in('id', ids) : q.eq('user_id', s.me?.id ?? '');
+  const { error } = await q;
+  if (error) { setDb({ notifications: before }); console.error('[notifications]', error.message); }
 }
 
 export function useNotifications() {
-  const [items, setItems] = useState<AppNotification[]>([]);
-  useEffect(() => {
-    const sync = () => setItems(load().sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-    sync();
-    window.addEventListener(CHANGE_EVENT, sync);
-    window.addEventListener('storage', sync);
-    return () => { window.removeEventListener(CHANGE_EVENT, sync); window.removeEventListener('storage', sync); };
-  }, []);
-  const markRead = useCallback((id: string) => save(load().map(n => (n.id === id ? { ...n, read: true } : n))), []);
-  const markAllRead = useCallback((ids?: string[]) => save(load().map(n => (!ids || ids.includes(n.id) ? { ...n, read: true } : n))), []);
-  const remove = useCallback((id: string) => save(load().filter(n => n.id !== id)), []);
+  const { notifications, profiles } = useDb();
+  const items = useMemo(() => notifications.map(n => toNotification(n, profiles)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [notifications, profiles]);
+  const markRead = useCallback((id: string) => { patchNotifications([id], { read: true }); }, []);
+  const markAllRead = useCallback((ids?: string[]) => { patchNotifications(ids ?? null, { read: true }); }, []);
+  const remove = useCallback((id: string) => { patchNotifications([id], 'delete'); }, []);
   return { items, markRead, markAllRead, remove };
 }
 
