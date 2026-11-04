@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Layers, ShieldCheck, SquareUser as UserSquare } from 'lucide-react';
+import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Layers, ShieldCheck, Info, SquareUser as UserSquare } from 'lucide-react';
 import { useDb } from '@/lib/db';
 import { channelHref, ownerOf } from '@/lib/channels';
 import { useAllRoutes } from '@/lib/userRoutes';
@@ -176,8 +176,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
               <div className="px-3 pt-2 flex flex-col gap-1">
                 <DrawerLink href="/" icon={<MapIcon size={20} />} active={current === 'map'}>{t('Karte')}</DrawerLink>
                 {user && <DrawerLink href="/dashboard" icon={<LayoutGrid size={20} />} active={current === 'dashboard'}>Dashboard</DrawerLink>}
-                {/* "About" is hidden from the menu until the page is reworked (todo list). Imprint, privacy,
-                    terms and contact stay reachable through the links at the bottom of this menu. */}
+                <DrawerLink href="/about" icon={<Info size={20} />} active={current === 'about'}>About</DrawerLink>
               </div>
 
               {user && <div className="mx-3 my-2 border-t border-white/10" />}
