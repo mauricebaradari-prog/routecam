@@ -237,7 +237,7 @@ function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: str
           <TrackerScreen parts={parts} ctaLabel={t('App Download')} ctaHref={APP_DOWNLOAD_HREF} />
         </div>
 
-        {/* Lichtblitz aus dem Punkt, wenn das Handy entsteht */}
+        {/* weiches Aufleuchten um den Punkt, wenn das Handy entsteht */}
         {flash > 0.001 && (
           <svg aria-hidden className="absolute pointer-events-none" style={{ left: hx - 260, top: hy - 260, opacity: flash }} width="520" height="520" viewBox="-260 -260 520 520">
             <defs>
@@ -247,12 +247,6 @@ function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: str
               </radialGradient>
             </defs>
             <circle r={60 + 120 * flashX} fill="url(#trk-flash)" />
-            {Array.from({ length: 56 }, (_, i) => {
-              const a = (i / 56) * Math.PI * 2;
-              const r0 = 18 + 30 * flashX, r1 = r0 + (i % 3 === 0 ? 210 : i % 2 ? 120 : 160) * (0.4 + 0.6 * flashX);
-              return <line key={i} x1={Math.cos(a) * r0} y1={Math.sin(a) * r0} x2={Math.cos(a) * r1} y2={Math.sin(a) * r1}
-                stroke={LIME} strokeOpacity={i % 3 === 0 ? 0.7 : 0.35} strokeWidth={i % 3 === 0 ? 1.4 : 0.8} strokeLinecap="round" />;
-            })}
           </svg>
         )}
 
