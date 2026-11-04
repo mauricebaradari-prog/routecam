@@ -167,15 +167,77 @@ function Source({ icon, title, text }: { icon: React.ReactNode; title: string; t
   );
 }
 
-// A track drawn as dots on a road, one point opened up to show what it stores.
+// A rider moving along a road and recording a point every couple of seconds. The callout shows
+// what the newest point stores. Loops; with reduced motion it shows one still frame instead.
+const TRACK: [number, number][] = [
+  [18, 160], [40, 152], [62, 140], [82, 124], [98, 106], [112, 88], [130, 74], [152, 68], [176, 72],
+  [198, 84], [216, 98], [236, 106], [258, 102], [278, 88], [292, 70], [302, 48], [308, 26],
+];
+const ROAD = `M ${TRACK.map(p => p.join(',')).join(' L ')}`;
+// cumulative length along the road, so the rider moves at an even speed
+const SEG_LEN = TRACK.slice(1).map((p, i) => Math.hypot(p[0] - TRACK[i][0], p[1] - TRACK[i][1]));
+const TOTAL_LEN = SEG_LEN.reduce((a, b) => a + b, 0);
+const POINT_AT = TRACK.map((_, i) => SEG_LEN.slice(0, i).reduce((a, b) => a + b, 0) / TOTAL_LEN);
+
+const RIDE_MS = 6000;   // start → finish
+const HOLD_MS = 1600;   // full track stays visible
+const FADE_MS = 500;    // points fade out before the next lap
+const CYCLE_MS = RIDE_MS + HOLD_MS + FADE_MS;
+const STILL_INDEX = 8;  // frame shown with reduced motion
+
+// plausible values for each recorded point (west Cyprus), one point every 2 s
+function pointData(i: number) {
+  const [x, y] = TRACK[i];
+  const sec = 51 + i * 2; // 09:40:51 + 2 s per point
+  const mm = 40 + Math.floor(sec / 60), ss = sec % 60;
+  return {
+    lat: (34.77 + (190 - y) * 0.00006).toFixed(4),
+    lon: (32.42 + x * 0.000025).toFixed(4),
+    ele: Math.round(84 + (190 - y) * 0.27),
+    time: `09:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`,
+  };
+}
+
+function positionAt(f: number): [number, number] {
+  let d = Math.max(0, Math.min(1, f)) * TOTAL_LEN;
+  for (let i = 0; i < SEG_LEN.length; i++) {
+    if (d <= SEG_LEN[i] || i === SEG_LEN.length - 1) {
+      const k = SEG_LEN[i] ? Math.min(1, d / SEG_LEN[i]) : 0;
+      const a = TRACK[i], b = TRACK[i + 1];
+      return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+    }
+    d -= SEG_LEN[i];
+  }
+  return TRACK[TRACK.length - 1];
+}
+
 function TrackIllustration() {
-  // points along a winding road (viewBox 320×190)
-  const pts: [number, number][] = [
-    [18, 160], [40, 152], [62, 140], [82, 124], [98, 106], [112, 88], [130, 74], [152, 68], [176, 72],
-    [198, 84], [216, 98], [236, 106], [258, 102], [278, 88], [292, 70], [302, 48], [308, 26],
-  ];
-  const road = `M ${pts.map(p => p.join(',')).join(' L ')}`;
-  const hi = pts[8];
+  const [elapsed, setElapsed] = React.useState<number | null>(null); // null = still frame
+
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (now: number) => { setElapsed((now - t0) % CYCLE_MS); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const still = elapsed === null;
+  const progress = still ? POINT_AT[STILL_INDEX] : Math.min(1, elapsed / RIDE_MS);
+  const fade = still || elapsed < RIDE_MS + HOLD_MS ? 1 : 1 - (elapsed - RIDE_MS - HOLD_MS) / FADE_MS;
+  // newest recorded point = last one the rider has passed
+  let last = 0;
+  for (let i = 0; i < TRACK.length; i++) if (POINT_AT[i] <= progress + 1e-6) last = i;
+  const rider = still ? TRACK[STILL_INDEX] : positionAt(progress);
+  const cur = TRACK[last];
+  const data = pointData(last);
+  const recorded = `M ${[...TRACK.slice(0, last + 1), rider].map(p => p.join(',')).join(' L ')}`;
+  // callout follows the newest point, kept inside the frame
+  const calloutX = Math.max(84, Math.min(200, cur[0])); // stays clear of the "Ziel" label
+  const calloutBottom = 46;
+  const justRecorded = !still && last > 0 && progress - POINT_AT[last] < 0.035;
+
   return (
     <div dir="ltr" className="relative w-full max-w-full aspect-[320/190] rounded-xl bg-[#0b0d10] border border-white/5 overflow-hidden">
       <svg viewBox="0 0 320 190" className="absolute inset-0 w-full h-full" aria-hidden="true">
@@ -185,18 +247,34 @@ function TrackIllustration() {
           </pattern>
         </defs>
         <rect width="320" height="190" fill="url(#geo-grid)" />
-        <path d={road} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={road} fill="none" stroke="#CCFF00" strokeWidth="1.5" strokeDasharray="2 5" strokeLinecap="round" opacity="0.6" />
-        {pts.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r={i === 8 ? 5.5 : 3} fill={i === 8 ? '#CCFF00' : '#ffffff'} opacity={i === 8 ? 1 : 0.85} />
-        ))}
-        <circle cx={hi[0]} cy={hi[1]} r="11" fill="none" stroke="#CCFF00" strokeWidth="1.5" opacity="0.5" />
-        <line x1={hi[0]} y1={hi[1] - 12} x2={hi[0]} y2={44} stroke="#CCFF00" strokeWidth="1" opacity="0.6" />
+        {/* the road */}
+        <path d={ROAD} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
+        <g opacity={fade}>
+          {/* recorded trace behind the rider */}
+          <path d={recorded} fill="none" stroke="#CCFF00" strokeWidth="1.5" strokeDasharray="2 5" strokeLinecap="round" opacity="0.6" />
+          {/* recorded points */}
+          {TRACK.slice(0, last + 1).map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r={i === last ? 4.5 : 3} fill={i === last ? '#CCFF00' : '#ffffff'} opacity={i === last ? 1 : 0.85} />
+          ))}
+          {/* pulse when a new point is stored */}
+          {justRecorded && (
+            <circle cx={cur[0]} cy={cur[1]} r={5 + (progress - POINT_AT[last]) * 260} fill="none" stroke="#CCFF00" strokeWidth="1.5"
+              opacity={Math.max(0, 0.7 - (progress - POINT_AT[last]) * 20)} />
+          )}
+          {/* connector from the callout to the newest point */}
+          <line x1={calloutX} y1={calloutBottom} x2={cur[0]} y2={cur[1] - 6} stroke="#CCFF00" strokeWidth="1" opacity="0.45" />
+          {/* the rider */}
+          <circle cx={rider[0]} cy={rider[1]} r="9" fill="#CCFF00" opacity="0.18" />
+          <circle cx={rider[0]} cy={rider[1]} r="5.5" fill="#CCFF00" stroke="#0b0d10" strokeWidth="1.5" />
+        </g>
       </svg>
-      {/* callout: what one point stores */}
-      <div className="absolute left-1/2 -translate-x-1/2 top-[6%] rounded-lg bg-black/85 border border-[#CCFF00]/40 px-3 py-1.5 font-mono text-[10px] sm:text-[11px] leading-snug text-white/85 whitespace-nowrap shadow-lg">
-        <div><span className="text-white/40">lat</span> 34.7768 <span className="text-white/40 ml-1">lon</span> 32.4245</div>
-        <div><span className="text-white/40">ele</span> 112 m <span className="text-white/40 ml-1">time</span> <span className="text-[#CCFF00]">09:41:07</span></div>
+      {/* callout: what the newest point stores */}
+      <div
+        className="absolute -translate-x-1/2 top-[6%] rounded-lg bg-black/85 border border-[#CCFF00]/40 px-3 py-1.5 font-mono tabular-nums text-[10px] sm:text-[11px] leading-snug text-white/85 whitespace-nowrap shadow-lg"
+        style={{ left: `${(calloutX / 320) * 100}%`, opacity: fade }}
+      >
+        <div><span className="text-white/40">lat</span> {data.lat} <span className="text-white/40 ml-1">lon</span> {data.lon}</div>
+        <div><span className="text-white/40">ele</span> {data.ele} m <span className="text-white/40 ml-1">time</span> <span className="text-[#CCFF00]">{data.time}</span></div>
       </div>
       <div className="absolute left-3 bottom-2 text-[10px] text-white/40">{t('Start')}</div>
       <div className="absolute right-3 top-2 text-[10px] text-white/40">{t('Ziel')}</div>
