@@ -10,14 +10,14 @@ import { openOnboarding } from '@/components/Onboarding';
 // Solange ein Feld leer ist, zeigt die Seite oben einen „Entwurf“-Hinweis.
 // ─────────────────────────────────────────────────────────────────────────────
 const OPERATOR = {
-  company: '{{FIRMENNAME}} Ltd',
-  regNo: '{{HE-Registernummer}}',
-  address: ['{{Straße Nr.}}', '{{PLZ Ort}}', 'Zypern'],
+  company: 'MAURICE BARADARI LTD',
+  regNo: 'HE 492078',
+  address: ['Melina Court, 2nd floor', 'Tagmatarchou Dimitriou Pouliou & Kostaki Pantelidi', '8011 Paphos', 'Zypern'],
   director: 'Maurice Baradari',
-  email: '{{kontakt@…}}',
-  vatId: '', // optional, leer lassen wenn nicht vorhanden
+  email: 'admin@routecam.app',
+  vatId: 'CY60362036U',
 };
-const LAST_UPDATED = '29. Oktober 2026';
+const LAST_UPDATED = '4. November 2026';
 
 const isDraft = JSON.stringify(OPERATOR).includes('{{');
 
