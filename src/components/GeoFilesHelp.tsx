@@ -121,13 +121,47 @@ export default function GeoFilesHelp({ onClose }: { onClose: () => void }) {
 function FormatCard({ name, tag, text, sample }: { name: string; tag?: string; text: string; sample: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3 min-w-0">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-sm font-semibold px-2 py-0.5 rounded-md bg-white/10">.{name.toLowerCase()}</span>
+      <div className="flex items-center gap-3">
+        <FileBadge ext={name.toLowerCase()} highlight={!!tag} />
         {tag && <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#CCFF00] text-black">{tag}</span>}
       </div>
       <p className="text-sm leading-relaxed text-white/70">{text}</p>
       <pre dir="ltr" className="mt-auto overflow-x-auto rounded-lg bg-black/50 border border-white/5 px-3 py-2.5 text-[11px] leading-relaxed font-mono text-white/55"><code>{sample}</code></pre>
     </div>
+  );
+}
+
+// A file as a drawn sheet with a folded corner; the extension sits on the band across it.
+// highlight = the recommended format, so it carries the lime accent.
+function FileBadge({ ext, highlight }: { ext: string; highlight?: boolean }) {
+  return (
+    <svg viewBox="0 0 44 54" width="40" height="49" className="shrink-0" role="img" aria-label={`.${ext}`}>
+      {/* sheet with the top-right corner folded away */}
+      <path
+        d="M 6 2 H 28 L 40 14 V 48 A 4 4 0 0 1 36 52 H 6 A 4 4 0 0 1 2 48 V 6 A 4 4 0 0 1 6 2 Z"
+        fill="rgba(255,255,255,0.07)"
+        stroke={highlight ? 'rgba(204,255,0,0.55)' : 'rgba(255,255,255,0.22)'}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      {/* the fold itself */}
+      <path d="M 28 2 L 40 14 H 28 Z" fill={highlight ? 'rgba(204,255,0,0.35)' : 'rgba(255,255,255,0.22)'} />
+      {/* two hinted lines of content above the band */}
+      <path d="M 9 21 H 24 M 9 26 H 20" stroke="rgba(255,255,255,0.20)" strokeWidth="2" strokeLinecap="round" />
+      {/* band carrying the extension */}
+      <rect x="5" y="32" width="34" height="15" rx="3" fill={highlight ? '#CCFF00' : 'rgba(255,255,255,0.30)'} />
+      <text
+        x="22" y="42.5"
+        textAnchor="middle"
+        className="font-mono"
+        fontSize="11"
+        fontWeight="700"
+        letterSpacing="0.3"
+        fill={highlight ? '#0b0c0a' : '#ffffff'}
+      >
+        {ext.toUpperCase()}
+      </text>
+    </svg>
   );
 }
 
