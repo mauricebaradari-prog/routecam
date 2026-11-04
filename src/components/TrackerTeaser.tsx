@@ -18,6 +18,8 @@ const DISMISS_KEY = 'routecam.trackerTeaserDismissed';
 const SHOW_DELAY_MS = 2500;
 /** Ziel von „Mehr erfahren“ – der Onepager zur App kommt später. */
 export const TRACKER_PAGE_HREF = '/tracker';
+/** Erst auf true setzen, wenn der Onepager unter TRACKER_PAGE_HREF online ist – bis dahin kein Link. */
+const TRACKER_PAGE_READY = false;
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -190,7 +192,8 @@ export default function TrackerTeaser() {
         </h2>
         <style>{'@keyframes rcTeaserCaret { 0% { opacity: 1 } 50% { opacity: 0 } 100% { opacity: 0 } }'}</style>
 
-        {/* Mehr erfahren */}
+        {/* Mehr erfahren – erst wenn der Onepager existiert */}
+        {TRACKER_PAGE_READY && (
         <Link
           href={TRACKER_PAGE_HREF}
           onClick={e => { markDismissed(); leaveWhilePlaying(e); }}
@@ -199,6 +202,7 @@ export default function TrackerTeaser() {
         >
           {t('Mehr erfahren')}
         </Link>
+        )}
 
         {/* Schließen – Icon wie in Figma, Klickfläche 44 × 44 */}
         <button
