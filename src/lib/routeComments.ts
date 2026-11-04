@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { db, dbError, setDb, useDb, type CommentRow, type Profile } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
+import { t, k } from '@/lib/i18n';
 
 // Timed comments (SoundCloud-style): each comment sits at a point in the video,
 // and therefore at a point on the route.
@@ -24,7 +25,7 @@ export interface RouteComment {
 function toComment(c: CommentRow, profiles: Record<string, Profile>): RouteComment {
   const p = profiles[c.author_id];
   return {
-    id: c.id, routeId: c.route_id, seconds: c.seconds, author: p?.name || 'RouteCam-Nutzer', color: '#CCFF00',
+    id: c.id, routeId: c.route_id, seconds: c.seconds, author: p?.name || t('RouteCam-Nutzer'), color: '#CCFF00',
     picture: p?.picture ?? undefined, text: c.text, createdAt: c.created_at, authorId: c.author_id,
     ...(c.parent_id ? { parentId: c.parent_id } : {}), ...(c.edited_at ? { editedAt: c.edited_at } : {}),
   };
@@ -69,7 +70,7 @@ export function useRouteComments(routeId?: string) {
     if (!row.text) return;
     setDb({ comments: [...s.comments, { ...row, author_id: s.me.id, created_at: new Date().toISOString(), edited_at: null }] });
     const { error } = await supabase().from('comments').insert(row);
-    if (error) { setDb({ comments: db().comments.filter(c => c.id !== row.id) }); alert(dbError(error, 'Der Kommentar konnte nicht gespeichert werden.').message); }
+    if (error) { setDb({ comments: db().comments.filter(c => c.id !== row.id) }); alert(dbError(error, t('Der Kommentar konnte nicht gespeichert werden.')).message); }
   }, []);
 
   // Change the text of an own comment
@@ -89,7 +90,7 @@ export function useRouteComments(routeId?: string) {
     const before = db().comments;
     setDb({ comments: before.filter(c => c.id !== id && c.parent_id !== id) });
     const { error } = await supabase().from('comments').delete().eq('id', id);
-    if (error) { setDb({ comments: before }); alert(dbError(error, 'Löschen hat nicht geklappt.').message); }
+    if (error) { setDb({ comments: before }); alert(dbError(error, t('Löschen hat nicht geklappt.')).message); }
   }, []);
 
   // own = written by the signed-in account
@@ -106,11 +107,11 @@ export function useRouteComments(routeId?: string) {
 // the admin in the Supabase dashboard) can read a report.
 
 export const COMMENT_REPORT_REASONS = [
-  { value: 'insulting', label: 'Beleidigend, hetzerisch oder bedrohlich' },
-  { value: 'spam',      label: 'Spam oder Werbung' },
-  { value: 'dangerous', label: 'Ruft zu gefährlichem oder illegalem Fahren auf' },
-  { value: 'privacy',   label: 'Verrät private Daten, z. B. eine Adresse' },
-  { value: 'other',     label: 'Sonstiges' },
+  { value: 'insulting', label: k('Beleidigend, hetzerisch oder bedrohlich') },
+  { value: 'spam',      label: k('Spam oder Werbung') },
+  { value: 'dangerous', label: k('Ruft zu gefährlichem oder illegalem Fahren auf') },
+  { value: 'privacy',   label: k('Verrät private Daten, z. B. eine Adresse') },
+  { value: 'other',     label: k('Sonstiges') },
 ] as const;
 
 export type CommentReportReason = (typeof COMMENT_REPORT_REASONS)[number]['value'];
@@ -131,7 +132,7 @@ export function useCommentReports() {
     };
     setDb({ myCommentReports: [...s.myCommentReports, { id: row.id, comment_id: c.id }] });
     const { error } = await supabase().from('comment_reports').insert(row);
-    if (error) { setDb({ myCommentReports: s.myCommentReports }); alert(dbError(error, 'Die Meldung konnte nicht gesendet werden.').message); }
+    if (error) { setDb({ myCommentReports: s.myCommentReports }); alert(dbError(error, t('Die Meldung konnte nicht gesendet werden.')).message); }
   }, []);
 
   // already reported by this account → show it as reported, don't offer it again

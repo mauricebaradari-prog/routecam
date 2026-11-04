@@ -6,6 +6,7 @@ import { applyPlaceNamesAll } from '@/lib/placeNames';
 import { ownerFromId } from '@/lib/channels';
 import { db, dbError, setDb, type RouteRow } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 // Rides: the built-in rides (src/data/routes.ts) plus the rides in the database (table
 // `routes`). A database row with a built-in id overrides that ride (the founder renamed,
@@ -43,7 +44,7 @@ export function loadUserRoutes(): RouteConfig[] {
 // only the founder may do that (the database refuses everyone else).
 export async function patchRouteRow(id: string, patch: Partial<Pick<RouteRow, 'visibility' | 'config' | 'place_names' | 'hidden'>>) {
   const me = db().me;
-  if (!me) throw new Error('Bitte melde dich an.');
+  if (!me) throw new Error(t('Bitte melde dich an.'));
   const before = db().routes;
   const row = before.find(r => r.id === id);
   const sb = supabase();
@@ -54,7 +55,7 @@ export async function patchRouteRow(id: string, patch: Partial<Pick<RouteRow, 'v
     return;
   }
   const builtIn = ROUTES.find(r => r.id === id);
-  if (!builtIn || !me.is_founder) throw new Error('Diese Fahrt gehört nicht zu deinem Konto.');
+  if (!builtIn || !me.is_founder) throw new Error(t('Diese Fahrt gehört nicht zu deinem Konto.'));
   const now = new Date().toISOString();
   const fresh: RouteRow = { id, owner_id: me.id, visibility: 'public', config: configOf(builtIn), place_names: null, hidden: false, created_at: now, updated_at: now, ...patch };
   setDb({ routes: [...before, fresh] });
@@ -75,13 +76,13 @@ export async function deleteRoute(id: string) {
     groups: db().groups.map(g => (g.route_ids.includes(id) ? { ...g, route_ids: g.route_ids.filter(x => x !== id) } : g)),
   });
   const { error } = await supabase().from('routes').delete().eq('id', id);
-  if (error) { setDb({ routes: before }); throw dbError(error, 'Löschen hat nicht geklappt. Bitte versuch es noch einmal.'); }
+  if (error) { setDb({ routes: before }); throw dbError(error, t('Löschen hat nicht geklappt. Bitte versuch es noch einmal.')); }
 }
 
 // Save a new ride (or replace an own one) – belongs to the signed-in account.
 export async function saveUserRoute(input: RouteConfig) {
   const me = db().me;
-  if (!me) throw new Error('Bitte melde dich an, um eine Fahrt anzulegen.');
+  if (!me) throw new Error(t('Bitte melde dich an, um eine Fahrt anzulegen.'));
   const before = db().routes;
   const existing = before.find(r => r.id === input.id);
   const now = new Date().toISOString();

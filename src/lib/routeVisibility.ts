@@ -1,3 +1,4 @@
+import { k } from '@/lib/i18nKey';
 import { useCallback } from 'react';
 import { useDb } from '@/lib/db';
 import { patchRouteRow } from '@/lib/userRoutes';
@@ -9,9 +10,9 @@ import { patchRouteRow } from '@/lib/userRoutes';
 export type Visibility = 'public' | 'unlisted' | 'private';
 
 export const VISIBILITY_OPTIONS: { value: Visibility; label: string; hint: string }[] = [
-  { value: 'private',  label: 'Privat',         hint: 'Nur du kannst die Route sehen' },
-  { value: 'unlisted', label: 'Nicht gelistet', hint: 'Jeder mit dem Link kann die Route sehen' },
-  { value: 'public',   label: 'Öffentlich',     hint: 'Für alle sichtbar' },
+  { value: 'private',  label: k('Privat'),         hint: k('Nur du kannst die Route sehen') },
+  { value: 'unlisted', label: k('Nicht gelistet'), hint: k('Jeder mit dem Link kann die Route sehen') },
+  { value: 'public',   label: k('Öffentlich'),     hint: k('Für alle sichtbar') },
 ];
 
 export const DEFAULT_VISIBILITY: Visibility = 'public';

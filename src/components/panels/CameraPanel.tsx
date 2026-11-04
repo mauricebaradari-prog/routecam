@@ -3,6 +3,7 @@
 import React from 'react';
 import { Pin, Navigation, Orbit } from 'lucide-react';
 import type { EditorState } from '@/hooks/useEditorState';
+import { t, useT, k } from '@/lib/i18n';
 
 type CameraMode = 'static' | 'follow' | 'orbit';
 
@@ -13,24 +14,25 @@ interface CameraPanelProps {
 
 // Icons instead of text; the name and meaning are in the tooltip
 export const CAMERA_MODES: { value: CameraMode; label: string; hint: string; Icon: typeof Pin }[] = [
-  { value: 'static', label: 'Statisch', hint: 'Kamera bleibt stehen', Icon: Pin },
-  { value: 'follow', label: 'Folgen', hint: 'Kamera folgt dem Fahrzeug', Icon: Navigation },
-  { value: 'orbit', label: 'Orbit', hint: 'Kamera folgt und kreist um die Route', Icon: Orbit },
+  { value: 'static', label: k('Statisch'), hint: k('Kamera bleibt stehen'), Icon: Pin },
+  { value: 'follow', label: k('Folgen'), hint: k('Kamera folgt dem Fahrzeug'), Icon: Navigation },
+  { value: 'orbit', label: k('Orbit'), hint: k('Kamera folgt und kreist um die Route'), Icon: Orbit },
 ];
 
 export default function CameraPanel({ cameraMode, onChange }: CameraPanelProps) {
+  useT();
   return (
     <div className="p-4">
       <h3 className="text-[10px] font-bold text-white uppercase tracking-widest mb-3">
-        Kamera
+        {t('Kamera')}
       </h3>
       <div className="flex gap-2">
         {CAMERA_MODES.map(({ value, label, hint, Icon }) => (
           <button
             key={value}
             onClick={() => onChange('cameraMode', value)}
-            title={`${label} – ${hint}`}
-            aria-label={label}
+            title={`${t(label)} – ${t(hint)}`}
+            aria-label={t(label)}
             aria-pressed={cameraMode === value}
             className={`flex-1 h-9 rounded flex items-center justify-center transition-colors ${
               cameraMode === value

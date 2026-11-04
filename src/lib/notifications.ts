@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { db, setDb, useDb, type NotificationRow, type Profile } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
+import { t, locale } from '@/lib/i18n';
 
 // Notifications for the owner of a ride: someone commented, liked or rated it.
 //
@@ -24,7 +25,7 @@ export interface AppNotification {
 
 function toNotification(n: NotificationRow, profiles: Record<string, Profile>): AppNotification {
   return {
-    id: n.id, kind: n.kind, routeId: n.route_id, actor: (n.actor_id && profiles[n.actor_id]?.name) || 'Jemand',
+    id: n.id, kind: n.kind, routeId: n.route_id, actor: (n.actor_id && profiles[n.actor_id]?.name) || t('Jemand'),
     color: '#CCFF00', createdAt: n.created_at, read: n.read,
     ...(n.seconds != null ? { seconds: n.seconds } : {}), ...(n.text ? { text: n.text } : {}), ...(n.stars ? { stars: n.stars } : {}),
   };
@@ -50,14 +51,15 @@ export function useNotifications() {
   return { items, markRead, markAllRead, remove };
 }
 
-// "vor 5 Min." / "vor 3 Std." / "vor 2 Tagen" / date
+// "vor 5 Min." / "vor 3 Std." / "vor 2 Tagen" / Datum – in der Oberflächensprache
 export function timeAgo(iso: string): string {
   const s = (Date.now() - Date.parse(iso)) / 1000;
-  if (s < 60) return 'gerade eben';
-  if (s < 3600) return `vor ${Math.floor(s / 60)} Min.`;
-  if (s < 86400) return `vor ${Math.floor(s / 3600)} Std.`;
+  if (s < 60) return t('gerade eben');
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto', style: 'short' });
+  if (s < 3600) return rtf.format(-Math.floor(s / 60), 'minute');
+  if (s < 86400) return rtf.format(-Math.floor(s / 3600), 'hour');
   const d = Math.floor(s / 86400);
-  if (d < 7) return d === 1 ? 'gestern' : `vor ${d} Tagen`;
-  if (d < 30) return `vor ${Math.floor(d / 7)} ${Math.floor(d / 7) === 1 ? 'Woche' : 'Wochen'}`;
-  return new Date(iso).toLocaleDateString('de-DE');
+  if (d < 7) return rtf.format(-d, 'day');
+  if (d < 30) return rtf.format(-Math.floor(d / 7), 'week');
+  return new Date(iso).toLocaleDateString(locale());
 }

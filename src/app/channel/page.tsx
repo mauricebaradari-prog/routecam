@@ -16,10 +16,12 @@ import { useDb } from '@/lib/db';
 import { useRouteGroups, relativeTime, type RouteGroup } from '@/lib/routeGroups';
 import ChannelAvatar from '@/components/ChannelAvatar';
 import sparklinesData from '@/data/sparklines.json';
+import { t, useT, locale } from '@/lib/i18n';
 
 // A RouteCam channel: one account's rides. /channel?u=<account id>
 // (query param instead of a path segment: the app is a static export)
 export default function ChannelPage() {
+  useT();
   const router = useRouter();
   const routes = useAllRoutes();
   const { user } = useAuth();
@@ -89,9 +91,9 @@ export default function ChannelPage() {
 
       {channelId === null ? null : !owner ? (
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-16 text-center">
-          <h1 className="text-xl font-semibold">Kanal nicht gefunden</h1>
-          <p className="text-sm text-white/50 mt-2">Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.</p>
-          <Link href="/" className="inline-block mt-6 text-sm text-[#CCFF00] hover:underline">Zur Karte</Link>
+          <h1 className="text-xl font-semibold">{t('Kanal nicht gefunden')}</h1>
+          <p className="text-sm text-white/50 mt-2">{t('Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.')}</p>
+          <Link href="/" className="inline-block mt-6 text-sm text-[#CCFF00] hover:underline">{t('Zur Karte')}</Link>
         </main>
       ) : (
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-12">
@@ -101,24 +103,24 @@ export default function ChannelPage() {
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl md:text-3xl font-semibold tracking-tight truncate">{owner.name}</h1>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/50 tabular-nums">
-                <span>{rides.length} {rides.length === 1 ? 'Fahrt' : 'Fahrten'}</span>
-                <span>{Math.round(totals.km).toLocaleString('de-DE')} km</span>
-                <span>{formatHours(totals.seconds)} Video</span>
+                <span>{rides.length === 1 ? t('1 Fahrt') : t('{n} Fahrten', { n: rides.length })}</span>
+                <span>{Math.round(totals.km).toLocaleString(locale())} km</span>
+                <span>{t('{time} Video', { time: formatHours(totals.seconds) })}</span>
                 {totals.likes > 0 && <span className="inline-flex items-center gap-1"><Heart size={13} className="text-[#CCFF00]" fill="currentColor" /> {totals.likes}</span>}
               </div>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
-            <ShareButton channelId={publicChannelId(owner.id)} title={`${owner.name} auf RouteCam`} />
+            <ShareButton channelId={publicChannelId(owner.id)} title={t('{name} auf RouteCam', { name: owner.name })} />
             {own && (
               <button onClick={() => router.push('/dashboard?create=1')} className="inline-flex items-center gap-1.5 h-10 pl-3 pr-4 rounded-full bg-[#CCFF00] text-black text-sm font-semibold hover:brightness-110">
-                <Plus size={18} /> Fahrt anlegen
+                <Plus size={18} /> {t('Fahrt anlegen')}
               </button>
             )}
             </div>
           </section>
 
           <div className="mt-8 border-b border-white/10 flex gap-6 text-sm" role="tablist">
-            {([['rides', 'Fahrten', rides.length], ['groups', 'Gruppen', channelGroups.length]] as const).map(([k, label, n]) => (
+            {([['rides', t('Fahrten'), rides.length], ['groups', t('Gruppen'), channelGroups.length]] as const).map(([k, label, n]) => (
               <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
                 className={`pb-3 -mb-px border-b-2 transition-colors ${tab === k ? 'border-white text-white font-medium' : 'border-transparent text-white/50 hover:text-white/80'}`}>
                 {label} <span className="text-white/40 tabular-nums">{n}</span>
@@ -129,8 +131,8 @@ export default function ChannelPage() {
           {tab === 'groups' ? (
             channelGroups.length === 0 ? (
               <div className="py-16 text-center">
-                <p className="text-sm text-white/60">{own ? 'Du hast noch keine Gruppen.' : 'Keine öffentlichen Gruppen.'}</p>
-                {own && <p className="text-xs text-white/40 mt-1">Im Dashboard mehrere Fahrten auswählen und zu einer Gruppe zusammenfassen, zum Beispiel eine Reise.</p>}
+                <p className="text-sm text-white/60">{own ? t('Du hast noch keine Gruppen.') : t('Keine öffentlichen Gruppen.')}</p>
+                {own && <p className="text-xs text-white/40 mt-1">{t('Im Dashboard mehrere Fahrten auswählen und zu einer Gruppe zusammenfassen, zum Beispiel eine Reise.')}</p>}
               </div>
             ) : (
               <ul className="mt-6 grid gap-x-4 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -149,7 +151,7 @@ export default function ChannelPage() {
                             <span className="absolute right-0 top-0 bottom-0 w-2/5 bg-black/75 flex flex-col items-center justify-center gap-1 text-white">
                               <Layers size={20} />
                               <span className="text-sm font-semibold tabular-nums">{rs.length}</span>
-                              <span className="text-[10px] text-white/60">{rs.length === 1 ? 'Fahrt' : 'Fahrten'}</span>
+                              <span className="text-[10px] text-white/60">{rs.length === 1 ? t('Fahrt') : t('Fahrten')}</span>
                             </span>
                           </div>
                         </div>
@@ -157,7 +159,7 @@ export default function ChannelPage() {
                           <h2 className="flex-1 min-w-0 text-sm font-medium leading-snug line-clamp-2 group-hover:text-[#CCFF00] transition-colors">{group.name}</h2>
                           {own && vis !== 'public' && <span title={visibilityLabel(vis)} className="text-white/50 mt-0.5"><VisibilityIcon v={vis} size={14} /></span>}
                         </div>
-                        <p className="mt-1 text-xs text-white/45 tabular-nums">{Math.round(km)} km · {relativeTime(group.updatedAt ?? group.createdAt)} aktualisiert</p>
+                        <p className="mt-1 text-xs text-white/45 tabular-nums">{Math.round(km)} km · {t('aktualisiert {when}', { when: relativeTime(group.updatedAt ?? group.createdAt) })}</p>
                       </button>
                     </li>
                   );
@@ -167,16 +169,16 @@ export default function ChannelPage() {
           ) : (<>
           {groupFilter && (
             <div className="mt-5 flex items-center gap-2 text-sm">
-              <span className="text-white/50">Gruppe</span>
-              <button onClick={() => setGroupFilter(null)} className="inline-flex items-center gap-1.5 h-8 pl-3 pr-2 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] hover:bg-[#CCFF00]/25" title="Filter entfernen">
+              <span className="text-white/50">{t('Gruppe')}</span>
+              <button onClick={() => setGroupFilter(null)} className="inline-flex items-center gap-1.5 h-8 pl-3 pr-2 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] hover:bg-[#CCFF00]/25" title={t('Filter entfernen')}>
                 <Layers size={14} /> {groupFilter.name} <X size={14} />
               </button>
             </div>
           )}
           {shownRides.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-sm text-white/60">{own ? 'Dein Kanal ist noch leer.' : 'Noch keine öffentlichen Fahrten.'}</p>
-              {own && <p className="text-xs text-white/40 mt-1">Leg deine erste Fahrt an: YouTube-Link plus GPX- oder KML-Datei.</p>}
+              <p className="text-sm text-white/60">{own ? t('Dein Kanal ist noch leer.') : t('Noch keine öffentlichen Fahrten.')}</p>
+              {own && <p className="text-xs text-white/40 mt-1">{t('Leg deine erste Fahrt an: YouTube-Link plus GPX- oder KML-Datei.')}</p>}
             </div>
           ) : (
             <ul className="mt-6 grid gap-x-4 gap-y-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -199,7 +201,7 @@ export default function ChannelPage() {
                         {own && vis !== 'public' && <span title={visibilityLabel(vis)} className="text-white/50 mt-0.5"><VisibilityIcon v={vis} size={14} /></span>}
                       </div>
                       <p className="mt-1 text-xs text-white/45 tabular-nums">
-                        {Math.round(distanceKm(r))} km{r.createdAt ? ` · ${new Date(r.createdAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                        {Math.round(distanceKm(r))} km{r.createdAt ? ` · ${new Date(r.createdAt).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
                       </p>
                     </Link>
                   </li>
@@ -249,7 +251,7 @@ function ShareButton({ channelId, title }: { channelId: string; title: string })
   };
   return (
     <button onClick={share} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-white/10 hover:bg-white/20 text-sm font-medium">
-      {copied ? <><Check size={16} className="text-[#CCFF00]" /> Link kopiert</> : <><Share2 size={16} /> Teilen</>}
+      {copied ? <><Check size={16} className="text-[#CCFF00]" /> {t('Link kopiert')}</> : <><Share2 size={16} /> {t('Teilen')}</>}
     </button>
   );
 }

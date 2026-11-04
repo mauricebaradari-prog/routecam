@@ -1,3 +1,4 @@
+import { k } from '@/lib/i18nKey';
 import { useCallback, useEffect, useState } from 'react';
 import type { Visibility } from '@/lib/routeVisibility';
 
@@ -32,7 +33,7 @@ export interface Settings {
 
 const DEFAULTS: Settings = { defaultVisibility: 'public', language: 'auto', notify: { comment: true, like: true, rating: true } };
 
-// 'auto' → first browser language we offer, otherwise German
+// 'auto' → first browser language we offer, otherwise English
 export function resolveLanguage(setting: string): string {
   if (setting !== 'auto') return setting;
   if (typeof navigator === 'undefined') return 'de';
@@ -40,10 +41,11 @@ export function resolveLanguage(setting: string): string {
     const code = l.toLowerCase().split('-')[0];
     if (LANGUAGES.some(x => x.code === code)) return code;
   }
-  return 'de';
+  return 'en';
 }
 const STORAGE_KEY = 'routecam.settings';
 const CHANGE_EVENT = 'routecam:settings';
+export const SETTINGS_CHANGE_EVENT = CHANGE_EVENT;
 
 export function loadSettings(): Settings {
   try {
@@ -72,13 +74,13 @@ export function useSettings() {
 // What RouteCam kept in this browser before accounts + database existed. On the first sign-in
 // it is moved into the account (lib/importLocal.ts); the old copy stays here until deleted.
 export const LOCAL_DATA_KEYS: { key: string; label: string }[] = [
-  { key: 'routecam.userRoutes', label: 'Angelegte Fahrten' },
-  { key: 'routecam.visibility', label: 'Sichtbarkeit der Routen' },
-  { key: 'routecam.deletedRoutes', label: 'Ausgeblendete Routen' },
-  { key: 'routecam.placeNames', label: 'Eigene Start- und Zielnamen' },
-  { key: 'routecam.interactions', label: 'Likes, Bewertungen, Meldungen' },
-  { key: 'routecam.comments', label: 'Eigene Kommentare' },
-  { key: 'routecam.commentReports', label: 'Gemeldete Kommentare' },
-  { key: 'routecam.groups', label: 'Gruppen' },
-  { key: 'routecam.notifications', label: 'Benachrichtigungen' },
+  { key: 'routecam.userRoutes', label: k('Angelegte Fahrten') },
+  { key: 'routecam.visibility', label: k('Sichtbarkeit der Routen') },
+  { key: 'routecam.deletedRoutes', label: k('Ausgeblendete Routen') },
+  { key: 'routecam.placeNames', label: k('Eigene Start- und Zielnamen') },
+  { key: 'routecam.interactions', label: k('Likes, Bewertungen, Meldungen') },
+  { key: 'routecam.comments', label: k('Eigene Kommentare') },
+  { key: 'routecam.commentReports', label: k('Gemeldete Kommentare') },
+  { key: 'routecam.groups', label: k('Gruppen') },
+  { key: 'routecam.notifications', label: k('Benachrichtigungen') },
 ];

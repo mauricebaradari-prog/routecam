@@ -8,6 +8,7 @@ import { allowInteraction, requireAccount } from '@/lib/signupWall';
 import { formatCommentTime, initials, useCommentReports, useRouteComments, COMMENT_REPORT_REASONS, type RouteComment } from '@/lib/routeComments';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import { useRouteInteractions, REPORT_REASONS, formatRating, type ReportReason } from '@/lib/routeInteractions';
+import { t, useT } from '@/lib/i18n';
 
 interface Props {
   routeId: string;
@@ -26,6 +27,7 @@ interface Props {
 
 // Floating "Community" window on the map: like, share, rate (1–5 stars), report (behind ⋯).
 export default function CommunityWidget({ routeId, routeName, activeWindow, setActiveWindow, defaultY, currentSeconds, commentCount, onAddComment, comments, activeCommentIds, onSeekToSeconds, syncHref }: Props) {
+  useT();
   const { statsOf, toggleLike, rate, report } = useRouteInteractions();
   const stats = statsOf(routeId);
   const [isMobile, setIsMobile] = useState(false);
@@ -109,7 +111,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
       document.execCommand('copy');
       ta.remove();
     }
-    showToast('Link kopiert');
+    showToast(t('Link kopiert'));
   }
 
   const shownStars = hoverStars || stats.myRating || 0;
@@ -121,7 +123,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
           type="button"
           onMouseEnter={() => setHoverStars(n)}
           onClick={() => { if (stats.myRating === n || allowInteraction()) rate(routeId, n); setMobileStars(false); }}
-          title={`${n} ${n === 1 ? 'Stern' : 'Sterne'}`}
+          title={n === 1 ? t('1 Stern') : t('{n} Sterne', { n })}
           className="p-0.5 transition-transform hover:scale-110"
         >
           <Star size={size} className={n <= shownStars ? 'text-[#CCFF00]' : 'text-white/25'} fill={n <= shownStars ? 'currentColor' : 'none'} />
@@ -134,7 +136,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
     <button
       type="button"
       onClick={() => { if (stats.liked || allowInteraction()) toggleLike(routeId); }}
-      title={stats.liked ? 'Gefällt mir nicht mehr' : 'Gefällt mir'}
+      title={stats.liked ? t('Gefällt mir nicht mehr') : t('Gefällt mir')}
       className={`inline-flex items-center gap-1.5 rounded-full transition-colors ${compact ? 'h-8 px-2.5' : 'h-9 px-3.5'} ${
         stats.liked ? 'bg-[#CCFF00]/15 text-[#CCFF00]' : 'bg-white/10 text-white hover:bg-white/20'
       }`}
@@ -146,14 +148,14 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
 
   const moreMenu = (
     <div ref={menuRef} className="relative">
-      <button type="button" onClick={() => setMenuOpen(o => !o)} title="Mehr" className="w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white">
+      <button type="button" onClick={() => setMenuOpen(o => !o)} title={t('Mehr')} className="w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white">
         <Ellipsis size={18} />
       </button>
       {menuOpen && (
         <div className="absolute right-0 top-full mt-2 z-20 w-48 rounded-lg border border-white/10 bg-[#212121] shadow-2xl py-1.5">
           {syncHref && (
             <a href={syncHref} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white hover:bg-white/10">
-              <Clock size={16} /> Video ausrichten
+              <Clock size={16} /> {t('Video ausrichten')}
             </a>
           )}
           <button
@@ -161,7 +163,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
             onClick={() => { setMenuOpen(false); setReportOpen(true); }}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white hover:bg-white/10"
           >
-            <Flag size={16} /> Melden
+            <Flag size={16} /> {t('Melden')}
           </button>
         </div>
       )}
@@ -176,25 +178,25 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
 
   const dialog = (reportOpen && (
     <ReportDialog
-      eyebrow="Route melden"
+      eyebrow={t('Route melden')}
       title={routeName}
-      question="Was stimmt mit dieser Route nicht?"
+      question={t('Was stimmt mit dieser Route nicht?')}
       reasons={REPORT_REASONS}
       onCancel={() => setReportOpen(false)}
-      onSubmit={(reason, note) => { report(routeId, reason as ReportReason, note); setReportOpen(false); showToast('Danke – deine Meldung ist eingegangen'); }}
+      onSubmit={(reason, note) => { report(routeId, reason as ReportReason, note); setReportOpen(false); showToast(t('Danke – deine Meldung ist eingegangen')); }}
     />
   )) || (reportComment && (
     <ReportDialog
-      eyebrow="Kommentar melden"
+      eyebrow={t('Kommentar melden')}
       title={`${reportComment.author} · ${formatCommentTime(reportComment.seconds)}`}
       quote={reportComment.text}
-      question="Was stimmt mit diesem Kommentar nicht?"
+      question={t('Was stimmt mit diesem Kommentar nicht?')}
       reasons={COMMENT_REPORT_REASONS}
       onCancel={() => setReportComment(null)}
       onSubmit={(reason, note) => {
         sendCommentReport(reportComment, reason as (typeof COMMENT_REPORT_REASONS)[number]['value'], note);
         setReportComment(null);
-        showToast('Danke – der Kommentar wurde gemeldet');
+        showToast(t('Danke – der Kommentar wurde gemeldet'));
       }}
     />
   ));
@@ -213,7 +215,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
             </button>
             {mobileStars && <div className="absolute right-0 top-full mt-2 rounded-full bg-[#212121] border border-white/10 px-2 py-1 shadow-2xl">{stars(22)}</div>}
           </div>
-          <button type="button" onClick={share} title="Teilen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 text-white"><Share2 size={15} /></button>
+          <button type="button" onClick={share} title={t('Teilen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 text-white"><Share2 size={15} /></button>
           {moreMenu}
         </div>
         {dialog}
@@ -246,7 +248,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
 
           <div className="flex items-center gap-2">
             {likeBtn(false)}
-            <button type="button" onClick={share} title="Teilen" aria-label="Teilen" className="w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white transition-colors">
+            <button type="button" onClick={share} title={t('Teilen')} aria-label={t('Teilen')} className="w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white transition-colors">
               <Share2 size={16} />
             </button>
             <div className="ml-auto">{moreMenu}</div>
@@ -258,7 +260,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
               <div className="text-right leading-tight">
                 <div className="text-sm font-semibold font-mono text-white">Ø {formatRating(stats.avgRating)}</div>
                 <div className="text-[10px] text-white/40">
-                  {stats.ratingCount === 0 ? 'noch keine Bewertung' : `${stats.ratingCount} ${stats.ratingCount === 1 ? 'Bewertung' : 'Bewertungen'}`}
+                  {stats.ratingCount === 0 ? t('noch keine Bewertung') : stats.ratingCount === 1 ? t('1 Bewertung') : t('{n} Bewertungen', { n: stats.ratingCount })}
                 </div>
               </div>
           </div>
@@ -266,10 +268,10 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
           {/* Comments */}
           <div className="mt-3 pt-3 border-t border-white/10">
             <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/50">
-              <MessageCircle size={12} /> Kommentare <span className="font-mono text-white/35">· {commentCount}</span>
+              <MessageCircle size={12} /> {t('Kommentare')} <span className="font-mono text-white/35">· {commentCount}</span>
             </div>
             <ol ref={listRef} className="no-scrollbar relative overflow-y-auto flex flex-col gap-1" style={{ maxHeight: listMax }}>
-              {comments.length === 0 && <li className="text-xs text-white/40 py-4 text-center">Noch keine Kommentare auf dieser Route.</li>}
+              {comments.length === 0 && <li className="text-xs text-white/40 py-4 text-center">{t('Noch keine Kommentare auf dieser Route.')}</li>}
               {comments.filter(c => !c.parentId).map(top => {
                 const thread = [top, ...comments.filter(c => c.parentId === top.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt))];
                 return (
@@ -285,7 +287,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                           <form
                             key={c.id}
                             className={`rounded-lg border border-[#CCFF00]/40 bg-white/[0.03] p-2 ${reply ? 'ml-8' : ''}`}
-                            onSubmit={e => { e.preventDefault(); if (editDraft.trim()) { editComment(c.id, editDraft); setEditing(null); showToast('Kommentar geändert'); } }}
+                            onSubmit={e => { e.preventDefault(); if (editDraft.trim()) { editComment(c.id, editDraft); setEditing(null); showToast(t('Kommentar geändert')); } }}
                           >
                             <textarea
                               autoFocus
@@ -297,8 +299,8 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                               className="w-full resize-none rounded-md bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-2.5 py-1.5 text-xs text-white"
                             />
                             <div className="mt-1.5 flex justify-end gap-1.5">
-                              <button type="button" onClick={() => setEditing(null)} className="h-7 px-2.5 rounded-full text-[11px] hover:bg-white/10">Abbrechen</button>
-                              <button type="submit" disabled={!editDraft.trim()} className="h-7 px-3 rounded-full text-[11px] font-semibold bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">Speichern</button>
+                              <button type="button" onClick={() => setEditing(null)} className="h-7 px-2.5 rounded-full text-[11px] hover:bg-white/10">{t('Abbrechen')}</button>
+                              <button type="submit" disabled={!editDraft.trim()} className="h-7 px-3 rounded-full text-[11px] font-semibold bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">{t('Speichern')}</button>
                             </div>
                           </form>
                         );
@@ -308,7 +310,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                           <button
                             type="button"
                             onClick={() => onSeekToSeconds(c.seconds)}
-                            title="Zu dieser Stelle springen"
+                            title={t('Zu dieser Stelle springen')}
                             className={`w-full text-left flex gap-2.5 rounded-lg p-2 border transition-all duration-300 ${
                               active ? 'border-[#CCFF00]/60 bg-[#CCFF00]/10 shadow-[0_0_16px_rgba(204,255,0,0.15)]' : 'border-transparent hover:bg-white/5'
                             } ${passed ? 'opacity-50' : ''}`}
@@ -323,7 +325,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                                 {c.editedAt && <span className="text-white/35">bearbeitet</span>}
                               </span>
                               <span className="block text-xs text-white/80 leading-snug mt-0.5 break-words pr-12">{c.text}</span>
-                              {flagged && <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-300/80"><Flag size={10} /> Von dir gemeldet</span>}
+                              {flagged && <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-300/80"><Flag size={10} /> {t('Von dir gemeldet')}</span>}
                             </span>
                           </button>
                           {/* actions: answer (everyone), edit + delete (own), report (others) */}
@@ -332,7 +334,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                               <button
                                 type="button"
                                 onClick={() => { setReplyTo(top.id); setReplyDraft(''); setEditing(null); }}
-                                title="Antworten"
+                                title={t('Antworten')}
                                 aria-label={`${c.author} antworten`}
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
                               >
@@ -343,8 +345,8 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                               <button
                                 type="button"
                                 onClick={() => { setEditing(c.id); setEditDraft(c.text); setReplyTo(null); }}
-                                title="Bearbeiten"
-                                aria-label="Eigenen Kommentar bearbeiten"
+                                title={t('Bearbeiten')}
+                                aria-label={t('Eigenen Kommentar bearbeiten')}
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
                               >
                                 <Pencil size={11} />
@@ -354,26 +356,26 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (confirmDelete === c.id) { deleteComment(c.id); setConfirmDelete(null); showToast('Kommentar gelöscht'); }
+                                  if (confirmDelete === c.id) { deleteComment(c.id); setConfirmDelete(null); showToast(t('Kommentar gelöscht')); }
                                   else setConfirmDelete(c.id);
                                 }}
                                 onBlur={() => setConfirmDelete(id => (id === c.id ? null : id))}
-                                title={confirmDelete === c.id ? 'Zum Löschen noch einmal klicken' : !reply && thread.length > 1 ? 'Löschen – die Antworten gehen mit' : 'Eigenen Kommentar löschen'}
-                                aria-label={confirmDelete === c.id ? 'Löschen bestätigen' : 'Eigenen Kommentar löschen'}
+                                title={confirmDelete === c.id ? t('Zum Löschen noch einmal klicken') : !reply && thread.length > 1 ? t('Löschen – die Antworten gehen mit') : t('Eigenen Kommentar löschen')}
+                                aria-label={confirmDelete === c.id ? t('Löschen bestätigen') : t('Eigenen Kommentar löschen')}
                                 className={`h-6 rounded-full flex items-center justify-center gap-1 transition-opacity ${
                                   confirmDelete === c.id
                                     ? 'px-2 bg-red-500 text-white text-[10px] font-semibold opacity-100'
                                     : 'w-6 text-white/40 hover:text-red-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100'
                                 }`}
                               >
-                                <Trash2 size={12} />{confirmDelete === c.id && (!reply && thread.length > 1 ? `Mit ${thread.length - 1} ${thread.length === 2 ? 'Antwort' : 'Antworten'} löschen?` : 'Löschen?')}
+                                <Trash2 size={12} />{confirmDelete === c.id && (!reply && thread.length > 1 ? (thread.length === 2 ? t('Mit 1 Antwort löschen?') : t('Mit {n} Antworten löschen?', { n: thread.length - 1 })) : t('Löschen?'))}
                               </button>
                             ) : !flagged && (
                               <button
                                 type="button"
                                 onClick={() => setReportComment(c)}
-                                title="Kommentar melden"
-                                aria-label={`Kommentar von ${c.author} melden`}
+                                title={t('Kommentar melden')}
+                                aria-label={t('Kommentar von {name} melden', { name: c.author })}
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-amber-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
                               >
                                 <Flag size={12} />
@@ -392,7 +394,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                           if (!requireAccount('comment')) return; // the typed reply stays
                           onAddComment(top.seconds, replyDraft, top.id);
                           setReplyDraft(''); setReplyTo(null);
-                          showToast('Antwort gesendet');
+                          showToast(t('Antwort gesendet'));
                         }}
                       >
                         <input
@@ -401,10 +403,10 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                           onChange={e => setReplyDraft(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setReplyTo(null); } }}
                           maxLength={280}
-                          placeholder={`Antwort an ${top.author} …`}
+                          placeholder={t('Antwort an {name} …', { name: top.author })}
                           className="flex-1 min-w-0 h-8 rounded-full bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-3 text-xs text-white placeholder:text-white/35"
                         />
-                        <button type="submit" disabled={!replyDraft.trim()} title="Antwort senden" className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">
+                        <button type="submit" disabled={!replyDraft.trim()} title={t('Antwort senden')} className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">
                           <SendHorizontal size={14} />
                         </button>
                       </form>
@@ -425,7 +427,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
               if (!requireAccount('comment')) return; // the typed text stays in the field
               onAddComment(currentSeconds, draft);
               setDraft('');
-              showToast(`Kommentar bei ${formatCommentTime(currentSeconds)} gesetzt`);
+              showToast(t('Kommentar bei {time} gesetzt', { time: formatCommentTime(currentSeconds) }));
             }}
           >
             <div className="flex items-center gap-2">
@@ -433,10 +435,10 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 maxLength={280}
-                placeholder={`Kommentar bei ${formatCommentTime(currentSeconds)} …`}
+                placeholder={t('Kommentar bei {time} …', { time: formatCommentTime(currentSeconds) })}
                 className="flex-1 min-w-0 h-9 rounded-full bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-3.5 text-sm text-white placeholder:text-white/35"
               />
-              <button type="submit" disabled={!draft.trim()} title="Kommentar senden" className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">
+              <button type="submit" disabled={!draft.trim()} title={t('Kommentar senden')} className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">
                 <SendHorizontal size={16} />
               </button>
             </div>
@@ -480,7 +482,7 @@ function ReportDialog({ eyebrow, title, quote, question, reasons, onCancel, onSu
             <div className="text-[11px] uppercase tracking-widest text-white/40">{eyebrow}</div>
             <h2 className="text-lg font-semibold truncate">{title}</h2>
           </div>
-          <button type="button" onClick={onCancel} aria-label="Schließen" className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center hover:bg-white/10"><X size={22} /></button>
+          <button type="button" onClick={onCancel} aria-label={t('Schließen')} className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center hover:bg-white/10"><X size={22} /></button>
         </div>
         <div className="px-6 py-4 flex flex-col gap-1">
           {quote && <blockquote className="mb-3 rounded-lg bg-white/5 border-l-2 border-white/20 px-3 py-2 text-sm text-white/70 break-words">{quote}</blockquote>}
@@ -488,7 +490,7 @@ function ReportDialog({ eyebrow, title, quote, question, reasons, onCancel, onSu
           {reasons.map(r => (
             <label key={r.value} className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border transition-colors ${reason === r.value ? 'border-white/15 bg-white/[0.05]' : 'border-transparent hover:bg-white/5'}`}>
               <input type="radio" name="report-reason" checked={reason === r.value} onChange={() => setReason(r.value)} className="accent-[#CCFF00]" />
-              <span className="text-sm">{r.label}</span>
+              <span className="text-sm">{t(r.label)}</span>
             </label>
           ))}
           <textarea
@@ -496,14 +498,14 @@ function ReportDialog({ eyebrow, title, quote, question, reasons, onCancel, onSu
             onChange={e => setNote(e.target.value)}
             maxLength={500}
             rows={3}
-            placeholder="Details (optional)"
+            placeholder={t('Details (optional)')}
             className="mt-3 w-full rounded-lg bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-3 py-2 text-sm text-white placeholder:text-white/30 resize-none"
           />
-          <p className="mt-2 text-[11px] text-white/35">Wir prüfen jede Meldung und entfernen Inhalte, die gegen unsere Regeln oder geltendes Recht verstoßen.</p>
+          <p className="mt-2 text-[11px] text-white/35">{t('Wir prüfen jede Meldung und entfernen Inhalte, die gegen unsere Regeln oder geltendes Recht verstoßen.')}</p>
         </div>
         <div className="flex justify-end gap-2 px-6 py-4 border-t border-white/10">
-          <button type="button" onClick={onCancel} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">Abbrechen</button>
-          <button type="submit" disabled={!reason} className="h-10 px-5 rounded-full text-sm font-semibold bg-white text-black disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed">Melden</button>
+          <button type="button" onClick={onCancel} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">{t('Abbrechen')}</button>
+          <button type="submit" disabled={!reason} className="h-10 px-5 rounded-full text-sm font-semibold bg-white text-black disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed">{t('Melden')}</button>
         </div>
       </form>
     </div>

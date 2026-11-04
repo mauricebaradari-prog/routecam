@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t, k } from '@/lib/i18n';
 
 // Reads a video's length and title via the YouTube IFrame player (no API key needed).
 // A hidden player is created off-screen, asked for getDuration() and destroyed again.
@@ -23,7 +24,7 @@ export function waitForYT(timeoutMs = 10000): Promise<YTNamespace> {
     const start = Date.now();
     const poll = () => {
       if (w.YT?.Player) resolve(w.YT);
-      else if (Date.now() - start > timeoutMs) reject(new Error('YouTube konnte nicht geladen werden.'));
+      else if (Date.now() - start > timeoutMs) reject(new Error(t('YouTube konnte nicht geladen werden.')));
       else setTimeout(poll, 150);
     };
     poll();
@@ -31,12 +32,12 @@ export function waitForYT(timeoutMs = 10000): Promise<YTNamespace> {
 }
 
 const ERRORS: Record<number, string> = {
-  2: 'Ungültige Video-ID.',
-  5: 'Das Video kann nicht abgespielt werden.',
+  2: k('Ungültige Video-ID.'),
+  5: k('Das Video kann nicht abgespielt werden.'),
   // YouTube reports missing, private and non-embeddable videos inconsistently with these codes
-  100: 'Video nicht verfügbar – es existiert nicht, ist privat oder darf nicht eingebettet werden.',
-  101: 'Video nicht verfügbar – es existiert nicht, ist privat oder darf nicht eingebettet werden.',
-  150: 'Video nicht verfügbar – es existiert nicht, ist privat oder darf nicht eingebettet werden.',
+  100: k('Video nicht verfügbar – es existiert nicht, ist privat oder darf nicht eingebettet werden.'),
+  101: k('Video nicht verfügbar – es existiert nicht, ist privat oder darf nicht eingebettet werden.'),
+  150: k('Video nicht verfügbar – es existiert nicht, ist privat oder darf nicht eingebettet werden.'),
 };
 
 export function useYouTubeDuration(videoId: string | null): DurationState {
@@ -70,11 +71,11 @@ export function useYouTubeDuration(videoId: string | null): DurationState {
                 const d = Math.round(player?.getDuration?.() || 0);
                 if (d > 0) finish({ status: 'ok', seconds: d, title: player?.getVideoData?.()?.title || '' });
                 else if (++tries < 20) setTimeout(read, 250);
-                else finish({ status: 'error', message: 'Die Videolänge konnte nicht ermittelt werden.' });
+                else finish({ status: 'error', message: t('Die Videolänge konnte nicht ermittelt werden.') });
               };
               read();
             },
-            onError: (e: { data: number }) => finish({ status: 'error', message: ERRORS[e.data] || 'Das Video kann nicht geladen werden.' }),
+            onError: (e: { data: number }) => finish({ status: 'error', message: t(ERRORS[e.data] || 'Das Video kann nicht geladen werden.') }),
           },
         });
       })

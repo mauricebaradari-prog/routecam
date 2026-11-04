@@ -21,6 +21,7 @@ import { buildMapStyle, MAP_STYLES, type MapStyleId } from '@/lib/mapStyles';
 import { distAtTrackTime, speedCurve, findStops, clampOffset, type TrackTimeline } from '@/lib/trackSync';
 import { waitForYT } from '@/lib/youtubeDuration';
 import { trimRoute, MIN_TRIM_SECONDS } from '@/lib/trimRoute';
+import { t, useT } from '@/lib/i18n';
 
 const LIME = '#CCFF00';
 const SPEED_STEP = 2; // seconds per speed sample in the timeline
@@ -67,6 +68,7 @@ function useLine(route: RouteConfig | null) {
 }
 
 export default function SyncEditor({ routeId }: { routeId: string | null }) {
+  useT();
   const router = useRouter();
   const [route, setRoute] = useState<RouteConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -277,13 +279,13 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     return (
       <div className="h-screen bg-black text-white flex items-center justify-center p-6">
         <div className="max-w-md text-center">
-          <p className="text-lg font-semibold">{!route ? 'Fahrt nicht gefunden' : 'Diese Fahrt lässt sich nicht ausrichten'}</p>
+          <p className="text-lg font-semibold">{!route ? t('Fahrt nicht gefunden') : t('Diese Fahrt lässt sich nicht ausrichten')}</p>
           <p className="text-sm text-white/50 mt-2">
-            {!route ? 'Der Link ist ungültig oder die Fahrt wurde gelöscht.'
-              : !isOwn ? 'Nur eigene Fahrten, die mit einer GPS-Datei angelegt wurden, können ausgerichtet werden.'
-              : 'Die GPS-Datei dieser Fahrt hat keine Zeitstempel (oder die Fahrt wurde vor dieser Funktion angelegt). Sie läuft gleichmäßig über die Strecke.'}
+            {!route ? t('Der Link ist ungültig oder die Fahrt wurde gelöscht.')
+              : !isOwn ? t('Nur eigene Fahrten, die mit einer GPS-Datei angelegt wurden, können ausgerichtet werden.')
+              : t('Die GPS-Datei dieser Fahrt hat keine Zeitstempel (oder die Fahrt wurde vor dieser Funktion angelegt). Sie läuft gleichmäßig über die Strecke.')}
           </p>
-          <button onClick={() => router.push('/dashboard')} className="mt-6 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 text-sm">Zum Dashboard</button>
+          <button onClick={() => router.push('/dashboard')} className="mt-6 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 text-sm">{t('Zum Dashboard')}</button>
         </div>
       </div>
     );
@@ -296,9 +298,9 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     <div className="h-screen w-full bg-black text-white font-sans flex flex-col overflow-hidden">
       {/* top bar */}
       <header className="h-14 shrink-0 flex items-center gap-3 px-4 border-b border-white/10">
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center" title="Zurück ohne Speichern"><ArrowLeft size={18} /></button>
+        <button onClick={() => router.back()} className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center" title={t('Zurück ohne Speichern')}><ArrowLeft size={18} /></button>
         <div className="min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">Video ausrichten</div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">{t('Video ausrichten')}</div>
           <div className="text-sm font-semibold truncate">{route.name}</div>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -306,9 +308,9 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
             onClick={() => { setOffset(savedOffset); setTrimAuto(true); }}
             disabled={Math.abs(offset - savedOffset) < 0.05 && trimAuto}
             className="h-9 px-3 rounded-full text-sm text-white/70 hover:bg-white/10 disabled:opacity-30 flex items-center gap-1.5"
-          ><RotateCcw size={14} /> Zurücksetzen</button>
+          ><RotateCcw size={14} /> {t('Zurücksetzen')}</button>
           <button onClick={finish} className="h-9 px-4 rounded-full text-sm font-semibold bg-[#CCFF00] text-black hover:brightness-110 flex items-center gap-1.5">
-            <Check size={15} /> Fertig
+            <Check size={15} /> {t('Fertig')}
           </button>
         </div>
       </header>
@@ -320,23 +322,25 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
         {/* key figures */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-2 max-w-[calc(100%-24px)] pointer-events-none">
           <div className="rounded-lg bg-black/70 backdrop-blur-md border border-white/10 px-3 py-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            <span><span className="text-white/40">Video</span> <span className="font-mono">{fmt(videoDur)}</span></span>
-            <span><span className="text-white/40">Aufzeichnung</span> <span className="font-mono">{fmt(tl.durationSeconds)} · {tl.distanceKm.toFixed(1)} km</span></span>
-            <span><span className="text-white/40">Video zeigt</span> <span className="font-mono">km {(coverFrom * tl.distanceKm).toFixed(1)} – {(coverTo * tl.distanceKm).toFixed(1)}</span></span>
+            <span><span className="text-white/40">{t('Video')}</span> <span className="font-mono">{fmt(videoDur)}</span></span>
+            <span><span className="text-white/40">{t('Aufzeichnung')}</span> <span className="font-mono">{fmt(tl.durationSeconds)} · {tl.distanceKm.toFixed(1)} km</span></span>
+            <span><span className="text-white/40">{t('Video zeigt')}</span> <span className="font-mono">km {(coverFrom * tl.distanceKm).toFixed(1)} – {(coverTo * tl.distanceKm).toFixed(1)}</span></span>
             <span className={cutsSomething ? 'text-[#ff8a7a]' : ''}>
-              <span className="text-white/40">Fahrt</span>{' '}
+              <span className="text-white/40">{t('Fahrt')}</span>{' '}
               <span className="font-mono">{fmt(trim[1] - trim[0])} · {((trimTo - trimFrom) * tl.distanceKm).toFixed(1)} km</span>
-              {cutsSomething && <span className="text-white/40"> (gekürzt)</span>}
+              {cutsSomething && <span className="text-white/40"> {t('(gekürzt)')}</span>}
             </span>
           </div>
           {cutsSomething && (
             <p className="rounded-lg bg-black/70 backdrop-blur-md border border-[#ff6b5a]/30 px-3 py-2 text-xs text-[#ffb0a6] flex gap-1.5 max-w-md"><Scissors size={14} className="shrink-0 mt-px" />
-              Die rot gestrichelten Teile werden mit „Fertig“ endgültig entfernt – sie gehören dann nicht mehr zur Fahrt.
+              {t('Die rot gestrichelten Teile werden mit „Fertig“ endgültig entfernt – sie gehören dann nicht mehr zur Fahrt.')}
             </p>
           )}
           {(overhangStart || overhangEnd) && (
             <p className="rounded-lg bg-black/70 backdrop-blur-md border border-amber-400/30 px-3 py-2 text-xs text-amber-300 flex gap-1.5 max-w-md"><Info size={14} className="shrink-0 mt-px" />
-              Das Video ragt {overhangStart && overhangEnd ? 'an beiden Enden' : overhangStart ? 'vorne' : 'hinten'} über die Aufzeichnung hinaus. Dort bleibt der Punkt am {overhangStart && !overhangEnd ? 'Start' : 'Ende'} stehen.
+              {overhangStart && overhangEnd ? t('Das Video ragt an beiden Enden über die Aufzeichnung hinaus. Dort bleibt der Punkt am Start bzw. am Ende stehen.')
+                : overhangStart ? t('Das Video ragt vorne über die Aufzeichnung hinaus. Dort bleibt der Punkt am Start stehen.')
+                : t('Das Video ragt hinten über die Aufzeichnung hinaus. Dort bleibt der Punkt am Ende stehen.')}
             </p>
           )}
         </div>
@@ -356,7 +360,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
           className="z-20 rounded-xl overflow-hidden border border-white/20 bg-black/60 backdrop-blur-md shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] flex flex-col"
         >
           <div className="sync-drag h-[34px] shrink-0 flex items-center gap-2 px-3 cursor-move text-white/50 hover:text-white/90">
-            <span className="flex-1 min-w-0 text-[11px] font-bold tracking-wide uppercase text-white/80 truncate select-none">Video</span>
+            <span className="flex-1 min-w-0 text-[11px] font-bold tracking-wide uppercase text-white/80 truncate select-none">{t('Video')}</span>
             <GripHorizontal size={18} className="shrink-0" />
           </div>
           <div className="relative bg-black" style={{ height: 'calc(100% - 34px)' }}>
@@ -540,12 +544,12 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
     <div className="shrink-0 border-t border-white/10 bg-[#0b0d10]">
       <div className="min-h-11 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 border-b border-white/5">
         <button onClick={onTogglePlay} className="h-8 px-3 rounded-full bg-[#CCFF00] text-black font-semibold hover:brightness-110 text-sm flex items-center gap-1.5">
-          {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Play'}
+          {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? t('Pause') : t('Play')}
         </button>
-        <span className="font-mono text-sm text-white/70">Video {fmt(videoTime, true)} <span className="text-white/35">/ {fmt(videoDur)}</span></span>
+        <span className="font-mono text-sm text-white/70">{t('Video')} {fmt(videoTime, true)} <span className="text-white/35">/ {fmt(videoDur)}</span></span>
         <span className="text-white/30 text-sm">=</span>
-        <label className="flex items-center gap-2" title="Stelle der Aufzeichnung, die das Video gerade zeigt – eintippen (z. B. 8:40) oder den Video-Balken ziehen">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#CCFF00]">Aufzeichnung</span>
+        <label className="flex items-center gap-2" title={t('Stelle der Aufzeichnung, die das Video gerade zeigt – eintippen (z. B. 8:40) oder den Video-Balken ziehen')}>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#CCFF00]">{t('Aufzeichnung')}</span>
           <TimeInput value={head} onCommit={t => onOffset(t - videoTime)} />
         </label>
         <div className="flex items-center gap-1">
@@ -555,21 +559,21 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1.5 ml-2 pl-3 border-l border-white/10" title="Was außerhalb der Griffe liegt, wird beim Fertigstellen von der Fahrt abgeschnitten">
+        <div className="flex items-center gap-1.5 ml-2 pl-3 border-l border-white/10" title={t('Was außerhalb der Griffe liegt, wird beim Fertigstellen von der Fahrt abgeschnitten')}>
           <Scissors size={14} className="text-white/45" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-white/45">Kürzen</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-white/45">{t('Kürzen')}</span>
           <span className="font-mono text-xs text-white/70">{fmt(trim[0])} – {fmt(trim[1])}</span>
-          <button onClick={onTrimToVideo} disabled={trimAuto} title="Anfang und Ende wieder genau auf das Video setzen" className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-40 text-xs">
-            {trimAuto ? 'folgt dem Video' : 'Auf Video setzen'}
+          <button onClick={onTrimToVideo} disabled={trimAuto} title={t('Anfang und Ende wieder genau auf das Video setzen')} className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-40 text-xs">
+            {trimAuto ? t('folgt dem Video') : t('Auf Video setzen')}
           </button>
-          <button onClick={() => onTrim(0, tl.durationSeconds)} disabled={trim[0] < 0.5 && trim[1] > tl.durationSeconds - 0.5} title="Nichts abschneiden" className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 text-xs">Nichts kürzen</button>
+          <button onClick={() => onTrim(0, tl.durationSeconds)} disabled={trim[0] < 0.5 && trim[1] > tl.durationSeconds - 0.5} title={t('Nichts abschneiden')} className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 text-xs">{t('Nichts kürzen')}</button>
         </div>
         <div className="ml-auto flex items-center gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-white/35 mr-1">Zoom</span>
-          <button onClick={() => zoomAt(Math.max(r0, Math.min(r1, head)), 1.6)} disabled={!view} title="Herauszoomen" className="w-8 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 flex items-center justify-center"><ZoomOut size={15} /></button>
-          <button onClick={() => zoomAt(Math.max(r0, Math.min(r1, head)), 1 / 1.6)} disabled={r1 - r0 <= MIN_SPAN + 0.01} title="Hineinzoomen (am roten Abspielkopf) – auch mit Mausrad / Trackpad" className="w-8 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 flex items-center justify-center"><ZoomIn size={15} /></button>
-          <button onClick={fitVideo} title="Auf das Video zoomen" className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-xs">Video</button>
-          <button onClick={() => setView(null)} disabled={!view} title="Alles zeigen" className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 text-xs">Alles</button>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-white/35 mr-1">{t('Zoom')}</span>
+          <button onClick={() => zoomAt(Math.max(r0, Math.min(r1, head)), 1.6)} disabled={!view} title={t('Herauszoomen')} className="w-8 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 flex items-center justify-center"><ZoomOut size={15} /></button>
+          <button onClick={() => zoomAt(Math.max(r0, Math.min(r1, head)), 1 / 1.6)} disabled={r1 - r0 <= MIN_SPAN + 0.01} title={t('Hineinzoomen (am roten Abspielkopf) – auch mit Mausrad / Trackpad')} className="w-8 h-8 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 flex items-center justify-center"><ZoomIn size={15} /></button>
+          <button onClick={fitVideo} title={t('Auf das Video zoomen')} className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-xs">{t('Video')}</button>
+          <button onClick={() => setView(null)} disabled={!view} title={t('Alles zeigen')} className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 text-xs">{t('Alles')}</button>
         </div>
       </div>
       <div ref={wrap} className="px-2 select-none">
@@ -590,8 +594,8 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
             </g>
           ))}
           </g>
-          <text x={8} y={TRACK_Y + TRACK_H / 2 + 3} fill="rgba(255,255,255,0.45)" fontSize={10} fontWeight={700} letterSpacing={1}>TRACK</text>
-          <text x={8} y={VIDEO_Y + VIDEO_H / 2 + 3} fill="rgba(255,255,255,0.45)" fontSize={10} fontWeight={700} letterSpacing={1}>VIDEO</text>
+          <text x={8} y={TRACK_Y + TRACK_H / 2 + 3} fill="rgba(255,255,255,0.45)" fontSize={10} fontWeight={700} letterSpacing={1}>{t('TRACK')}</text>
+          <text x={8} y={VIDEO_Y + VIDEO_H / 2 + 3} fill="rgba(255,255,255,0.45)" fontSize={10} fontWeight={700} letterSpacing={1}>{t('VIDEO')}</text>
 
           <g clipPath="url(#sync-plot)">
           {/* track: full recording as a lane, speed as a waveform, stops marked */}
@@ -599,7 +603,7 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
           <path d={speedPath} fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
           {stops.map(s => (
             <rect key={s.from} x={x(s.from)} y={TRACK_Y + TRACK_H - 4} width={Math.max(2, x(s.to) - x(s.from))} height={4} fill="#f59e0b" opacity={0.8}>
-              <title>Stopp {fmt(s.to - s.from)}</title>
+              <title>{t('Stopp {time}', { time: fmt(s.to - s.from) })}</title>
             </rect>
           ))}
 
@@ -608,7 +612,7 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
           {trim[1] < tl.durationSeconds && <rect x={x(trim[1])} y={TRACK_Y} width={Math.max(0, x(tl.durationSeconds) - x(trim[1]))} height={TRACK_H} fill="url(#sync-cut)" pointerEvents="none" />}
           {([0, 1] as const).map(side => (
             <g key={side} onPointerDown={onTrimDown(side)} onPointerMove={onTrimMove} onPointerUp={onTrimUp} onClick={e => e.stopPropagation()} style={{ cursor: 'ew-resize' }}>
-              <title>{side === 0 ? 'Anfang der Fahrt – ziehen zum Kürzen' : 'Ende der Fahrt – ziehen zum Kürzen'}</title>
+              <title>{side === 0 ? t('Anfang der Fahrt – ziehen zum Kürzen') : t('Ende der Fahrt – ziehen zum Kürzen')}</title>
               <rect x={x(trim[side]) - 8} y={TRACK_Y - 4} width={16} height={TRACK_H + 8} fill="transparent" />
               <rect x={x(trim[side]) - (side === 0 ? 0 : 5)} y={TRACK_Y - 3} width={5} height={TRACK_H + 6} rx={2} fill="#ffffff" />
               <line x1={x(trim[side]) + (side === 0 ? 2.5 : -2.5)} x2={x(trim[side]) + (side === 0 ? 2.5 : -2.5)} y1={TRACK_Y + TRACK_H / 2 - 6} y2={TRACK_Y + TRACK_H / 2 + 6} stroke="#0b0d10" strokeWidth={1.5} />
@@ -621,7 +625,7 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
             <rect x={x(offset)} y={VIDEO_Y} width={Math.max(4, x(offset + videoDur) - x(offset))} height={VIDEO_H} rx={6}
               fill="rgba(204,255,0,0.18)" stroke={LIME} strokeWidth={1.5} />
             <text x={Math.max(x(offset), LABEL_W) + 10} y={VIDEO_Y + VIDEO_H / 2 + 4} fill={LIME} fontSize={11} fontWeight={600} pointerEvents="none">
-              Video {fmt(videoDur)} – ziehen zum Ausrichten
+              {t('Video {time} – ziehen zum Ausrichten', { time: fmt(videoDur) })}
             </text>
           </g>
 

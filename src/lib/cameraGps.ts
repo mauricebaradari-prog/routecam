@@ -1,4 +1,5 @@
 import type { TrackPoint } from '@/lib/track';
+import { t } from '@/lib/i18n';
 
 // GPS straight from the camera's own video file – no tracker app needed.
 //
@@ -313,8 +314,8 @@ async function readOneFile(file: File, onProgress?: (p: number) => void) {
   if (insta) { onProgress?.(1); return insta; }
   const boxes = await topBoxes(file);
   const moovBox = boxes.find(b => b.type === 'moov');
-  if (!moovBox) throw new Error(`„${file.name}“ ist keine MP4-Videodatei.`);
-  if (moovBox.size > 200 * 1024 * 1024) throw new Error(`„${file.name}“ hat einen ungewöhnlich großen Index.`);
+  if (!moovBox) throw new Error(t('„{name}“ ist keine MP4-Videodatei.', { name: file.name }));
+  if (moovBox.size > 200 * 1024 * 1024) throw new Error(t('„{name}“ hat einen ungewöhnlich großen Index.', { name: file.name }));
   const moov = await readBytes(file, moovBox.start, moovBox.size);
   const track = findGpmdTrack(moov);
   if (!track) return null;
@@ -347,7 +348,7 @@ export async function readCameraGps(files: File[], onProgress?: (p: number) => v
     if (r && r.fixes.length) parts.push({ file: files[f], ...r });
   }
   if (!parts.length) {
-    throw new Error('In der Datei sind keine GPS-Daten. Unterstützt werden Original-Dateien von GoPro (mit GPS) und Insta360 (mit GPS-Fernbedienung oder App aufgenommen) – ein Video von YouTube oder ein geschnittener Export enthält sie nicht mehr.');
+    throw new Error(t('In der Datei sind keine GPS-Daten. Unterstützt werden Original-Dateien von GoPro (mit GPS) und Insta360 (mit GPS-Fernbedienung oder App aufgenommen) – ein Video von YouTube oder ein geschnittener Export enthält sie nicht mehr.'));
   }
 
   // absolute time per fix: GPS9 carries it; GPS5 gets it from GPSU (else the file order)
@@ -367,7 +368,7 @@ export async function readCameraGps(files: File[], onProgress?: (p: number) => v
     points.push({ lat: x.lat, lng: x.lng, ele: isFinite(x.ele) ? Math.round(x.ele * 10) / 10 : undefined, time: Math.round(x.time) });
     lastT = x.time;
   }
-  if (points.length < 2) throw new Error('Die Kamera hatte während der Aufnahme keinen GPS-Empfang.');
+  if (points.length < 2) throw new Error(t('Die Kamera hatte während der Aufnahme keinen GPS-Empfang.'));
 
   // the first file's video second 0 lies this many seconds before the first GPS point
   const first = withTime[0];

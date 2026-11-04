@@ -16,6 +16,7 @@ import Onboarding from '@/components/Onboarding';
 import SignupWall from '@/components/SignupWall';
 import { requireAccount } from '@/lib/signupWall';
 import { useAuth } from '@/lib/auth';
+import { t, rich, useT } from '@/lib/i18n';
 
 export const HEADER_HEIGHT = 56;
 
@@ -32,6 +33,7 @@ interface Props {
 // YouTube-style top bar: menu + logo | search | create, notifications, account.
 // Create / notifications / account are placeholders until accounts exist (see 07_TODO.md).
 export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCreate: onCreateRaw, current = 'map', showSearch: showSearchProp = true, sticky = false }: Props) {
+  useT();
   // creating a ride needs an account – visitors get the sign-up wall instead
   const onCreate = () => { if (requireAccount('create')) onCreateRaw(); };
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -87,15 +89,15 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
         {mobileSearch ? (
           // Mobile: search takes over the whole bar
           <div className="flex items-center gap-2 w-full">
-            <IconButton label="Zurück" onClick={() => setMobileSearch(false)}><ArrowLeft size={22} /></IconButton>
+            <IconButton label={t('Zurück')} onClick={() => setMobileSearch(false)}><ArrowLeft size={22} /></IconButton>
             <RouteSearch routes={routes} onSelect={select} autoFocus />
           </div>
         ) : (
           <>
             {/* Left: menu + logo */}
             <div className="flex items-center gap-1 md:gap-3 shrink-0">
-              <IconButton label="Menü" onClick={() => setDrawerOpen(true)}><Menu size={22} /></IconButton>
-              <Link href="/" className="flex items-center gap-2 pr-2" title="RouteCam – Startseite">
+              <IconButton label={t('Menü')} onClick={() => setDrawerOpen(true)}><Menu size={22} /></IconButton>
+              <Link href="/" className="flex items-center gap-2 pr-2" title={t('RouteCam – Startseite')}>
                 <LogoLockup />
               </Link>
             </div>
@@ -118,7 +120,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
             <div className="flex items-center gap-1 md:gap-2 shrink-0">
               {showSearch && (
                 <span className="md:hidden">
-                  <IconButton label="Suchen" onClick={() => setMobileSearch(true)}><Search size={20} /></IconButton>
+                  <IconButton label={t('Suchen')} onClick={() => setMobileSearch(true)}><Search size={20} /></IconButton>
                 </span>
               )}
               {/* signed out: the lime call to action – the one thing a new visitor should notice */}
@@ -129,16 +131,16 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                 }`}
               >
                 <Plus size={20} />
-                Anlegen
+                {t('Anlegen')}
               </button>
               <span className="sm:hidden">
                 {user ? (
-                  <IconButton label="Anlegen" onClick={onCreate}><Plus size={22} /></IconButton>
+                  <IconButton label={t('Anlegen')} onClick={onCreate}><Plus size={22} /></IconButton>
                 ) : (
                   <button
                     onClick={onCreate}
-                    title="Anlegen"
-                    aria-label="Anlegen"
+                    title={t('Anlegen')}
+                    aria-label={t('Anlegen')}
                     className="w-9 h-9 rounded-full flex items-center justify-center bg-[#CCFF00] text-black hover:brightness-110 transition"
                   >
                     <Plus size={20} />
@@ -163,8 +165,8 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
           <nav className="absolute top-0 left-0 bottom-0 w-64 bg-[#0f0f0f] border-r border-white/5 flex flex-col">
             {/* Same spacing as the header's left section, so button and logo stay put when the drawer opens */}
             <div style={{ height: HEADER_HEIGHT }} className="flex items-center gap-1 md:gap-3 px-2 md:px-4 shrink-0">
-              <IconButton label="Menü schließen" onClick={() => setDrawerOpen(false)}><X size={22} /></IconButton>
-              <Link href="/" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 pr-2" title="RouteCam – Startseite">
+              <IconButton label={t('Menü schließen')} onClick={() => setDrawerOpen(false)}><X size={22} /></IconButton>
+              <Link href="/" onClick={() => setDrawerOpen(false)} className="flex items-center gap-2 pr-2" title={t('RouteCam – Startseite')}>
                 <LogoLockup />
               </Link>
             </div>
@@ -172,7 +174,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
             <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
               {/* Main navigation – always visible, not collapsible */}
               <div className="px-3 pt-2 flex flex-col gap-1">
-                <DrawerLink href="/" icon={<MapIcon size={20} />} active={current === 'map'}>Karte</DrawerLink>
+                <DrawerLink href="/" icon={<MapIcon size={20} />} active={current === 'map'}>{t('Karte')}</DrawerLink>
                 {user && <DrawerLink href="/dashboard" icon={<LayoutGrid size={20} />} active={current === 'dashboard'}>Dashboard</DrawerLink>}
                 {/* "About" is hidden from the menu until the page is reworked (todo list). Imprint, privacy,
                     terms and contact stay reachable through the links at the bottom of this menu. */}
@@ -180,9 +182,9 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
 
               {user && <div className="mx-3 my-2 border-t border-white/10" />}
 
-              {user && <DrawerGroup title="Meine Routen" count={myRoutes.length} open={routesOpen} onToggle={() => setRoutesOpen(o => !o)}>
+              {user && <DrawerGroup title={t('Meine Routen')} count={myRoutes.length} open={routesOpen} onToggle={() => setRoutesOpen(o => !o)}>
                 {myRoutes.length === 0 ? (
-                  <p className="pl-6 pr-3 py-2 text-xs text-white/40">Noch keine eigene Fahrt – oben rechts auf „Anlegen“.</p>
+                  <p className="pl-6 pr-3 py-2 text-xs text-white/40">{t('Noch keine eigene Fahrt – oben rechts auf „Anlegen“.')}</p>
                 ) : (
                   myRoutes.map(r => (
                     <RouteItem key={r.id} name={r.name} active={r.id === activeRouteId} onClick={() => select(r.id)} />
@@ -194,14 +196,14 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
               <div className="mx-3 my-2 border-t border-white/10" />
 
               <DrawerGroup
-                title="Meine Gruppen"
+                title={t('Meine Gruppen')}
                 icon={<Layers size={14} className="text-white/60" />}
                 count={myGroups.length}
                 open={groupsOpen}
                 onToggle={() => setGroupsOpen(o => !o)}
               >
                 {myGroups.length === 0 ? (
-                  <p className="pl-6 pr-3 py-2 text-xs text-white/40">Noch keine Gruppe – im Dashboard mehrere Fahrten auswählen und zusammenfassen, z. B. zu einer Reise.</p>
+                  <p className="pl-6 pr-3 py-2 text-xs text-white/40">{t('Noch keine Gruppe – im Dashboard mehrere Fahrten auswählen und zusammenfassen, z. B. zu einer Reise.')}</p>
                 ) : (
                   myGroups.map(({ group, rides }) => {
                     const isOpen = openGroupId === group.id;
@@ -233,14 +235,14 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
               <div className="mx-3 my-2 border-t border-white/10" />
 
               <DrawerGroup
-                title="Gelikte Routen"
+                title={t('Gelikte Routen')}
                 icon={<Heart size={14} className="text-[#CCFF00]" fill="currentColor" />}
                 count={likedRoutes.length}
                 open={likedOpen}
                 onToggle={() => setLikedOpen(o => !o)}
               >
                 {likedRoutes.length === 0 ? (
-                  <p className="pl-6 pr-3 py-2 text-xs text-white/40">Noch keine Route geliked – tippe im Community-Fenster aufs Herz.</p>
+                  <p className="pl-6 pr-3 py-2 text-xs text-white/40">{t('Noch keine Route geliked – tippe im Community-Fenster aufs Herz.')}</p>
                 ) : (
                   likedRoutes.map(r => (
                     <RouteItem key={r.id} name={r.name} active={r.id === activeRouteId} onClick={() => select(r.id)} />
@@ -250,10 +252,10 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
               </>}
             </div>
             <div className="shrink-0 border-t border-white/10 px-6 py-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/40">
-              <Link href="/about#impressum" onClick={leaveWhilePlaying} className="hover:text-white/80">Impressum</Link>
-              <Link href="/about#datenschutz" onClick={leaveWhilePlaying} className="hover:text-white/80">Datenschutz</Link>
-              <Link href="/about#agb" onClick={leaveWhilePlaying} className="hover:text-white/80">Nutzungsbedingungen</Link>
-              <Link href="/about#kontakt" onClick={leaveWhilePlaying} className="hover:text-white/80">Kontakt</Link>
+              <Link href="/about#impressum" onClick={leaveWhilePlaying} className="hover:text-white/80">{t('Impressum')}</Link>
+              <Link href="/about#datenschutz" onClick={leaveWhilePlaying} className="hover:text-white/80">{t('Datenschutz')}</Link>
+              <Link href="/about#agb" onClick={leaveWhilePlaying} className="hover:text-white/80">{t('Nutzungsbedingungen')}</Link>
+              <Link href="/about#kontakt" onClick={leaveWhilePlaying} className="hover:text-white/80">{t('Kontakt')}</Link>
             </div>
           </nav>
         </div>
@@ -264,6 +266,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
 
 // Avatar top right: "Sign in with Google" when signed out, profile + sign-out when signed in
 function AccountMenu() {
+  useT();
   const { user, signOut, renderSignInButton, configured } = useAuth();
   const isFounder = !!useDb().me?.is_founder;
   const [open, setOpen] = useState(false);
@@ -298,8 +301,8 @@ function AccountMenu() {
     <div ref={ref} className="relative ml-1">
       <button
         onClick={() => setOpen(o => !o)}
-        title={user ? user.name : 'Anmelden'}
-        aria-label={user ? `Konto: ${user.name}` : 'Anmelden'}
+        title={user ? user.name : t('Anmelden')}
+        aria-label={user ? t('Konto: {name}', { name: user.name }) : t('Anmelden')}
         className="w-8 h-8 rounded-full overflow-hidden bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 transition-colors"
       >
         {user?.picture
@@ -323,22 +326,22 @@ function AccountMenu() {
                 </div>
               </div>
               <div className="py-1.5">
-                <MenuLink href={channelHref(user.id)} icon={<UserSquare size={16} />} onClick={() => setOpen(false)}>Mein Kanal</MenuLink>
+                <MenuLink href={channelHref(user.id)} icon={<UserSquare size={16} />} onClick={() => setOpen(false)}>{t('Mein Kanal')}</MenuLink>
                 <MenuLink href="/dashboard" icon={<LayoutGrid size={16} />} onClick={() => setOpen(false)}>Dashboard</MenuLink>
-                <MenuLink href="/settings" icon={<Settings size={16} />} onClick={() => setOpen(false)}>Einstellungen</MenuLink>
+                <MenuLink href="/settings" icon={<Settings size={16} />} onClick={() => setOpen(false)}>{t('Einstellungen')}</MenuLink>
                 <MenuLink href="/about#support" icon={<LifeBuoy size={16} />} onClick={() => setOpen(false)}>Support</MenuLink>
                 {isFounder && <MenuLink href="/admin" icon={<ShieldCheck size={16} />} onClick={() => setOpen(false)}>Admin</MenuLink>}
               </div>
               <div className="border-t border-white/10 py-1.5">
                 <button onClick={() => { signOut(); setOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/10">
-                  <LogOut size={16} /> Abmelden
+                  <LogOut size={16} /> {t('Abmelden')}
                 </button>
               </div>
             </>
           ) : (
             <div className="p-4">
-              <div className="text-sm font-semibold text-white">Bei RouteCam anmelden</div>
-              <p className="text-xs text-white/50 mt-1 mb-4">Mit deinem Google-Konto – zum Anlegen, Liken und Kommentieren.</p>
+              <div className="text-sm font-semibold text-white">{t('Bei RouteCam anmelden')}</div>
+              <p className="text-xs text-white/50 mt-1 mb-4">{t('Mit deinem Google-Konto – zum Anlegen, Liken und Kommentieren.')}</p>
               {configured ? (
                 <div ref={btnRef} className="min-h-[44px] flex justify-center" />
               ) : (
@@ -346,11 +349,10 @@ function AccountMenu() {
               )}
               {error && <p className="text-xs text-red-300 mt-2">{error}</p>}
               <p className="text-[11px] leading-snug text-white/40 mt-4">
-                Mit der Anmeldung akzeptierst du die{' '}
-                <Link href="/about#agb" onClick={() => setOpen(false)} className="text-white/70 underline underline-offset-2 hover:text-white">Nutzungsbedingungen</Link>{' '}
-                und hast die{' '}
-                <Link href="/about#datenschutz" onClick={() => setOpen(false)} className="text-white/70 underline underline-offset-2 hover:text-white">Datenschutzerklärung</Link>{' '}
-                gelesen.
+                {rich('Mit der Anmeldung akzeptierst du die <0>Nutzungsbedingungen</0> und hast die <1>Datenschutzerklärung</1> gelesen.', [
+                  s => <Link href="/about#agb" onClick={() => setOpen(false)} className="text-white/70 underline underline-offset-2 hover:text-white">{s}</Link>,
+                  s => <Link href="/about#datenschutz" onClick={() => setOpen(false)} className="text-white/70 underline underline-offset-2 hover:text-white">{s}</Link>,
+                ])}
               </p>
             </div>
           )}
@@ -433,6 +435,7 @@ function DrawerLink({ href, icon, active, children }: { href: string; icon: Reac
 
 // Search across route names and waypoint names; results drop down below the field.
 function RouteSearch({ routes, onSelect, autoFocus }: { routes: RouteConfig[]; onSelect: (id: string) => void; autoFocus?: boolean }) {
+  useT();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
@@ -482,12 +485,12 @@ function RouteSearch({ routes, onSelect, autoFocus }: { routes: RouteConfig[]; o
             if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight(h => Math.max(h - 1, 0)); }
             if (e.key === 'Escape') setOpen(false);
           }}
-          placeholder="Routen und Orte suchen"
+          placeholder={t('Routen und Orte suchen')}
           className="flex-1 min-w-0 h-10 pl-4 pr-3 rounded-l-full bg-[#121212] border border-white/15 border-r-0 text-[15px] text-white placeholder:text-white/40 outline-none focus:border-[#CCFF00]/60"
         />
         <button
           type="submit"
-          title="Suchen"
+          title={t('Suchen')}
           className="h-10 w-16 rounded-r-full bg-white/[0.08] border border-white/15 hover:bg-white/15 flex items-center justify-center text-white transition-colors"
         >
           <Search size={20} />
@@ -497,7 +500,7 @@ function RouteSearch({ routes, onSelect, autoFocus }: { routes: RouteConfig[]; o
       {open && query.trim() && (
         <div className="absolute left-0 right-16 top-full mt-1 rounded-xl bg-[#212121] border border-white/10 shadow-2xl py-2 overflow-hidden">
           {results.length === 0 ? (
-            <div className="px-4 py-2 text-sm text-white/50">Keine Route gefunden</div>
+            <div className="px-4 py-2 text-sm text-white/50">{t('Keine Route gefunden')}</div>
           ) : (
             results.map((r, i) => (
               <button
@@ -508,7 +511,7 @@ function RouteSearch({ routes, onSelect, autoFocus }: { routes: RouteConfig[]; o
               >
                 <Search size={16} className="text-white/40 shrink-0" />
                 <span className="truncate text-white">{r.route.name}</span>
-                {r.via && <span className="truncate text-xs text-white/40">über {r.via}</span>}
+                {r.via && <span className="truncate text-xs text-white/40">{t('über {via}', { via: r.via })}</span>}
               </button>
             ))
           )}

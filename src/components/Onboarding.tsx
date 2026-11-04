@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MessageCircle, Star, Heart, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { t, useT, k } from '@/lib/i18n';
 
 // Three-step intro shown once per Google account after the first sign-in.
 // Seen state lives in localStorage (per account id); `openOnboarding()` shows it again on demand.
@@ -26,23 +27,24 @@ export function openOnboarding() {
 
 const STEPS = [
   {
-    title: 'Video und Strecke verbinden',
-    text: 'Füge den Link zu deinem YouTube-Video ein und lade die GPX- oder KML-Datei deiner Fahrt hoch. RouteCam legt beides übereinander: Während das Video läuft, fährt dein Pin die Strecke auf dem 3D-Globus mit.',
+    title: k('Video und Strecke verbinden'),
+    text: k('Füge den Link zu deinem YouTube-Video ein und lade die GPX- oder KML-Datei deiner Fahrt hoch. RouteCam legt beides übereinander: Während das Video läuft, fährt dein Pin die Strecke auf dem 3D-Globus mit.'),
     visual: <VisualConnect />,
   },
   {
-    title: 'Kommentieren und bewerten',
-    text: 'Hinterlasse Kommentare direkt an einer Stelle im Video, vergib Sterne für Strecken und like die Fahrten, die dir gefallen. Wer die Fahrt angelegt hat, wird benachrichtigt.',
+    title: k('Kommentieren und bewerten'),
+    text: k('Hinterlasse Kommentare direkt an einer Stelle im Video, vergib Sterne für Strecken und like die Fahrten, die dir gefallen. Wer die Fahrt angelegt hat, wird benachrichtigt.'),
     visual: <VisualReact />,
   },
   {
-    title: 'Fahrten der Community entdecken',
-    text: 'Schau dir die Touren anderer Fahrer an. Fahren mehrere dieselbe Straße, wechselst du an derselben Stelle die Perspektive: gleicher Ort, anderes Video.',
+    title: k('Fahrten der Community entdecken'),
+    text: k('Schau dir die Touren anderer Fahrer an. Fahren mehrere dieselbe Straße, wechselst du an derselben Stelle die Perspektive: gleicher Ort, anderes Video.'),
     visual: <VisualCommunity />,
   },
 ];
 
 export default function Onboarding({ onCreate }: { onCreate?: () => void }) {
+  useT();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -98,10 +100,10 @@ export default function Onboarding({ onCreate }: { onCreate?: () => void }) {
         {/* top: skip + step indicator */}
         <div className="flex items-center justify-between px-5 pt-4">
           <span className="text-[11px] font-medium tracking-wider uppercase text-white/40 tabular-nums">
-            Schritt {step + 1} von {STEPS.length}
+            {t('Schritt {n} von {total}', { n: step + 1, total: STEPS.length })}
           </span>
           <button onClick={close} className="h-8 -mr-2 px-3 rounded-full text-xs text-white/50 hover:text-white hover:bg-white/10 inline-flex items-center gap-1">
-            Überspringen <X size={14} />
+            {t('Überspringen')} <X size={14} />
           </button>
         </div>
 
@@ -115,9 +117,9 @@ export default function Onboarding({ onCreate }: { onCreate?: () => void }) {
         <div className="px-5 pt-5 grid">
           {STEPS.map((st, i) => (
             <div key={i} style={{ gridArea: '1 / 1' }} className={i === step ? '' : 'invisible'} aria-hidden={i !== step}>
-              {i === 0 && firstName && <p className="text-xs text-[#CCFF00] mb-1">Willkommen, {firstName}</p>}
-              <h2 id={i === step ? 'onboarding-title' : undefined} className="text-lg font-semibold tracking-tight text-balance">{st.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-white/60">{st.text}</p>
+              {i === 0 && firstName && <p className="text-xs text-[#CCFF00] mb-1">{t('Willkommen, {name}', { name: firstName })}</p>}
+              <h2 id={i === step ? 'onboarding-title' : undefined} className="text-lg font-semibold tracking-tight text-balance">{t(st.title)}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-white/60">{t(st.text)}</p>
             </div>
           ))}
         </div>
@@ -136,13 +138,13 @@ export default function Onboarding({ onCreate }: { onCreate?: () => void }) {
           </div>
           <div className="flex items-center gap-2">
             {step > 0 && (
-              <button onClick={back} aria-label="Zurück" className="w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:bg-white/10">
+              <button onClick={back} aria-label={t('Zurück')} className="w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:bg-white/10">
                 <ArrowLeft size={18} />
               </button>
             )}
             {last && onCreate && (
               <button onClick={() => { close(); onCreate(); }} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">
-                Erste Fahrt anlegen
+                {t('Erste Fahrt anlegen')}
               </button>
             )}
             <button
@@ -150,7 +152,7 @@ export default function Onboarding({ onCreate }: { onCreate?: () => void }) {
               onClick={next}
               className="h-10 pl-5 pr-4 rounded-full text-sm font-semibold bg-[#CCFF00] text-black hover:brightness-110 transition inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#CCFF00]"
             >
-              {last ? 'Los geht’s' : <>Weiter <ArrowRight size={16} /></>}
+              {last ? t('Los geht’s') : <>{t('Weiter')} <ArrowRight size={16} /></>}
             </button>
           </div>
         </div>
@@ -249,7 +251,7 @@ function VisualConnect() {
                 <span className="w-0 h-0 border-y-[3px] border-y-transparent border-l-[5px] border-l-white ml-px" />
               </span>
             </div>
-            <span className="text-[9px] text-white/50 font-mono truncate w-full text-center">youtu.be/…</span>
+            <span className="text-[9px] text-white/50 font-mono truncate w-full text-center">{t('youtu.be/…')}</span>
           </InputCard>
           {/* the "+" that does the joining */}
           <div className="absolute left-1/2 top-1/2 flex flex-col items-center"
@@ -357,7 +359,7 @@ function VisualReact() {
       <div className="flex items-start gap-2">
         <span className="w-7 h-7 rounded-full bg-[#CCFF00]/20 text-[#CCFF00] text-[11px] font-semibold flex items-center justify-center shrink-0">L</span>
         <div className="rounded-lg rounded-tl-sm bg-white/5 border border-white/10 px-3 py-2 text-[11px] text-white/70">
-          <span className="text-white/40 tabular-nums mr-1">12:41</span>Die Kurven hier sind der Wahnsinn!
+          <span className="text-white/40 tabular-nums mr-1">12:41</span>{t('Die Kurven hier sind der Wahnsinn!')}
         </div>
       </div>
       <div className="flex items-center justify-between pl-9">

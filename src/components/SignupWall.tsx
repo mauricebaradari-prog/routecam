@@ -5,25 +5,26 @@ import Link from 'next/link';
 import { Route as RouteIcon, MessageCircle, Heart, SquareUser, Bell, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { onSignupWall, openSignupWall, type WallReason } from '@/lib/signupWall';
+import { t, rich, useT, k } from '@/lib/i18n';
 
 // Free sign-up wall: blurred background, what you get with an account, Google sign-in.
 // Opens on gated actions (see lib/signupWall.ts) and once per session while a visitor is
 // clearly enjoying a ride. Visitors also get Google's small "One Tap" prompt.
 
 const COPY: Record<WallReason, { title: string; text: string }> = {
-  comment:  { title: 'Melde dich an, um zu kommentieren', text: 'Dein Kommentar bleibt im Feld stehen – nach der Anmeldung nur noch absenden.' },
-  create:   { title: 'Melde dich an, um deine Fahrt anzulegen', text: 'Video und GPS-Strecke verbinden, auf deinem eigenen Kanal zeigen.' },
-  interact: { title: 'Dir gefällt, was du siehst?', text: 'Mit einem kostenlosen Konto likest und bewertest du so viele Fahrten, wie du willst.' },
-  account:  { title: 'Melde dich an, um diesen Bereich zu öffnen', text: 'Dashboard, Einstellungen und der Sync-Editor gehören zu deinem Konto.' },
-  engaged:  { title: 'Werde Teil der RouteCam-Community', text: 'Kostenlos und in fünf Sekunden – mit deinem Google-Konto.' },
+  comment:  { title: k('Melde dich an, um zu kommentieren'), text: k('Dein Kommentar bleibt im Feld stehen – nach der Anmeldung nur noch absenden.') },
+  create:   { title: k('Melde dich an, um deine Fahrt anzulegen'), text: k('Video und GPS-Strecke verbinden, auf deinem eigenen Kanal zeigen.') },
+  interact: { title: k('Dir gefällt, was du siehst?'), text: k('Mit einem kostenlosen Konto likest und bewertest du so viele Fahrten, wie du willst.') },
+  account:  { title: k('Melde dich an, um diesen Bereich zu öffnen'), text: k('Dashboard, Einstellungen und der Sync-Editor gehören zu deinem Konto.') },
+  engaged:  { title: k('Werde Teil der RouteCam-Community'), text: k('Kostenlos und in fünf Sekunden – mit deinem Google-Konto.') },
 };
 
 const BENEFITS = [
-  { icon: RouteIcon, text: 'Eigene Fahrten anlegen: YouTube-Video + GPX ergibt eine Fahrt auf dem 3D-Globus' },
-  { icon: SquareUser, text: 'Dein eigener Kanal mit allen Fahrten und Gruppen' },
-  { icon: MessageCircle, text: 'Kommentieren, genau an der Stelle im Video' },
-  { icon: Heart, text: 'Liken und bewerten, so oft du willst' },
-  { icon: Bell, text: 'Benachrichtigt werden, wenn andere auf deine Fahrten reagieren' },
+  { icon: RouteIcon, text: k('Eigene Fahrten anlegen: YouTube-Video + GPX ergibt eine Fahrt auf dem 3D-Globus') },
+  { icon: SquareUser, text: k('Dein eigener Kanal mit allen Fahrten und Gruppen') },
+  { icon: MessageCircle, text: k('Kommentieren, genau an der Stelle im Video') },
+  { icon: Heart, text: k('Liken und bewerten, so oft du willst') },
+  { icon: Bell, text: k('Benachrichtigt werden, wenn andere auf deine Fahrten reagieren') },
 ];
 
 const AUTO_KEY = 'routecam.wall.autoShown';   // sessionStorage: auto-open at most once per session
@@ -38,6 +39,7 @@ const ss = {
 };
 
 export default function SignupWall() {
+  useT();
   const { user, configured, renderSignInButton, promptOneTap } = useAuth();
   const [reason, setReason] = useState<WallReason | null>(null);
   const btnRef = useRef<HTMLDivElement>(null);
@@ -148,13 +150,13 @@ export default function SignupWall() {
         aria-labelledby="signup-title"
         className="relative w-full sm:max-w-[440px] max-h-[92vh] overflow-y-auto no-scrollbar rounded-t-2xl sm:rounded-2xl bg-[#151515] border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.7)] text-white signup-rise"
       >
-        <button onClick={dismiss} aria-label="Schließen" className="absolute right-3 top-3 z-10 w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white">
+        <button onClick={dismiss} aria-label={t('Schließen')} className="absolute right-3 top-3 z-10 w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white">
           <X size={16} />
         </button>
 
         <div className="px-6 pt-7 pb-6 relative">
-          <h2 id="signup-title" className="pr-8 text-xl font-semibold tracking-tight text-balance">{copy.title}</h2>
-          <p className="mt-1.5 text-sm text-white/60 leading-relaxed">{copy.text}</p>
+          <h2 id="signup-title" className="pr-8 text-xl font-semibold tracking-tight text-balance">{t(copy.title)}</h2>
+          <p className="mt-1.5 text-sm text-white/60 leading-relaxed">{t(copy.text)}</p>
 
           <ul className="mt-5 flex flex-col gap-3">
             {BENEFITS.map(({ icon: Icon, text }) => (
@@ -162,7 +164,7 @@ export default function SignupWall() {
                 <span className="w-7 h-7 shrink-0 rounded-lg bg-[#CCFF00]/10 text-[#CCFF00] flex items-center justify-center">
                   <Icon size={15} />
                 </span>
-                <span className="pt-1">{text}</span>
+                <span className="pt-1">{t(text)}</span>
               </li>
             ))}
           </ul>
@@ -172,18 +174,20 @@ export default function SignupWall() {
               <>
                 {/* fixed box: the window must not jump while Google renders its button */}
                 <div ref={btnRef} className={`h-14 min-w-[240px] flex items-center justify-center transition-opacity duration-300 ${btnReady ? 'opacity-100' : 'opacity-0'}`} />
-                <span className="inline-flex items-center rounded-full bg-[#CCFF00] text-black text-[11px] font-semibold px-2.5 py-1">Kostenlos</span>
+                <span className="inline-flex items-center rounded-full bg-[#CCFF00] text-black text-[11px] font-semibold px-2.5 py-1">{t('Kostenlos')}</span>
               </>
             ) : (
-              <p className="text-xs text-amber-300 text-center">Die Anmeldung ist gerade nicht erreichbar. Bitte später noch einmal versuchen.</p>
+              <p className="text-xs text-amber-300 text-center">{t('Die Anmeldung ist gerade nicht erreichbar. Bitte später noch einmal versuchen.')}</p>
             )}
             <p className="text-[11px] text-white/40 text-center leading-snug">
-              Kein Passwort, keine Werbung. Mit der Anmeldung akzeptierst du die{' '}
-              <Link href="/about#agb" onClick={() => setReason(null)} className="text-white/70 underline underline-offset-2">Nutzungsbedingungen</Link> und hast die{' '}
-              <Link href="/about#datenschutz" onClick={() => setReason(null)} className="text-white/70 underline underline-offset-2">Datenschutzerklärung</Link> gelesen.
+              {t('Kein Passwort, keine Werbung.')}{' '}
+              {rich('Mit der Anmeldung akzeptierst du die <0>Nutzungsbedingungen</0> und hast die <1>Datenschutzerklärung</1> gelesen.', [
+                s => <Link href="/about#agb" onClick={() => setReason(null)} className="text-white/70 underline underline-offset-2">{s}</Link>,
+                s => <Link href="/about#datenschutz" onClick={() => setReason(null)} className="text-white/70 underline underline-offset-2">{s}</Link>,
+              ])}
             </p>
             <button onClick={dismiss} className="text-sm text-white/50 hover:text-white px-3 py-1.5">
-              Später
+              {t('Später')}
             </button>
           </div>
         </div>

@@ -13,6 +13,7 @@ import { greatCircleArc } from '@/lib/geo';
 import { loadRoadCache, saveRoadCache } from '@/lib/roadGeometry';
 import { buildMapStyle } from '@/lib/mapStyles';
 import { initials, formatCommentTime, type RouteComment } from '@/lib/routeComments';
+import { t, useT } from '@/lib/i18n';
 
 function getDistance(p1: [number, number], p2: [number, number]) {
   const R = 6371e3;
@@ -136,6 +137,7 @@ export default function GlobeMap({
   routeToTime = (p: number) => p,
   speedAt = null,
 }: GlobeMapProps) {
+  useT();
   const timeToRouteRef = useRef(timeToRoute);
   const routeToTimeRef = useRef(routeToTime);
   const speedAtRef = useRef(speedAt);
@@ -321,11 +323,11 @@ export default function GlobeMap({
       if (cs.length > 3) {
         const more = document.createElement('div');
         more.className = 'rc-more';
-        more.textContent = `+ ${cs.length - 3} weitere – heranzoomen`;
+        more.textContent = t('+ {n} weitere – heranzoomen', { n: cs.length - 3 });
         bubble.append(more);
       }
       el.append(bubble, stack);
-      el.title = `${cs.length} Kommentare – klicken zum Heranzoomen`;
+      el.title = t('{n} Kommentare – klicken zum Heranzoomen', { n: cs.length });
       const center = g.items[0].marker.getLngLat();
       el.addEventListener('click', e => {
         e.stopPropagation();
@@ -379,7 +381,7 @@ export default function GlobeMap({
       if (!at) continue;
       const el = document.createElement('button');
       el.className = 'rc-overlap';
-      el.title = `Auch gefahren: ${b.names.join(', ')} – hierhin springen`;
+      el.title = t('Auch gefahren: {names} – hierhin springen', { names: b.names.join(', ') });
       el.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>';
       const label = document.createElement('span');
       label.textContent = String(b.count + 1); // incl. the active ride
@@ -1064,7 +1066,7 @@ export default function GlobeMap({
         const size = Math.min(56, 34 + Math.log2(n) * 7);
         const el = document.createElement('button');
         el.type = 'button';
-        el.title = `${n} ${n === 1 ? 'Fahrt' : 'Fahrten'} – heranzoomen`;
+        el.title = n === 1 ? t('1 Fahrt – heranzoomen') : t('{n} Fahrten – heranzoomen', { n });
         el.className = 'rc-cluster';
         el.style.width = el.style.height = `${size}px`;
         el.textContent = String(n);
@@ -1539,7 +1541,7 @@ export default function GlobeMap({
           className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 h-10 pl-3 pr-4 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-sm font-medium text-white shadow-xl hover:bg-black/90 hover:border-[#CCFF00]/50 transition-colors"
         >
           <LocateFixed size={18} className="text-[#CCFF00]" />
-          {animationProgress > 0 ? 'Zurück zum Video' : 'Zurück zur Route'}
+          {animationProgress > 0 ? t('Zurück zum Video') : t('Zurück zur Route')}
         </button>
       )}
 
@@ -1551,7 +1553,7 @@ export default function GlobeMap({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <Mountain size={14} className="text-[#CCFF00]" />
-                <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>Elevation Profile</h3>
+                <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Elevation Profile')}</h3>
               </div>
               <div style={{ color: '#9ca3af', fontSize: '10px', fontWeight: 500, fontFamily: 'sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>{(totalDistRef.current / 1000).toFixed(0)} KM</span>
@@ -1562,7 +1564,7 @@ export default function GlobeMap({
             {!isMobile && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {/* Mini compass (replaces the former Heading window) */}
-                <svg width="26" height="26" viewBox="0 0 26 26" style={{ overflow: 'visible' }} aria-label="Fahrtrichtung">
+                <svg width="26" height="26" viewBox="0 0 26 26" style={{ overflow: 'visible' }} aria-label={t('Fahrtrichtung')}>
                   <circle cx="13" cy="13" r="11.5" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
                   <text x="13" y="5.2" fill="#9ca3af" fontSize="5" fontWeight="700" fontFamily="sans-serif" textAnchor="middle">N</text>
                   <g ref={compassNeedleRef} style={{ transformOrigin: '13px 13px', transform: 'rotate(0deg)', willChange: 'transform' }}>
@@ -1733,7 +1735,7 @@ export default function GlobeMap({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }} className="pointer-events-none">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Gauge size={14} className="text-[#CCFF00]" />
-              <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>Velocity</h3>
+              <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Velocity')}</h3>
             </div>
             <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}>
               <GripHorizontal size={14} />

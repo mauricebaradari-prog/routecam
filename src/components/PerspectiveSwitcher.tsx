@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Layers, ArrowLeftRight, ChevronDown } from 'lucide-react';
 import type { RouteOverlap } from '@/lib/routeOverlap';
+import { t, rich, useT, locale } from '@/lib/i18n';
 
 const thumb = (videoId: string) => `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 
@@ -12,6 +13,7 @@ export default function PerspectiveSwitcher({ overlaps, onSwitch }: {
   overlaps: RouteOverlap[];
   onSwitch: (o: RouteOverlap) => void;
 }) {
+  useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -31,15 +33,17 @@ export default function PerspectiveSwitcher({ overlaps, onSwitch }: {
       <div className="flex items-center gap-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 shadow-2xl pl-3 pr-1.5 py-1.5">
         <Layers size={16} className="text-[#CCFF00] shrink-0" />
         <span className="text-sm text-white/80 whitespace-nowrap">
-          {many ? <>Diese Stelle gibt es in <b className="text-white">{overlaps.length} weiteren Fahrten</b></> : <>Auch gefahren: <b className="text-white">{first.route.name}</b></>}
+          {many
+            ? rich('Diese Stelle gibt es in <0>{n} weiteren Fahrten</0>', [s => <b className="text-white">{s}</b>], { n: overlaps.length })
+            : rich('Auch gefahren: <0>{name}</0>', [s => <b className="text-white">{s}</b>], { name: first.route.name })}
         </span>
         {many ? (
           <button onClick={() => setOpen(o => !o)} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/10 hover:bg-white/20 text-sm font-medium text-white">
-            Auswählen <ChevronDown size={14} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
+            {t('Auswählen')} <ChevronDown size={14} className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
           </button>
         ) : (
           <button onClick={() => onSwitch(first)} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-[#CCFF00] text-black text-sm font-semibold hover:brightness-110">
-            <ArrowLeftRight size={14} /> Perspektive wechseln
+            <ArrowLeftRight size={14} /> {t('Perspektive wechseln')}
           </button>
         )}
       </div>
@@ -54,7 +58,7 @@ export default function PerspectiveSwitcher({ overlaps, onSwitch }: {
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium text-white truncate">{o.route.name}</span>
                   <span className="block text-xs text-white/50">
-                    {o.sharedKm.toFixed(1).replace('.', ',')} km gemeinsam · {dir === 'same' ? 'gleiche Richtung' : 'Gegenrichtung'}
+                    {t('{km} km gemeinsam', { km: o.sharedKm.toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })} · {dir === 'same' ? t('gleiche Richtung') : t('Gegenrichtung')}
                   </span>
                 </span>
                 <ArrowLeftRight size={16} className="text-[#CCFF00] shrink-0" />

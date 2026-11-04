@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { RouteConfig } from '@/hooks/useEditorState';
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 // Central copy of the database in the browser.
 //
@@ -128,11 +129,11 @@ function loadSnapshot(): Partial<DbState> {
 }
 
 // German message for a failed database call
-export function dbError(e: unknown, fallback = 'Speichern hat nicht geklappt. Bitte versuch es noch einmal.'): Error {
+export function dbError(e: unknown, fallback = t('Speichern hat nicht geklappt. Bitte versuch es noch einmal.')): Error {
   const msg = (e as { message?: string })?.message || '';
   console.error('[db]', msg || e);
-  if (/JWT|not authenticated|permission denied|row-level security/i.test(msg)) return new Error('Bitte melde dich erneut an – deine Sitzung ist abgelaufen.');
-  if (/Failed to fetch|NetworkError|network/i.test(msg)) return new Error('Keine Verbindung zum Server. Bitte prüfe dein Internet.');
+  if (/JWT|not authenticated|permission denied|row-level security/i.test(msg)) return new Error(t('Bitte melde dich erneut an – deine Sitzung ist abgelaufen.'));
+  if (/Failed to fetch|NetworkError|network/i.test(msg)) return new Error(t('Keine Verbindung zum Server. Bitte prüfe dein Internet.'));
   return new Error(fallback);
 }
 

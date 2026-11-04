@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lock, Link2, Globe } from 'lucide-react';
 import { VISIBILITY_OPTIONS, type Visibility } from '@/lib/routeVisibility';
+import { t } from '@/lib/i18n';
 
 // Shared look for the three visibility states (icon, colour, badge).
 const ICONS: Record<Visibility, typeof Lock> = { private: Lock, unlisted: Link2, public: Globe };
@@ -18,7 +19,7 @@ const BADGE_BG: Record<Visibility, string> = {
 };
 
 export function visibilityLabel(v: Visibility) {
-  return VISIBILITY_OPTIONS.find(o => o.value === v)!.label;
+  return t(VISIBILITY_OPTIONS.find(o => o.value === v)!.label);
 }
 
 export function VisibilityIcon({ v, size = 16, className = '' }: { v: Visibility; size?: number; className?: string }) {

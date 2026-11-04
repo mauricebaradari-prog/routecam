@@ -17,6 +17,7 @@ import { syncMapper } from '@/lib/trackSync';
 // import GlobeMap from '@/components/GlobeMap';
 import AnimationsPanel from '@/components/panels/AnimationsPanel';
 import CameraPanel, { CAMERA_MODES } from '@/components/panels/CameraPanel';
+import { t, useT } from '@/lib/i18n';
 
 const YouTubeOverlay = dynamic(() => import('@/components/YouTubeOverlay'), { ssr: false });
 const GlobeMap = dynamic(() => import('@/components/GlobeMap'), { ssr: false });
@@ -24,6 +25,7 @@ const GlobeMap = dynamic(() => import('@/components/GlobeMap'), { ssr: false });
 const CommunityWidget = dynamic(() => import('@/components/CommunityWidget'), { ssr: false });
 
 export default function Home() {
+  useT();
   const router = useRouter();
   const [openModal, setOpenModal] = useState<'none' | 'speed' | 'camera'>('none');
 
@@ -417,7 +419,7 @@ export default function Home() {
                   ? 'bg-[#CCFF00]/20 text-[#CCFF00] border-[#CCFF00]/50' 
                   : 'bg-black/50 text-white border-white/10 hover:bg-black/70'
               }`}
-              title={`Abspielgeschwindigkeit: ${state.animSpeed}×`}
+              title={t('Abspielgeschwindigkeit: {x}×', { x: state.animSpeed })}
             >
               {/* the current value says more than a gauge icon */}
               <span className={`font-mono text-[11px] font-semibold tracking-tight ${state.animSpeed !== 1 && openModal !== 'speed' ? 'text-[#CCFF00]' : ''}`}>
@@ -431,7 +433,7 @@ export default function Home() {
                   ? 'bg-[#CCFF00]/20 text-[#CCFF00] border-[#CCFF00]/50' 
                   : 'bg-black/50 text-white border-white/10 hover:bg-black/70'
               }`}
-              title={`Kamera: ${CAMERA_MODES.find(m => m.value === state.cameraMode)?.label}`}
+              title={t('Kamera: {mode}', { mode: t(CAMERA_MODES.find(m => m.value === state.cameraMode)?.label ?? '') })}
             >
               {/* shows the current camera mode, like the speed button shows its value */}
               {(() => { const M = CAMERA_MODES.find(m => m.value === state.cameraMode)?.Icon ?? Video; return <M size={18} />; })()}
@@ -441,7 +443,7 @@ export default function Home() {
               <button
                 onClick={resetAnimation}
                 className="w-10 h-10 rounded-full flex items-center justify-center bg-black/50 text-gray-400 border border-white/10 hover:bg-black/70 hover:text-white transition-all mt-2"
-                title="Zurück zum Anfang"
+                title={t('Zurück zum Anfang')}
               >
                 <RotateCcw size={16} />
               </button>

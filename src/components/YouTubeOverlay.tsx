@@ -13,6 +13,7 @@ import { waitForYT } from '@/lib/youtubeDuration';
 import { VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useAuth } from '@/lib/auth';
+import { t, useT } from '@/lib/i18n';
 
 type WindowId = 'video' | 'elevation' | 'velocity' | 'compass' | 'community';
 interface Props {
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export default function YouTubeOverlay({ state, startAnimation, stopAnimation, initialPos, setActiveWindow, visibility }: Props) {
+  useT();
   const playerRef = useRef<YTPlayer | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isInternalChange = useRef(false);
@@ -329,7 +331,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   const headerContent = (
     <div className="drag-handle w-full flex items-center justify-between cursor-move text-white/50 hover:text-white/90 transition-colors px-3" style={{ height: '38px', minHeight: '38px', flexShrink: 0 }}>
       {visibility && (
-        <span title={`Sichtbarkeit: ${visibilityLabel(visibility)}`} className="shrink-0 mr-2.5 flex items-center">
+        <span title={t('Sichtbarkeit: {v}', { v: visibilityLabel(visibility) })} className="shrink-0 mr-2.5 flex items-center">
           <VisibilityIcon v={visibility} size={15} />
         </span>
       )}
@@ -338,13 +340,13 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
           {videoTitle || routeName}
         </span>
         {estimated && (
-          <span className="text-[#CCFF00]/80 text-[8px] tracking-wider uppercase font-medium truncate mt-[-1px]" title="Ohne Zeitstempel wird die Position gleichmäßig über die Strecke verteilt">
-            Position auf der Karte geschätzt
+          <span className="text-[#CCFF00]/80 text-[8px] tracking-wider uppercase font-medium truncate mt-[-1px]" title={t('Ohne Zeitstempel wird die Position gleichmäßig über die Strecke verteilt')}>
+            {t('Position auf der Karte geschätzt')}
           </span>
         )}
       </div>
       {!isMobile && (
-        <button type="button" onClick={toggleFullscreen} title="Vollbild" aria-label="Video im Vollbild"
+        <button type="button" onClick={toggleFullscreen} title={t('Vollbild')} aria-label={t('Video im Vollbild')}
           className="no-drag shrink-0 mr-1.5 w-7 h-7 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">
           <Maximize2 size={15} />
         </button>
@@ -375,7 +377,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
 
         {/* phone: small enter-fullscreen button on the video */}
         {isMobile && !isFull && (
-          <button type="button" onClick={toggleFullscreen} aria-label="Video im Vollbild"
+          <button type="button" onClick={toggleFullscreen} aria-label={t('Video im Vollbild')}
             className="absolute right-2 top-2 z-10 w-9 h-9 rounded-full bg-black/55 backdrop-blur flex items-center justify-center text-white">
             <Maximize2 size={16} />
           </button>
@@ -389,7 +391,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
                 <div className="h-full bg-[#CCFF00]" style={{ width: `${(state.animationProgress || 0) * 100}%` }} />
               </div>
               <div className="mt-3 flex items-center gap-3">
-                <button type="button" onClick={togglePlay} aria-label={state.isAnimating ? 'Pause' : 'Abspielen'}
+                <button type="button" onClick={togglePlay} aria-label={state.isAnimating ? t('Pause') : t('Abspielen')}
                   className="w-10 h-10 rounded-full bg-[#CCFF00] text-black flex items-center justify-center hover:brightness-110">
                   {state.isAnimating ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
                 </button>
@@ -399,9 +401,9 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
                     {fmt((state.animationProgress || 0) * (state.durationSeconds || 0))} / {fmt(state.durationSeconds || 0)}
                   </div>
                 </div>
-                <button type="button" onClick={toggleFullscreen} aria-label="Vollbild beenden" title="Vollbild beenden (Esc)"
+                <button type="button" onClick={toggleFullscreen} aria-label={t('Vollbild beenden')} title={t('Vollbild beenden (Esc)')}
                   className="ml-auto h-9 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium inline-flex items-center gap-1.5">
-                  <Minimize2 size={15} /> Beenden
+                  <Minimize2 size={15} /> {t('Beenden')}
                 </button>
               </div>
             </div>
@@ -477,10 +479,10 @@ function ChannelBar({ data }: { data: { owner: RouteOwner; rides: number } | nul
           <ChannelAvatar owner={data.owner} size={28} />
           <div className="flex-1 min-w-0 leading-tight">
             <div className="text-[12px] font-semibold text-white truncate" title={data.owner.name}>{data.owner.name}</div>
-            <div className="text-[10px] text-white/45 tabular-nums">{data.rides} {data.rides === 1 ? 'Fahrt' : 'Fahrten'} auf RouteCam</div>
+            <div className="text-[10px] text-white/45 tabular-nums">{data.rides === 1 ? t('1 Fahrt auf RouteCam') : t('{n} Fahrten auf RouteCam', { n: data.rides })}</div>
           </div>
           <span className="shrink-0 inline-flex items-center gap-0.5 h-7 pl-3 pr-2 rounded-full bg-white/10 group-hover:bg-[#CCFF00] group-hover:text-black text-[11px] font-medium text-white transition-colors">
-            Kanal <ChevronRight size={14} />
+            {t('Kanal')} <ChevronRight size={14} />
           </span>
         </Link>
       )}

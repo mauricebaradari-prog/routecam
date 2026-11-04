@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { EditorState } from '@/hooks/useEditorState';
+import { t, useT } from '@/lib/i18n';
 
 interface AnimationsPanelProps {
   animSpeed: number;
@@ -16,12 +17,13 @@ const SPEED_PRESETS = [
 ];
 
 export default function AnimationsPanel({ animSpeed, onChange }: AnimationsPanelProps) {
+  useT();
   return (
     <div className="p-4 space-y-6">
       {/* Speed */}
       <div>
         <h3 className="text-[10px] font-bold text-white uppercase tracking-widest mb-3 flex items-center justify-between">
-          <span>Tempo</span>
+          <span>{t('Tempo')}</span>
           <span className="text-[#CCFF00] font-mono">{animSpeed}x</span>
         </h3>
         <div className="flex gap-2">

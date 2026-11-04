@@ -13,11 +13,12 @@ export interface RouteOwner {
 }
 
 import { FOUNDER } from '@/lib/founder';
+import { t } from '@/lib/i18n';
 export { FOUNDER };
 
 function profileOwner(id: string): RouteOwner | null {
   const p = db().profiles[id];
-  return p ? { id: p.id, name: p.name || 'RouteCam-Nutzer', picture: p.picture ?? undefined } : null;
+  return p ? { id: p.id, name: p.name || t('RouteCam-Nutzer'), picture: p.picture ?? undefined } : null;
 }
 
 function founder(): RouteOwner {
@@ -36,7 +37,7 @@ export function ownerOf(route: RouteConfig): RouteOwner {
 
 // The account a ride belongs to, as stored with it
 export function ownerFromId(id: string): RouteOwner {
-  return profileOwner(id) ?? { id, name: 'RouteCam-Nutzer' };
+  return profileOwner(id) ?? { id, name: t('RouteCam-Nutzer') };
 }
 
 // The id used in links: the short channel name when the account has one ("maurice").

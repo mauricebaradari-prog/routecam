@@ -1,12 +1,13 @@
 import ErrorLogger from "@/components/ErrorLogger";
+import { I18nProvider } from "@/lib/i18n";
 import type { Metadata } from "next";
 import "./globals.css";
 import { Geist, Geist_Mono } from "next/font/google";
 
 // Fonts are downloaded at build time and served from our own server –
 // visitors' browsers never contact Google Fonts.
-const geist = Geist({ subsets: ["latin", "latin-ext"], variable: "--font-geist-sans", display: "swap" });
-const geistMono = Geist_Mono({ subsets: ["latin", "latin-ext"], variable: "--font-geist-mono", display: "swap" });
+const geist = Geist({ subsets: ["latin", "latin-ext", "cyrillic"], variable: "--font-geist-sans", display: "swap" });
+const geistMono = Geist_Mono({ subsets: ["latin", "latin-ext", "cyrillic"], variable: "--font-geist-mono", display: "swap" });
 
 const TITLE = "RouteCam – Fahrvideos auf dem 3D-Globus";
 const DESCRIPTION =
@@ -50,7 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="h-full antialiased font-sans">
         <ErrorLogger />
-        {children}
+        <I18nProvider>{children}</I18nProvider>
       </body>
     </html>
   );

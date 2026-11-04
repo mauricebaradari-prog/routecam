@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { db, dbError, setDb, useDb } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
+import { t, locale, k } from '@/lib/i18n';
 
 // Likes, star ratings and reports per route.
 //
@@ -8,13 +9,13 @@ import { supabase } from '@/lib/supabase';
 // reported a ride is never shown – owners only see reason and note (my_route_reports()).
 
 export const REPORT_REASONS = [
-  { value: 'inappropriate', label: 'Unangemessener oder anstößiger Inhalt' },
-  { value: 'privacy',       label: 'Datenschutz – z. B. Wohnadresse erkennbar' },
-  { value: 'copyright',     label: 'Urheberrechtsverletzung' },
-  { value: 'dangerous',     label: 'Gefährliches oder illegales Fahrverhalten' },
-  { value: 'wrong-data',    label: 'Route oder Video stimmen nicht überein' },
-  { value: 'spam',          label: 'Spam oder Werbung' },
-  { value: 'other',         label: 'Sonstiges' },
+  { value: 'inappropriate', label: k('Unangemessener oder anstößiger Inhalt') },
+  { value: 'privacy',       label: k('Datenschutz – z. B. Wohnadresse erkennbar') },
+  { value: 'copyright',     label: k('Urheberrechtsverletzung') },
+  { value: 'dangerous',     label: k('Gefährliches oder illegales Fahrverhalten') },
+  { value: 'wrong-data',    label: k('Route oder Video stimmen nicht überein') },
+  { value: 'spam',          label: k('Spam oder Werbung') },
+  { value: 'other',         label: k('Sonstiges') },
 ] as const;
 
 export type ReportReason = (typeof REPORT_REASONS)[number]['value'];
@@ -92,12 +93,12 @@ export function useRouteInteractions() {
     const row = { route_id: routeId, reason, note: note?.trim() || null };
     setDb({ myRouteReports: [...s.myRouteReports, { ...row, created_at: new Date().toISOString() }] });
     const { error } = await supabase().from('route_reports').insert(row);
-    if (error) { setDb({ myRouteReports: s.myRouteReports }); alert(dbError(error, 'Die Meldung konnte nicht gesendet werden.').message); }
+    if (error) { setDb({ myRouteReports: s.myRouteReports }); alert(dbError(error, t('Die Meldung konnte nicht gesendet werden.')).message); }
   }, []);
 
   return { statsOf, toggleLike, rate, report };
 }
 
 export function formatRating(avg: number | null) {
-  return avg === null ? '–' : avg.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return avg === null ? '–' : avg.toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }

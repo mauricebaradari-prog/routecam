@@ -21,13 +21,14 @@ import { useRouteInteractions, formatRating, REPORT_REASONS } from '@/lib/routeI
 import { useRouteComments, initials, formatCommentTime, type RouteComment } from '@/lib/routeComments';
 import { useRouteVisibility, VISIBILITY_OPTIONS, type Visibility } from '@/lib/routeVisibility';
 import { VisibilityBadge, VisibilityIcon, visibilityLabel } from '@/components/Visibility';
+import { t, useT, locale, k } from '@/lib/i18n';
 
 type ViewMode = 'table' | 'cards';
 type SortKey = 'index' | 'name' | 'visibility' | 'date' | 'distance' | 'duration' | 'climb' | 'likes' | 'rating' | 'comments' | 'reports';
 
 const VIEW_KEY = 'routecam.dashboard.view';
 function formatDate(iso?: string) {
-  return iso ? new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–';
+  return iso ? new Date(iso).toLocaleDateString(locale(), { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–';
 }
 
 // Click the badge to open a small radio menu (like YouTube Studio).
@@ -66,7 +67,7 @@ function VisibilityPicker({ value, onChange }: { value: Visibility; onChange: (v
 
   return (
     <div ref={ref} className="relative inline-block">
-      <button onClick={() => setOpen(o => !o)} className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity" title="Sichtbarkeit ändern">
+      <button onClick={() => setOpen(o => !o)} className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity" title={t('Sichtbarkeit ändern')}>
         <VisibilityBadge v={value} />
         <ChevronDown size={12} className="text-white/40" />
       </button>
@@ -166,9 +167,9 @@ type Sort = { key: SortKey; dir: 1 | -1 };
 
 // Sort options for the card view – same keys as the sortable table columns
 const SORT_LABELS: [SortKey, string][] = [
-  ['index', '#'], ['name', 'Route'], ['visibility', 'Sichtbarkeit'], ['date', 'Datum'],
-  ['distance', 'Distanz'], ['duration', 'Dauer'], ['climb', 'Höhe ↑'],
-  ['likes', 'Likes'], ['rating', 'Bewertung'], ['comments', 'Kommentare'], ['reports', 'Meldungen'],
+  ['index', '#'], ['name', k('Route')], ['visibility', k('Sichtbarkeit')], ['date', k('Datum')],
+  ['distance', k('Distanz')], ['duration', k('Dauer')], ['climb', k('Höhe ↑')],
+  ['likes', k('Likes')], ['rating', k('Bewertung')], ['comments', k('Kommentare')], ['reports', k('Meldungen')],
 ];
 
 // Table grid: check · # · video · route · 4 stat columns (route value on top, community value below) · actions
@@ -205,7 +206,7 @@ function StatCell({ top, bottom }: { top: React.ReactNode; bottom: React.ReactNo
 function RatingInline({ avg, count }: { avg: number | null; count: number }) {
   if (avg === null) return <span className="text-white/30">–</span>;
   return (
-    <span className="inline-flex items-center gap-1 font-mono" title={`Ø ${formatRating(avg)} aus ${count} ${count === 1 ? 'Bewertung' : 'Bewertungen'}`}>
+    <span className="inline-flex items-center gap-1 font-mono" title={count === 1 ? t('Ø {avg} aus 1 Bewertung', { avg: formatRating(avg) }) : t('Ø {avg} aus {n} Bewertungen', { avg: formatRating(avg), n: count })}>
       <Star size={12} className="text-[#CCFF00]" fill="currentColor" />
       {formatRating(avg)}
       <span className="text-white/35">· {count}</span>
@@ -214,6 +215,7 @@ function RatingInline({ avg, count }: { avg: number | null; count: number }) {
 }
 
 function Dashboard() {
+  useT();
   const allRoutes = useAllRoutes();
   // The dashboard manages your own rides only – never other people's (they could be deleted here)
   const { user: me } = useAuth();
@@ -341,8 +343,8 @@ function Dashboard() {
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Meine Routen</h1>
-              <p className="text-sm text-white/50">Alle Fahrten und Videos auf einen Blick</p>
+              <h1 className="text-2xl font-semibold tracking-tight">{t('Meine Routen')}</h1>
+              <p className="text-sm text-white/50">{t('Alle Fahrten und Videos auf einen Blick')}</p>
             </div>
           </div>
         </header>
@@ -350,14 +352,14 @@ function Dashboard() {
         {/* Stats */}
         <section className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-8">
           {[
-            { label: 'Fahrten', value: String(totals.count) },
-            { label: 'Videozeit', value: formatDuration(totals.seconds) },
-            { label: 'Distanz (Luftlinie)', value: `${Math.round(totals.distanceKm)} km` },
-            { label: 'Höhenmeter ↑', value: `${Math.round(totals.climbM).toLocaleString('de-DE')} m` },
-            { label: 'Likes', value: String(totals.likes) },
-            { label: 'Ø Bewertung', value: formatRating(totals.rating) },
-            { label: 'Kommentare', value: String(totals.comments) },
-            { label: 'Meldungen', value: String(totals.reports) },
+            { label: t('Fahrten'), value: String(totals.count) },
+            { label: t('Videozeit'), value: formatDuration(totals.seconds) },
+            { label: t('Distanz (Luftlinie)'), value: `${Math.round(totals.distanceKm).toLocaleString(locale())} km` },
+            { label: t('Höhenmeter ↑'), value: `${Math.round(totals.climbM).toLocaleString(locale())} m` },
+            { label: t('Likes'), value: String(totals.likes) },
+            { label: t('Ø Bewertung'), value: formatRating(totals.rating) },
+            { label: t('Kommentare'), value: String(totals.comments) },
+            { label: t('Meldungen'), value: String(totals.reports) },
           ].map(s => (
             <div key={s.label} className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
               <div className="text-[10px] uppercase tracking-widest text-white/40">{s.label}</div>
@@ -370,7 +372,7 @@ function Dashboard() {
         {/* Groups as playlist cards (YouTube style) */}
         {groups.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-semibold mb-3">Gruppen</h2>
+            <h2 className="text-sm font-semibold mb-3">{t('Gruppen')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-6">
               {groups.map(g => (
                 <GroupCard
@@ -382,7 +384,7 @@ function Dashboard() {
                   onOpen={() => { setGroupFilter(g.id); setSelected([]); }}
                   onRename={name => renameGroup(g.id, name)}
                   onVisibility={v => setGroupVisibility(g.id, v)}
-                  onDelete={() => { deleteGroup(g.id); showToast(`Gruppe „${g.name}“ gelöscht`); }}
+                  onDelete={() => { deleteGroup(g.id); showToast(t('Gruppe „{name}“ gelöscht', { name: g.name })); }}
                 />
               ))}
             </div>
@@ -396,7 +398,7 @@ function Dashboard() {
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Route, Ort oder Video-ID suchen…"
+              placeholder={t('Route, Ort oder Video-ID suchen…')}
               className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm placeholder:text-white/30 focus:outline-none focus:border-[#CCFF00]/50"
             />
           </label>
@@ -408,15 +410,15 @@ function Dashboard() {
               value={groupFilter ?? ''}
               onChange={e => { setGroupFilter(e.target.value || null); setSelected([]); }}
               className="bg-transparent text-sm text-white pl-2 pr-2 h-full outline-none cursor-pointer max-w-[200px]"
-              title="Nach Gruppe filtern"
+              title={t('Nach Gruppe filtern')}
             >
-              <option value="" className="bg-[#1a1d21]">Alle Routen</option>
+              <option value="" className="bg-[#1a1d21]">{t('Alle Routen')}</option>
               {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1d21]">{g.name} ({g.routeIds.length})</option>)}
             </select>
             {activeGroup && (
               <button
-                onClick={() => { deleteGroup(activeGroup.id); showToast(`Gruppe „${activeGroup.name}“ gelöscht`); }}
-                title="Gruppe löschen (die Routen bleiben erhalten)"
+                onClick={() => { deleteGroup(activeGroup.id); showToast(t('Gruppe „{name}“ gelöscht', { name: activeGroup.name })); }}
+                title={t('Gruppe löschen (die Routen bleiben erhalten)')}
                 className="h-full px-3 border-l border-white/10 text-white/50 hover:text-red-300"
               >
                 <Trash2 size={15} />
@@ -429,13 +431,13 @@ function Dashboard() {
                 value={sort.key}
                 onChange={e => setSort(s => ({ key: e.target.value as SortKey, dir: s.dir }))}
                 className="bg-transparent text-sm text-white pl-3 pr-2 h-full outline-none cursor-pointer"
-                title="Sortieren nach"
+                title={t('Sortieren nach')}
               >
-                {SORT_LABELS.map(([k, label]) => <option key={k} value={k} className="bg-[#1a1d21]">{label}</option>)}
+                {SORT_LABELS.map(([key, label]) => <option key={key} value={key} className="bg-[#1a1d21]">{t(label)}</option>)}
               </select>
               <button
                 onClick={() => setSort(s => ({ ...s, dir: s.dir === 1 ? -1 : 1 }))}
-                title={sort.dir === 1 ? 'Aufsteigend' : 'Absteigend'}
+                title={sort.dir === 1 ? t('Aufsteigend') : t('Absteigend')}
                 className="h-full px-3 border-l border-white/10 text-white/60 hover:text-white"
               >
                 {sort.dir === 1 ? '↑' : '↓'}
@@ -443,7 +445,7 @@ function Dashboard() {
             </div>
           )}
           <div className="inline-flex rounded-lg border border-white/10 bg-white/5 p-1">
-            {([['table', List, 'Tabelle'], ['cards', LayoutGrid, 'Karten']] as const).map(([v, Icon, label]) => (
+            {([['table', List, t('Tabelle')], ['cards', LayoutGrid, t('Karten')]] as const).map(([v, Icon, label]) => (
               <button
                 key={v}
                 onClick={() => changeView(v)}
@@ -457,7 +459,7 @@ function Dashboard() {
         </div>
 
         {visible.length === 0 && (
-          <div className="rounded-xl border border-white/10 py-16 text-center text-white/40 text-sm">Keine Route gefunden.</div>
+          <div className="rounded-xl border border-white/10 py-16 text-center text-white/40 text-sm">{t('Keine Route gefunden.')}</div>
         )}
 
         {/* Table view – two lines per ride: route data on top, community below.
@@ -472,16 +474,16 @@ function Dashboard() {
                 <SortLabel {...sortProps} k="index">#</SortLabel>
                 <div />
                 <div className="flex flex-col gap-1">
-                  <SortLabel {...sortProps} k="name">Route</SortLabel>
+                  <SortLabel {...sortProps} k="name">{t('Route')}</SortLabel>
                   <div className="flex gap-3 normal-case tracking-normal text-[11px]">
-                    <SortLabel {...sortProps} k="visibility">Sichtbarkeit</SortLabel>
-                    <SortLabel {...sortProps} k="date">Datum</SortLabel>
+                    <SortLabel {...sortProps} k="visibility">{t('Sichtbarkeit')}</SortLabel>
+                    <SortLabel {...sortProps} k="date">{t('Datum')}</SortLabel>
                   </div>
                 </div>
-                <StatHeader top={<SortLabel {...sortProps} k="distance">Distanz*</SortLabel>} bottom={<SortLabel {...sortProps} k="likes">Likes</SortLabel>} />
-                <StatHeader top={<SortLabel {...sortProps} k="duration">Dauer</SortLabel>} bottom={<SortLabel {...sortProps} k="rating">Bewertung</SortLabel>} />
-                <StatHeader top={<SortLabel {...sortProps} k="climb">Höhe ↑</SortLabel>} bottom={<SortLabel {...sortProps} k="comments">Kommentare</SortLabel>} />
-                <StatHeader top={<span>Profil</span>} bottom={<SortLabel {...sortProps} k="reports">Meldungen</SortLabel>} />
+                <StatHeader top={<SortLabel {...sortProps} k="distance">{t('Distanz*')}</SortLabel>} bottom={<SortLabel {...sortProps} k="likes">Likes</SortLabel>} />
+                <StatHeader top={<SortLabel {...sortProps} k="duration">{t('Dauer')}</SortLabel>} bottom={<SortLabel {...sortProps} k="rating">{t('Bewertung')}</SortLabel>} />
+                <StatHeader top={<SortLabel {...sortProps} k="climb">{t('Höhe ↑')}</SortLabel>} bottom={<SortLabel {...sortProps} k="comments">{t('Kommentare')}</SortLabel>} />
+                <StatHeader top={<span>{t('Profil')}</span>} bottom={<SortLabel {...sortProps} k="reports">{t('Meldungen')}</SortLabel>} />
                 <div />
               </div>
 
@@ -491,10 +493,10 @@ function Dashboard() {
                 return (
                   <div key={r.route.id} className={`${TABLE_GRID} items-center px-4 py-3 border-t border-white/5 transition-colors ${isSel ? 'bg-[#CCFF00]/[0.06]' : 'hover:bg-white/[0.03]'}`}>
                     <div>
-                      <input type="checkbox" checked={isSel} onChange={() => toggleSelected(r.route.id)} aria-label={`${r.route.name} auswählen`} className="w-4 h-4 accent-[#CCFF00] cursor-pointer" />
+                      <input type="checkbox" checked={isSel} onChange={() => toggleSelected(r.route.id)} aria-label={t('{name} auswählen', { name: r.route.name })} className="w-4 h-4 accent-[#CCFF00] cursor-pointer" />
                     </div>
                     <div className="text-white/40 font-mono">{r.index}</div>
-                    <Link href={`/?route=${r.route.id}`} title="Auf der Karte abspielen" className="group relative block w-[120px] aspect-video rounded-md overflow-hidden bg-white/5">
+                    <Link href={`/?route=${r.route.id}`} title={t('Auf der Karte abspielen')} className="group relative block w-[120px] aspect-video rounded-md overflow-hidden bg-white/5">
                       <img src={thumbnail(r.route.videoId)} alt="" loading="lazy" className="w-full h-full object-cover" />
                       <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Play size={18} fill="#CCFF00" className="text-[#CCFF00] ml-0.5" />
@@ -507,8 +509,8 @@ function Dashboard() {
                       <div className="font-medium leading-snug line-clamp-2" title={r.route.originalName ?? r.route.name}>{r.route.name}</div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-white/40">
                         <VisibilityPicker value={visibilityOf(r.route.id, r.route.visibility)} onChange={v => setVisibility(r.route.id, v)} />
-                        <span className="font-mono" title="Angelegt">{formatDate(r.route.createdAt)}</span>
-                        <span>{r.route.cities.length} Wegpunkte{r.route.forceStraight ? ' · gerade Linie' : ''}</span>
+                        <span className="font-mono" title={t('Angelegt')}>{formatDate(r.route.createdAt)}</span>
+                        <span>{t('{n} Wegpunkte', { n: r.route.cities.length })}{r.route.forceStraight ? ` · ${t('gerade Linie')}` : ''}</span>
                         <SyncHint route={r.route} />
                         <GroupChips groups={groupsOf(r.route.id)} onSelect={setGroupFilter} />
                       </div>
@@ -532,17 +534,17 @@ function Dashboard() {
                     />
 
                     <div className="flex items-center justify-end gap-1.5 pl-2">
-                      <Link href={`/?route=${r.route.id}`} title="Auf der Karte abspielen" className="w-8 h-8 rounded-full flex items-center justify-center bg-[#CCFF00]/15 text-[#CCFF00] hover:bg-[#CCFF00]/30 transition-colors">
+                      <Link href={`/?route=${r.route.id}`} title={t('Auf der Karte abspielen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-[#CCFF00]/15 text-[#CCFF00] hover:bg-[#CCFF00]/30 transition-colors">
                         <Play size={14} fill="currentColor" className="ml-0.5" />
                       </Link>
-                      <a href={`https://youtu.be/${r.route.videoId}`} target="_blank" rel="noreferrer" title="Auf YouTube öffnen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                      <a href={`https://youtu.be/${r.route.videoId}`} target="_blank" rel="noreferrer" title={t('Auf YouTube öffnen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
                         <ExternalLink size={14} />
                       </a>
                       <SyncButton route={r.route} />
-                      <button onClick={() => setToRename(r.route)} title="Fahrt bearbeiten: Titel, Start & Ziel" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                      <button onClick={() => setToRename(r.route)} title={t('Fahrt bearbeiten: Titel, Start & Ziel')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => setToDelete(r.route)} title="Route löschen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-red-300 hover:bg-red-500/15 transition-colors">
+                      <button onClick={() => setToDelete(r.route)} title={t('Route löschen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-red-300 hover:bg-red-500/15 transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -564,9 +566,9 @@ function Dashboard() {
               }`}>
                 {/* selection checkbox (outside the link, so it doesn't navigate) */}
                 <label className="absolute top-2 left-2 z-10 w-7 h-7 rounded-md bg-black/70 flex items-center justify-center cursor-pointer">
-                  <input type="checkbox" checked={selected.includes(r.route.id)} onChange={() => toggleSelected(r.route.id)} aria-label={`${r.route.name} auswählen`} className="w-4 h-4 accent-[#CCFF00] cursor-pointer" />
+                  <input type="checkbox" checked={selected.includes(r.route.id)} onChange={() => toggleSelected(r.route.id)} aria-label={t('{name} auswählen', { name: r.route.name })} className="w-4 h-4 accent-[#CCFF00] cursor-pointer" />
                 </label>
-                <Link href={`/?route=${r.route.id}`} title="Auf der Karte abspielen" className="block relative aspect-video bg-white/5 rounded-t-xl overflow-hidden">
+                <Link href={`/?route=${r.route.id}`} title={t('Auf der Karte abspielen')} className="block relative aspect-video bg-white/5 rounded-t-xl overflow-hidden">
                   <img src={thumbnail(r.route.videoId)} alt="" loading="lazy" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <span className="w-12 h-12 rounded-full bg-[#CCFF00] text-black flex items-center justify-center">
@@ -583,23 +585,23 @@ function Dashboard() {
                     <div className="min-w-0">
                       <h2 className="font-medium leading-snug">{r.route.name}</h2>
                       <div className="text-xs text-white/40 mt-0.5">
-                        {r.route.cities.length} Wegpunkte{r.route.forceStraight ? ' · gerade Linie' : ''}
+                        {t('{n} Wegpunkte', { n: r.route.cities.length })}{r.route.forceStraight ? ` · ${t('gerade Linie')}` : ''}
                       </div>
                       <SyncHint route={r.route} />
                       <GroupChips groups={groupsOf(r.route.id)} onSelect={setGroupFilter} />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Link href={`/?route=${r.route.id}`} title="Auf der Karte abspielen" className="w-8 h-8 rounded-full flex items-center justify-center bg-[#CCFF00]/15 text-[#CCFF00] hover:bg-[#CCFF00]/30 transition-colors">
+                      <Link href={`/?route=${r.route.id}`} title={t('Auf der Karte abspielen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-[#CCFF00]/15 text-[#CCFF00] hover:bg-[#CCFF00]/30 transition-colors">
                         <Play size={14} fill="currentColor" className="ml-0.5" />
                       </Link>
-                      <a href={`https://youtu.be/${r.route.videoId}`} target="_blank" rel="noreferrer" title="Auf YouTube öffnen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                      <a href={`https://youtu.be/${r.route.videoId}`} target="_blank" rel="noreferrer" title={t('Auf YouTube öffnen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
                         <ExternalLink size={14} />
                       </a>
                       <SyncButton route={r.route} />
-                      <button onClick={() => setToRename(r.route)} title="Fahrt bearbeiten: Titel, Start & Ziel" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                      <button onClick={() => setToRename(r.route)} title={t('Fahrt bearbeiten: Titel, Start & Ziel')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
                         <Pencil size={14} />
                       </button>
-                        <button onClick={() => setToDelete(r.route)} title="Route löschen" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-red-300 hover:bg-red-500/15 transition-colors">
+                        <button onClick={() => setToDelete(r.route)} title={t('Route löschen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-red-300 hover:bg-red-500/15 transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -608,24 +610,24 @@ function Dashboard() {
                   {/* Sichtbarkeit (editable) + Datum */}
                   <div className="flex items-center justify-between gap-2 mt-3">
                     <VisibilityPicker value={visibilityOf(r.route.id, r.route.visibility)} onChange={v => setVisibility(r.route.id, v)} />
-                    <span className="text-xs text-white/40 font-mono" title="Angelegt">{formatDate(r.route.createdAt)}</span>
+                    <span className="text-xs text-white/40 font-mono" title={t('Angelegt')}>{formatDate(r.route.createdAt)}</span>
                   </div>
 
                   <div className="mt-3 mb-3"><Sparkline routeId={r.route.id} sample={r.route.elevationSample} width={300} height={36} fluid /></div>
 
                   {/* Same figures as the table columns */}
                   <dl className="grid grid-cols-3 gap-x-2 gap-y-3 text-xs">
-                    <div><dt className="text-white/40">Distanz*</dt><dd className="font-mono mt-0.5">{r.distanceKm.toFixed(1)} km</dd></div>
-                    <div><dt className="text-white/40">Dauer</dt><dd className="font-mono mt-0.5">{formatDuration(r.route.durationSeconds)}</dd></div>
+                    <div><dt className="text-white/40">{t('Distanz*')}</dt><dd className="font-mono mt-0.5">{r.distanceKm.toFixed(1)} km</dd></div>
+                    <div><dt className="text-white/40">{t('Dauer')}</dt><dd className="font-mono mt-0.5">{formatDuration(r.route.durationSeconds)}</dd></div>
                     <div>
-                      <dt className="text-white/40">Höhe ↑</dt>
+                      <dt className="text-white/40">{t('Höhe ↑')}</dt>
                       <dd className="font-mono mt-0.5">{Math.round(r.climbM)} m</dd>
                       <dd className="text-[10px] text-white/40 font-mono">{Math.round(r.minEle)}–{Math.round(r.maxEle)} m</dd>
                     </div>
                     <div><dt className="text-white/40">Likes</dt><dd className="font-mono mt-0.5 inline-flex items-center gap-1.5"><Heart size={12} className="text-white/40" />{st.likeCount}</dd></div>
-                    <div><dt className="text-white/40">Bewertung</dt><dd className="mt-0.5"><RatingCell avg={st.avgRating} count={st.ratingCount} /></dd></div>
-                    <div><dt className="text-white/40">Kommentare</dt><dd className="font-mono mt-0.5"><CommentsButton count={commentsOf(r.route.id)} onClick={() => setCommentsFor(r.route)} /></dd></div>
-                    <div><dt className="text-white/40">Meldungen</dt><dd className="font-mono mt-0.5"><ReportsCell reports={st.reports} /></dd></div>
+                    <div><dt className="text-white/40">{t('Bewertung')}</dt><dd className="mt-0.5"><RatingCell avg={st.avgRating} count={st.ratingCount} /></dd></div>
+                    <div><dt className="text-white/40">{t('Kommentare')}</dt><dd className="font-mono mt-0.5"><CommentsButton count={commentsOf(r.route.id)} onClick={() => setCommentsFor(r.route)} /></dd></div>
+                    <div><dt className="text-white/40">{t('Meldungen')}</dt><dd className="font-mono mt-0.5"><ReportsCell reports={st.reports} /></dd></div>
                   </dl>
                 </div>
               </article>
@@ -635,7 +637,7 @@ function Dashboard() {
         )}
 
         <p className="text-[11px] text-white/30 mt-6">
-          * Distanz als Luftlinie zwischen den Wegpunkten – die tatsächliche Straßenstrecke ist länger. Höhenmeter aus dem vereinfachten Höhenprofil.
+          * {t('Distanz als Luftlinie zwischen den Wegpunkten – die tatsächliche Straßenstrecke ist länger. Höhenmeter aus dem vereinfachten Höhenprofil.')}
         </p>
       </div>
 
@@ -645,9 +647,9 @@ function Dashboard() {
           groups={groups}
           activeGroup={activeGroup}
           onClear={() => setSelected([])}
-          onAddTo={g => { addToGroup(g.id, selected); showToast(`${selected.length} ${selected.length === 1 ? 'Route' : 'Routen'} zu „${g.name}“ hinzugefügt`); setSelected([]); }}
-          onCreate={name => { const g = createGroup(name, selected); showToast(`Gruppe „${g.name}“ mit ${selected.length} ${selected.length === 1 ? 'Route' : 'Routen'} erstellt`); setSelected([]); }}
-          onRemoveFromActive={() => { if (!activeGroup) return; removeFromGroup(activeGroup.id, selected); showToast(`${selected.length} aus „${activeGroup.name}“ entfernt`); setSelected([]); }}
+          onAddTo={g => { addToGroup(g.id, selected); showToast(selected.length === 1 ? t('1 Route zu „{name}“ hinzugefügt', { name: g.name }) : t('{n} Routen zu „{name}“ hinzugefügt', { n: selected.length, name: g.name })); setSelected([]); }}
+          onCreate={name => { const g = createGroup(name, selected); showToast(selected.length === 1 ? t('Gruppe „{name}“ mit 1 Route erstellt', { name: g.name }) : t('Gruppe „{name}“ mit {n} Routen erstellt', { name: g.name, n: selected.length })); setSelected([]); }}
+          onRemoveFromActive={() => { if (!activeGroup) return; removeFromGroup(activeGroup.id, selected); showToast(t('{n} aus „{name}“ entfernt', { n: selected.length, name: activeGroup.name })); setSelected([]); }}
         />
       )}
 
@@ -670,7 +672,7 @@ function Dashboard() {
           route={toRename}
           onCancel={() => setToRename(null)}
           onSave={names => {
-            setPlaceNames(toRename.id, names).then(() => showToast('Fahrt gespeichert'), e => showToast(e.message));
+            setPlaceNames(toRename.id, names).then(() => showToast(t('Fahrt gespeichert')), e => showToast(e.message));
             setToRename(null);
           }}
         />
@@ -687,7 +689,7 @@ function Dashboard() {
           onConfirm={() => {
             for (const g of groupsOf(toDelete.id)) removeFromGroup(g.id, [toDelete.id]);
             const name = toDelete.name;
-            deleteRoute(toDelete.id).then(() => showToast(`„${name}“ gelöscht`), e => showToast(e.message));
+            deleteRoute(toDelete.id).then(() => showToast(t('„{name}“ gelöscht', { name })), e => showToast(e.message));
             setSelected(sel => sel.filter(id => id !== toDelete.id));
             setToDelete(null);
           }}
@@ -700,7 +702,7 @@ function Dashboard() {
 function RatingCell({ avg, count }: { avg: number | null; count: number }) {
   if (avg === null) return <span className="text-white/30">–</span>;
   return (
-    <div title={`Ø ${formatRating(avg)} aus ${count} ${count === 1 ? 'Bewertung' : 'Bewertungen'}`}>
+    <div title={count === 1 ? t('Ø {avg} aus 1 Bewertung', { avg: formatRating(avg) }) : t('Ø {avg} aus {n} Bewertungen', { avg: formatRating(avg), n: count })}>
       <div className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map(n => (
           <Star key={n} size={13} className={n <= Math.round(avg) ? 'text-[#CCFF00]' : 'text-white/20'} fill={n <= Math.round(avg) ? 'currentColor' : 'none'} />
@@ -713,7 +715,7 @@ function RatingCell({ avg, count }: { avg: number | null; count: number }) {
 
 function ReportsCell({ reports }: { reports: { reason: string; note?: string }[] }) {
   if (!reports.length) return <span className="text-white/30">0</span>;
-  const label = (v: string) => REPORT_REASONS.find(r => r.value === v)?.label ?? v;
+  const label = (v: string) => t(REPORT_REASONS.find(r => r.value === v)?.label ?? v);
   return (
     <span
       title={reports.map(r => `• ${label(r.reason)}${r.note ? ` – ${r.note}` : ''}`).join('\n')}
@@ -750,7 +752,7 @@ function GroupCard({ group, coverVideoId, count, active, onOpen, onRename, onVis
   return (
     <article className="min-w-0">
       {/* stacked cover: two layers peeking out above the thumbnail */}
-      <button onClick={onOpen} className="group block w-full text-left" title="Komplette Gruppe ansehen">
+      <button onClick={onOpen} className="group block w-full text-left" title={t('Komplette Gruppe ansehen')}>
         <div className="relative pt-[10px]">
           <div className="absolute top-0 left-4 right-4 h-6 rounded-t-lg bg-white/20" />
           <div className="absolute top-[5px] left-2 right-2 h-6 rounded-t-lg bg-white/40" />
@@ -759,7 +761,7 @@ function GroupCard({ group, coverVideoId, count, active, onOpen, onRename, onVis
               ? <img src={thumbnail(coverVideoId)} alt="" loading="lazy" className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center text-white/20"><Folder size={36} /></div>}
             <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded bg-black/80 px-1.5 py-0.5 text-xs font-medium">
-              <ListVideo size={14} /> {count} {count === 1 ? 'Video' : 'Videos'}
+              <ListVideo size={14} /> {count === 1 ? t('1 Video') : t('{n} Videos', { n: count })}
             </span>
           </div>
         </div>
@@ -785,26 +787,26 @@ function GroupCard({ group, coverVideoId, count, active, onOpen, onRename, onVis
             <VisibilityIcon v={visibility} size={12} />
             <span>{visibilityLabel(visibility)}</span>
             <span className="text-white/30">·</span>
-            <span>Gruppe</span>
+            <span>{t('Gruppe')}</span>
           </div>
-          <div className="text-xs text-white/40 mt-0.5">{relativeTime(group.updatedAt ?? group.createdAt)} aktualisiert</div>
+          <div className="text-xs text-white/40 mt-0.5">{t('aktualisiert {when}', { when: relativeTime(group.updatedAt ?? group.createdAt) })}</div>
           <button onClick={onOpen} className="mt-1 text-xs font-semibold text-white/80 hover:text-[#CCFF00]">
-            Komplette Gruppe ansehen
+            {t('Komplette Gruppe ansehen')}
           </button>
         </div>
 
         {/* ⋮ menu */}
         <div ref={ref} className="relative shrink-0">
-          <button onClick={() => setMenuOpen(o => !o)} title="Mehr" className="w-8 h-8 -mr-1 rounded-full flex items-center justify-center text-white/70 hover:bg-white/10">
+          <button onClick={() => setMenuOpen(o => !o)} title={t('Mehr')} className="w-8 h-8 -mr-1 rounded-full flex items-center justify-center text-white/70 hover:bg-white/10">
             <EllipsisVertical size={18} />
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1 z-20 w-56 rounded-lg border border-white/10 bg-[#212121] shadow-2xl py-1.5">
               <button onClick={() => { setMenuOpen(false); setName(group.name); setEditing(true); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white hover:bg-white/10">
-                <Pencil size={15} /> Umbenennen
+                <Pencil size={15} /> {t('Umbenennen')}
               </button>
               <div className="my-1 border-t border-white/10" />
-              <div className="px-3 pt-1 pb-1 text-[10px] uppercase tracking-widest text-white/40">Sichtbarkeit</div>
+              <div className="px-3 pt-1 pb-1 text-[10px] uppercase tracking-widest text-white/40">{t('Sichtbarkeit')}</div>
               {VISIBILITY_OPTIONS.map(o => (
                 <button key={o.value} onClick={() => { onVisibility(o.value); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white hover:bg-white/10">
                   <VisibilityIcon v={o.value} size={15} />
@@ -814,7 +816,7 @@ function GroupCard({ group, coverVideoId, count, active, onOpen, onRename, onVis
               ))}
               <div className="my-1 border-t border-white/10" />
               <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10">
-                <Trash2 size={15} /> Gruppe löschen
+                <Trash2 size={15} /> {t('Gruppe löschen')}
               </button>
             </div>
           )}
@@ -835,8 +837,8 @@ function SelectAll({ ids, selected, onChange }: { ids: string[]; selected: strin
       type="checkbox"
       checked={all}
       onChange={() => onChange(all ? selected.filter(id => !ids.includes(id)) : [...new Set([...selected, ...ids])])}
-      aria-label="Alle auswählen"
-      title="Alle auswählen"
+      aria-label={t('Alle auswählen')}
+      title={t('Alle auswählen')}
       className="w-4 h-4 accent-[#CCFF00] cursor-pointer"
     />
   );
@@ -850,7 +852,7 @@ function GroupChips({ groups, onSelect }: { groups: RouteGroup[]; onSelect: (id:
         <button
           key={g.id}
           onClick={() => onSelect(g.id)}
-          title={`Nur Gruppe „${g.name}“ anzeigen`}
+          title={t('Nur Gruppe „{name}“ anzeigen', { name: g.name })}
           className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white/[0.07] hover:bg-white/15 px-2 py-0.5 text-[10px] text-white/70"
         >
           <Folder size={10} /> {g.name}
@@ -883,19 +885,19 @@ function BulkBar({ count, groups, activeGroup, onClear, onAddTo, onCreate, onRem
 
   return (
     <div ref={ref} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-white/15 bg-[#1f1f1f]/95 backdrop-blur-md shadow-2xl pl-5 pr-2 py-2">
-      <span className="text-sm font-medium whitespace-nowrap">{count} ausgewählt</span>
+      <span className="text-sm font-medium whitespace-nowrap">{t('{n} ausgewählt', { n: count })}</span>
       <div className="relative">
         <button
           onClick={() => setMenuOpen(o => !o)}
           className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-[#CCFF00] text-black text-sm font-semibold hover:brightness-110"
         >
-          <FolderPlus size={16} /> Zu Gruppe hinzufügen
+          <FolderPlus size={16} /> {t('Zu Gruppe hinzufügen')}
         </button>
         {menuOpen && (
           <div className="absolute bottom-full mb-2 left-0 w-72 rounded-xl border border-white/10 bg-[#212121] shadow-2xl p-2">
             {groups.length > 0 && (
               <>
-                <div className="px-2 pt-1 pb-1.5 text-[10px] uppercase tracking-widest text-white/40">Bestehende Gruppe</div>
+                <div className="px-2 pt-1 pb-1.5 text-[10px] uppercase tracking-widest text-white/40">{t('Bestehende Gruppe')}</div>
                 <div className="max-h-56 overflow-y-auto no-scrollbar flex flex-col">
                   {groups.map(g => (
                     <button key={g.id} onClick={() => { onAddTo(g); setMenuOpen(false); }} className="flex items-center gap-2 px-2 py-2 rounded-md text-sm text-white hover:bg-white/10 text-left">
@@ -908,7 +910,7 @@ function BulkBar({ count, groups, activeGroup, onClear, onAddTo, onCreate, onRem
                 <div className="my-2 border-t border-white/10" />
               </>
             )}
-            <div className="px-2 pt-1 pb-1.5 text-[10px] uppercase tracking-widest text-white/40">Neue Gruppe</div>
+            <div className="px-2 pt-1 pb-1.5 text-[10px] uppercase tracking-widest text-white/40">{t('Neue Gruppe')}</div>
             <form
               className="flex items-center gap-2 px-1"
               onSubmit={e => { e.preventDefault(); if (!newName.trim()) return; onCreate(newName); setNewName(''); setMenuOpen(false); }}
@@ -918,10 +920,10 @@ function BulkBar({ count, groups, activeGroup, onClear, onAddTo, onCreate, onRem
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 maxLength={60}
-                placeholder="z. B. Zypern Herbst 2026"
+                placeholder={t('z. B. Zypern Herbst 2026')}
                 className="flex-1 min-w-0 h-9 rounded-lg bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-3 text-sm text-white placeholder:text-white/30"
               />
-              <button type="submit" disabled={!newName.trim()} title="Gruppe erstellen" className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">
+              <button type="submit" disabled={!newName.trim()} title={t('Gruppe erstellen')} className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center bg-[#CCFF00] text-black disabled:bg-white/10 disabled:text-white/30">
                 <Plus size={16} />
               </button>
             </form>
@@ -930,10 +932,10 @@ function BulkBar({ count, groups, activeGroup, onClear, onAddTo, onCreate, onRem
       </div>
       {activeGroup && (
         <button onClick={onRemoveFromActive} className="h-9 px-4 rounded-full text-sm text-white/80 hover:bg-white/10 whitespace-nowrap">
-          Aus „{activeGroup.name}“ entfernen
+          {t('Aus „{name}“ entfernen', { name: activeGroup.name })}
         </button>
       )}
-      <button onClick={onClear} title="Auswahl aufheben" className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">
+      <button onClick={onClear} title={t('Auswahl aufheben')} className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">
         <X size={18} />
       </button>
     </div>
@@ -945,7 +947,7 @@ function CommentsButton({ count, onClick }: { count: number; onClick: () => void
     <button
       onClick={onClick}
       disabled={count === 0}
-      title={count ? 'Kommentare lesen' : 'Keine Kommentare'}
+      title={count ? t('Kommentare lesen') : t('Keine Kommentare')}
       className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 -mx-2 font-mono text-white hover:bg-white/10 hover:text-[#CCFF00] disabled:text-white/30 disabled:hover:bg-transparent transition-colors"
     >
       <MessageCircle size={13} className="opacity-60" />{count}
@@ -994,17 +996,17 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
       <aside className="absolute top-0 right-0 bottom-0 w-full max-w-md bg-[#141619] border-l border-white/10 shadow-2xl flex flex-col">
         <div className="flex items-center justify-between gap-4 px-5 h-16 border-b border-white/10 shrink-0">
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-widest text-white/40">{comments.length} {comments.length === 1 ? 'Kommentar' : 'Kommentare'}</div>
+            <div className="text-[11px] uppercase tracking-widest text-white/40">{comments.length === 1 ? t('1 Kommentar') : t('{n} Kommentare', { n: comments.length })}</div>
             <h2 className="text-lg font-semibold truncate">{route.name}</h2>
           </div>
-          <button onClick={onClose} aria-label="Schließen" className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center hover:bg-white/10"><X size={22} /></button>
+          <button onClick={onClose} aria-label={t('Schließen')} className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center hover:bg-white/10"><X size={22} /></button>
         </div>
 
         {/* Elevation profile with a pin per comment – click a pin to open the map there */}
         {ele.length > 1 && (
           <div className="px-5 pt-4 pb-3 border-b border-white/10 shrink-0">
             <div className="flex justify-between text-[10px] uppercase tracking-widest text-white/40 mb-1">
-              <span>Höhenprofil</span>
+              <span>{t('Höhenprofil')}</span>
               <span className="font-mono normal-case tracking-normal">{Math.round(min)}–{Math.round(max)} m</span>
             </div>
             <div className="relative" style={{ height: H }}>
@@ -1035,7 +1037,7 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
                       onClick={() => router.push(mapHref(c))}
                       onMouseEnter={() => setHovered(c.id)}
                       onMouseLeave={() => setHovered(null)}
-                      title={`${c.author} · ${formatCommentTime(c.seconds)} · ${Math.round(e)} m – auf der Karte öffnen`}
+                      title={`${c.author} · ${formatCommentTime(c.seconds)} · ${Math.round(e)} m – ${t('auf der Karte öffnen')}`}
                       className={`absolute top-0 -ml-[11px] w-[22px] h-[22px] rounded-full flex items-center justify-center text-[8px] font-bold text-[#0b0d10] border-2 transition-transform ${
                         hovered === c.id ? 'scale-125 border-[#CCFF00] z-10' : 'border-[#141619]'
                       }`}
@@ -1070,15 +1072,15 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 text-xs">
                     <span className="font-semibold text-white">{c.author}</span>
-                    {c.parentId ? <span className="text-white/45">Antwort</span> : <span className="font-mono text-[#CCFF00]">{formatCommentTime(c.seconds)}</span>}
+                    {c.parentId ? <span className="text-white/45">{t('Antwort')}</span> : <span className="font-mono text-[#CCFF00]">{formatCommentTime(c.seconds)}</span>}
                     {c.editedAt && <span className="text-white/35">bearbeitet</span>}
-                    {e !== null && <span className="font-mono text-white/50" title="Höhe an dieser Stelle">{Math.round(e)} m</span>}
+                    {e !== null && <span className="font-mono text-white/50" title={t('Höhe an dieser Stelle')}>{Math.round(e)} m</span>}
                     <span className="ml-auto text-white/30">{formatDate(c.createdAt)}</span>
                   </div>
                   <p className="text-sm text-white/80 mt-0.5 break-words">{c.text}</p>
                   <div className="flex items-center gap-3 mt-1">
                     <Link href={mapHref(c)} className="inline-flex items-center gap-1 text-[11px] text-white/50 hover:text-[#CCFF00] transition-colors">
-                      <MapPin size={12} /> Auf der Karte zeigen
+                      <MapPin size={12} /> {t('Auf der Karte zeigen')}
                     </Link>
                   </div>
                 </div>
@@ -1105,9 +1107,9 @@ function ConfirmDelete({ name, comments, likes, ratings, groups, onCancel, onCon
   }, [onCancel]);
 
   const losses = [
-    comments > 0 && `${comments} ${comments === 1 ? 'Kommentar' : 'Kommentare'}`,
-    likes > 0 && `${likes} ${likes === 1 ? 'Like' : 'Likes'}`,
-    ratings > 0 && `${ratings} ${ratings === 1 ? 'Bewertung' : 'Bewertungen'}`,
+    comments > 0 && (comments === 1 ? t('1 Kommentar') : t('{n} Kommentare', { n: comments })),
+    likes > 0 && (likes === 1 ? t('1 Like') : t('{n} Likes', { n: likes })),
+    ratings > 0 && (ratings === 1 ? t('1 Bewertung') : t('{n} Bewertungen', { n: ratings })),
   ].filter(Boolean) as string[];
   const reacted = losses.length > 0;
 
@@ -1115,9 +1117,9 @@ function ConfirmDelete({ name, comments, likes, ratings, groups, onCancel, onCon
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
       <div role="alertdialog" aria-modal="true" aria-labelledby="del-title" className="relative w-full max-w-md rounded-2xl bg-[#1f1f1f] border border-white/10 shadow-2xl p-6">
-        <h2 id="del-title" className="text-lg font-semibold">Fahrt endgültig löschen?</h2>
+        <h2 id="del-title" className="text-lg font-semibold">{t('Fahrt endgültig löschen?')}</h2>
         <p className="mt-2 text-sm text-white/60">
-          „{name}“ verschwindet von der Karte, aus deinem Kanal und aus dem Dashboard. Dein Video auf YouTube bleibt unberührt.
+          {t('„{name}“ verschwindet von der Karte, aus deinem Kanal und aus dem Dashboard. Dein Video auf YouTube bleibt unberührt.', { name })}
         </p>
 
         {reacted ? (
@@ -1125,34 +1127,34 @@ function ConfirmDelete({ name, comments, likes, ratings, groups, onCancel, onCon
             <div className="flex items-start gap-2.5">
               <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center" aria-hidden="true">!</span>
               <div className="text-sm text-red-100">
-                <p className="font-semibold">Damit gehen auch verloren:</p>
+                <p className="font-semibold">{t('Damit gehen auch verloren:')}</p>
                 <ul className="mt-1.5 flex flex-col gap-0.5">
                   {losses.map(l => <li key={l} className="font-mono tabular-nums">{l}</li>)}
                 </ul>
-                <p className="mt-2 text-red-100/80">Das sind Reaktionen anderer auf deine Fahrt. Sie lassen sich nicht wiederherstellen, auch nicht, wenn du die Fahrt neu anlegst.</p>
+                <p className="mt-2 text-red-100/80">{t('Das sind Reaktionen anderer auf deine Fahrt. Sie lassen sich nicht wiederherstellen, auch nicht, wenn du die Fahrt neu anlegst.')}</p>
               </div>
             </div>
             <label className="mt-3 flex items-center gap-2.5 text-sm text-white cursor-pointer">
               <input type="checkbox" checked={sure} onChange={e => setSure(e.target.checked)} className="w-4 h-4 accent-red-500" />
-              Ja, ich will die Fahrt mit allem löschen
+              {t('Ja, ich will die Fahrt mit allem löschen')}
             </label>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-white/50">Noch niemand hat auf diese Fahrt reagiert.</p>
+          <p className="mt-3 text-sm text-white/50">{t('Noch niemand hat auf diese Fahrt reagiert.')}</p>
         )}
         {groups > 0 && (
-          <p className="mt-3 text-xs text-white/45">Sie wird außerdem aus {groups === 1 ? 'einer Gruppe' : `${groups} Gruppen`} entfernt.</p>
+          <p className="mt-3 text-xs text-white/45">{groups === 1 ? t('Sie wird außerdem aus einer Gruppe entfernt.') : t('Sie wird außerdem aus {n} Gruppen entfernt.', { n: groups })}</p>
         )}
-        <p className="mt-3 text-xs text-white/45">Das kann nicht rückgängig gemacht werden.</p>
+        <p className="mt-3 text-xs text-white/45">{t('Das kann nicht rückgängig gemacht werden.')}</p>
 
         <div className="mt-6 flex justify-end gap-2">
-          <button autoFocus onClick={onCancel} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">Abbrechen</button>
+          <button autoFocus onClick={onCancel} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">{t('Abbrechen')}</button>
           <button
             onClick={onConfirm}
             disabled={reacted && !sure}
             className="h-10 px-5 rounded-full text-sm font-semibold bg-red-500 text-white hover:bg-red-400 transition-colors disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed"
           >
-            Endgültig löschen
+            {t('Endgültig löschen')}
           </button>
         </div>
       </div>
@@ -1221,25 +1223,25 @@ function EditRideDialog({ route, onCancel, onSave }: {
         onSubmit={e => { e.preventDefault(); if (canSave) onSave({ start, end, title: changedTitle }); }}
         className="relative w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl bg-[#1f1f1f] border border-white/10 shadow-2xl p-6"
       >
-        <h2 className="text-lg font-semibold">Fahrt bearbeiten</h2>
+        <h2 className="text-lg font-semibold">{t('Fahrt bearbeiten')}</h2>
 
         <div className="mt-5">
-          <div className="text-xs text-white/50 mb-1.5">Titel</div>
+          <div className="text-xs text-white/50 mb-1.5">{t('Titel')}</div>
           <div className="flex flex-col gap-2">
-            {radio('youtube', 'YouTube-Titel übernehmen',
+            {radio('youtube', t('YouTube-Titel übernehmen'),
               titleMode === 'youtube' && (
                 <span className={`mt-1 ml-6 block text-sm truncate ${yt.status === 'error' ? 'text-red-300' : 'text-white/60'}`}>
-                  {yt.status === 'ok' ? yt.title : yt.status === 'error' ? yt.message : 'Titel wird geladen …'}
+                  {yt.status === 'ok' ? yt.title : yt.status === 'error' ? yt.message : t('Titel wird geladen …')}
                 </span>
               ))}
-            {radio('custom', 'Eigener Titel',
+            {radio('custom', t('Eigener Titel'),
               titleMode === 'custom' && (
                 <input
                   autoFocus
                   value={customTitle}
                   onChange={e => setCustomTitle(e.target.value)}
                   maxLength={100}
-                  placeholder={`Leer = ursprünglich (${route.originalName ?? route.name})`}
+                  placeholder={t('Leer = ursprünglich ({name})', { name: route.originalName ?? route.name })}
                   className="mt-2 w-full h-10 rounded-lg bg-[#121212] border border-white/15 focus:border-[#CCFF00]/60 outline-none px-3 text-sm text-white placeholder:text-white/30"
                 />
               ))}
@@ -1247,19 +1249,19 @@ function EditRideDialog({ route, onCancel, onSave }: {
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
-          {field('Startpunkt', start, setStart, orig.start)}
-          {field('Endpunkt', end, setEnd, orig.end)}
+          {field(t('Startpunkt'), start, setStart, orig.start)}
+          {field(t('Endpunkt'), end, setEnd, orig.end)}
         </div>
-        <p className="mt-2 text-[11px] text-white/35">Leeres Feld = ursprünglicher Name. Gilt für die Pins auf der Karte und die Suche.</p>
+        <p className="mt-2 text-[11px] text-white/35">{t('Leeres Feld = ursprünglicher Name. Gilt für die Pins auf der Karte und die Suche.')}</p>
 
         <div className="mt-4 rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2">
-          <div className="text-[10px] uppercase tracking-widest text-white/40">So heißt die Fahrt</div>
+          <div className="text-[10px] uppercase tracking-widest text-white/40">{t('So heißt die Fahrt')}</div>
           <div className="mt-0.5 text-sm font-medium text-white truncate">{shownTitle}</div>
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
-          <button type="button" onClick={onCancel} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">Abbrechen</button>
-          <button type="submit" disabled={!canSave} className="h-10 px-5 rounded-full text-sm font-semibold bg-[#CCFF00] text-black hover:brightness-110 transition disabled:bg-white/10 disabled:text-white/30">Speichern</button>
+          <button type="button" onClick={onCancel} className="h-10 px-4 rounded-full text-sm font-medium hover:bg-white/10">{t('Abbrechen')}</button>
+          <button type="submit" disabled={!canSave} className="h-10 px-5 rounded-full text-sm font-semibold bg-[#CCFF00] text-black hover:brightness-110 transition disabled:bg-white/10 disabled:text-white/30">{t('Speichern')}</button>
         </div>
       </form>
     </div>
@@ -1270,7 +1272,7 @@ function EditRideDialog({ route, onCancel, onSave }: {
 function SyncButton({ route }: { route: RouteConfig }) {
   if (!route.timeline) return null;
   return (
-    <Link href={`/sync?route=${route.id}`} title="Video mit der Route ausrichten" className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+    <Link href={`/sync?route=${route.id}`} title={t('Video mit der Route ausrichten')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
       <Clock size={14} />
     </Link>
   );
@@ -1281,7 +1283,7 @@ function SyncHint({ route }: { route: RouteConfig }) {
   if (!route.timeline || route.synced) return null;
   return (
     <Link href={`/sync?route=${route.id}`} className="mt-1.5 mr-1.5 inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-300 hover:bg-amber-400/20 whitespace-nowrap">
-      <Clock size={11} /> Nicht ausgerichtet
+      <Clock size={11} /> {t('Nicht ausgerichtet')}
     </Link>
   );
 }

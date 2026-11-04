@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n';
 // Parsing and analysis of GPS track files (GPX, KML) in the browser.
 
 export interface TrackPoint {
@@ -26,11 +27,11 @@ export const ACCEPTED_TRACK_FILES = '.gpx,.kml';
 
 export function parseTrackFile(text: string, fileName: string): ParsedTrack {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
-  if (doc.getElementsByTagName('parsererror').length) throw new Error('Die Datei ist kein gültiges XML.');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error(t('Die Datei ist kein gültiges XML.'));
   const ext = fileName.toLowerCase().split('.').pop();
   const track = ext === 'kml' ? parseKml(doc) : parseGpx(doc);
   const points = track.points.filter(p => isFinite(p.lat) && isFinite(p.lng));
-  if (points.length < 2) throw new Error('In der Datei wurden keine Trackpunkte gefunden.');
+  if (points.length < 2) throw new Error(t('In der Datei wurden keine Trackpunkte gefunden.'));
   return { ...track, points };
 }
 

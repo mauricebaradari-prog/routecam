@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { db, dbError, setDb, useDb, type GroupRow } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import type { Visibility } from '@/lib/routeVisibility';
+import { t, locale } from '@/lib/i18n';
 
 // Groups of routes (e.g. a trip "Zypern 2026" made of several rides).
 //
@@ -30,23 +31,19 @@ async function patchGroup(id: string, patch: Partial<Pick<GroupRow, 'name' | 'ro
   if (error) { setDb({ groups: before }); alert(dbError(error).message); }
 }
 
-// "vor 2 Tagen aktualisiert"
+// "vor 2 Tagen" – in der Oberflächensprache (Aufrufer hängt „aktualisiert“ an)
 export function relativeTime(iso?: string): string {
   if (!iso) return '';
   const sec = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  const units: [number, string, string][] = [
-    [60, 'Sekunde', 'Sekunden'], [60, 'Minute', 'Minuten'], [24, 'Stunde', 'Stunden'],
-    [7, 'Tag', 'Tagen'], [4.35, 'Woche', 'Wochen'], [12, 'Monat', 'Monaten'], [Infinity, 'Jahr', 'Jahren'],
+  if (sec < 60) return t('gerade eben');
+  const units: [number, Intl.RelativeTimeFormatUnit][] = [
+    [60, 'second'], [60, 'minute'], [24, 'hour'], [7, 'day'], [4.35, 'week'], [12, 'month'], [Infinity, 'year'],
   ];
-  if (sec < 60) return 'gerade eben';
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
   let v = sec;
   for (let i = 0; i < units.length; i++) {
-    const [size] = units[i];
-    if (v < size || i === units.length - 1) {
-      const n = Math.floor(v);
-      const [, one, many] = units[i];
-      return `vor ${n} ${n === 1 ? one : many}`;
-    }
+    const [size, unit] = units[i];
+    if (v < size || i === units.length - 1) return rtf.format(-Math.floor(v), unit);
     v /= size;
   }
   return '';

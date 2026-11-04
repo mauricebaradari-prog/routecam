@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { setDb, useDb } from '@/lib/db';
+import { t, currentLang } from '@/lib/i18n';
 
 // Google login via "Sign in with Google" (Google Identity Services).
 //
@@ -26,7 +27,7 @@ async function handleCredential(resp: { credential: string }) {
   const { error } = await supabase().auth.signInWithIdToken({ provider: 'google', token: resp.credential });
   if (error) {
     console.error('[auth]', error.message);
-    setDb({ authError: 'Die Anmeldung hat nicht geklappt. Bitte versuch es noch einmal.' });
+    setDb({ authError: t('Die Anmeldung hat nicht geklappt. Bitte versuch es noch einmal.') });
   }
   // success: db.ts reacts to the new session (profile, own data, import of old local data)
 }
@@ -39,7 +40,7 @@ function loadGsi(): Promise<GsiId> {
   gsiReady = new Promise((resolve, reject) => {
     const init = () => {
       const g = window.google?.accounts?.id;
-      if (!g) return reject(new Error('Google-Login konnte nicht geladen werden'));
+      if (!g) return reject(new Error(t('Google-Login konnte nicht geladen werden')));
       g.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredential, auto_select: false, cancel_on_tap_outside: true });
       resolve(g);
     };
@@ -48,7 +49,7 @@ function loadGsi(): Promise<GsiId> {
     tag.src = GSI_SRC;
     tag.async = true;
     tag.onload = init;
-    tag.onerror = () => { gsiReady = null; reject(new Error('Google-Login konnte nicht geladen werden')); };
+    tag.onerror = () => { gsiReady = null; reject(new Error(t('Google-Login konnte nicht geladen werden'))); };
     document.head.appendChild(tag);
   });
   return gsiReady;
@@ -57,7 +58,7 @@ function loadGsi(): Promise<GsiId> {
 export function useAuth() {
   const { me, email, authReady } = useDb();
   const user = useMemo<AuthUser | null>(
-    () => (me ? { id: me.id, name: me.name || email.split('@')[0] || 'Konto', email, picture: me.picture ?? undefined } : null),
+    () => (me ? { id: me.id, name: me.name || email.split('@')[0] || t('Konto'), email, picture: me.picture ?? undefined } : null),
     [me, email],
   );
 
@@ -66,7 +67,7 @@ export function useAuth() {
   const renderSignInButton = useCallback(async (el: HTMLElement, theme: 'filled_black' | 'outline' = 'filled_black') => {
     const g = await loadGsi();
     el.replaceChildren(); // effects can run twice (dev mode, re-open) – never stack two buttons
-    g.renderButton(el, { theme, size: 'large', shape: 'pill', text: 'signin_with', locale: 'de', width: 240 });
+    g.renderButton(el, { theme, size: 'large', shape: 'pill', text: 'signin_with', locale: currentLang(), width: 240 });
   }, []);
 
   // Google "One Tap": the small account prompt in the corner. Google itself decides whether it
