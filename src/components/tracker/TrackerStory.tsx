@@ -78,8 +78,32 @@ const clockOf = (utcS: number) => {
 };
 
 // html/body scrollen in dieser App nicht (die Karte braucht das) – der Onepager hat einen eigenen Scroller.
+// Hintergrund wie die Fahrt-Karte der App: Punktraster in deren Farben und Abstand. Es scrollt mit
+// und liegt am Ende genau auf dem Raster der Karte im Screen, sodass beide ineinander übergehen.
+const CARD_BG = '#0c0d11';
+const DOT = '#16171b';
+const DOT_STEP = 20.9; // dp, wie in der App
+function geom(vw: number, vh: number) {
+  const s = Math.min((vh * 0.94) / (SCREEN_H + 2 * BEZEL), (vw * 0.94) / (SCREEN_W + 2 * BEZEL));
+  return { s, ox: (vw - SCREEN_W * s) / 2, oy: (vh - SCREEN_H * s) / 2 };
+}
+function dotGrid(st: { y: number; vw: number; vh: number; max: number } | null): React.CSSProperties {
+  if (!st) return { backgroundColor: CARD_BG };
+  const { s, ox, oy } = geom(st.vw, st.vh);
+  const step = DOT_STEP * s;
+  // Punkte der Karte liegen bei Screen-dp 25,65 + n·20,9 (x) bzw. 106,05 + n·20,9 (y)
+  const x = ox + 25.65 * s - step / 2;
+  const y = oy + 106.05 * s - step / 2 + (st.max - st.y);
+  return {
+    backgroundColor: CARD_BG,
+    backgroundImage: `radial-gradient(circle, ${DOT} ${(1.15 * s).toFixed(2)}px, transparent ${(1.4 * s).toFixed(2)}px)`,
+    backgroundSize: `${step}px ${step}px`,
+    backgroundPosition: `${x.toFixed(2)}px ${y.toFixed(2)}px`,
+  };
+}
+
 function useScrollStage(ref: React.RefObject<HTMLDivElement | null>) {
-  const [s, setS] = useState<{ p: number; y: number; vw: number; vh: number } | null>(null);
+  const [s, setS] = useState<{ p: number; y: number; vw: number; vh: number; max: number } | null>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -87,7 +111,7 @@ function useScrollStage(ref: React.RefObject<HTMLDivElement | null>) {
     const read = () => {
       raf = 0;
       const max = Math.max(1, el.scrollHeight - el.clientHeight);
-      setS({ p: clamp01(el.scrollTop / max), y: el.scrollTop, vw: el.clientWidth, vh: el.clientHeight });
+      setS({ p: clamp01(el.scrollTop / max), y: el.scrollTop, vw: el.clientWidth, vh: el.clientHeight, max });
     };
     const req = () => { if (!raf) raf = requestAnimationFrame(read); };
     read();
@@ -106,19 +130,9 @@ export default function TrackerStory() {
 
   return (
     <div ref={scroller} data-tracker-scroller className="fixed inset-0 overflow-y-auto overflow-x-hidden no-scrollbar" style={{ overscrollBehavior: 'none' }}>
-    <main className="relative bg-[#1f1f1f]" style={{ height: `${STORY_VH}vh` }}>
+    <main className="relative" style={{ height: `${STORY_VH}vh`, background: CARD_BG }}>
       <LogoDefs />
-      <div
-        className="sticky top-0 h-[100dvh] w-full overflow-hidden"
-        style={{
-          backgroundColor: '#1f1f1f',
-          backgroundImage: 'linear-gradient(#333333 1px, transparent 1px), linear-gradient(90deg, #333333 1px, transparent 1px)',
-          backgroundSize: '28px 28px',
-          backgroundPosition: `0 ${-(st?.y ?? 0)}px`,
-        }}
-      >
-        {/* sanfte Abdunklung zum Rand, damit Punkt und Handy leuchten */}
-        <div aria-hidden className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%)' }} />
+      <div className="sticky top-0 h-[100dvh] w-full overflow-hidden" style={dotGrid(st)}>
 
         {/* auf schmalen Fenstern füllt das Handy am Ende den Bildschirm – dann tritt das Logo zurück */}
         <Link href="/" className="absolute left-4 top-4 md:left-6 md:top-5 z-20 hover:!opacity-100 transition-opacity" aria-label={t('Zurück zu RouteCam')}
@@ -135,9 +149,7 @@ export default function TrackerStory() {
 
 function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: string }) {
   // Maßstab: Handy (mit Rand) passt ins Fenster
-  const s = Math.min((vh * 0.94) / (SCREEN_H + 2 * BEZEL), (vw * 0.94) / (SCREEN_W + 2 * BEZEL));
-  const ox = (vw - SCREEN_W * s) / 2;
-  const oy = (vh - SCREEN_H * s) / 2;
+  const { s, ox, oy } = geom(vw, vh);
   const sideRoom = (vw / s - SCREEN_W) / 2 - BEZEL;
   const wide = sideRoom >= 250;
 
