@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import PageShell, { Card } from '@/components/PageShell';
 import { openOnboarding } from '@/components/Onboarding';
+import GeoFilesHelp from '@/components/GeoFilesHelp';
 import { t, useLang, k } from '@/lib/i18n';
 import { OPERATOR, isDraft, LegalDe, Section, Prose } from './legal';
 import { LegalEn } from './legalEn';
@@ -16,9 +17,10 @@ const SECTIONS = [
   { id: 'impressum', label: k('Impressum') },
 ] as const;
 
-const FAQ: { q: string; a: string }[] = [
+// more: opens an explanation window below the answer
+const FAQ: { q: string; a: string; more?: 'geo' }[] = [
   { q: k('Wie lege ich eine Fahrt an?'), a: k('Oben rechts auf „Anlegen“: YouTube-Link einfügen, GPX- oder KML-Datei deiner Fahrt hochladen, Titel und Sichtbarkeit wählen. Länge und Titel des Videos werden automatisch übernommen.') },
-  { q: k('Woher bekomme ich eine GPX-Datei?'), a: k('Aus einer Tracking-App auf dem Handy (während der Fahrt aufzeichnen), aus einem Navi oder aus einer Kamera mit GPS. Mit Zeitstempeln passt die Position im Video später am genauesten.') },
+  { q: k('Woher bekomme ich eine GPX-Datei?'), a: k('Aus einer Tracking-App auf dem Handy (während der Fahrt aufzeichnen), aus einem Navi oder aus einer Kamera mit GPS. Mit Zeitstempeln passt die Position im Video später am genauesten.'), more: 'geo' },
   { q: k('Warum ist das Video nicht genau synchron?'), a: k('Ohne Zeitstempel in den Geodaten wird die Position gleichmäßig über die Strecke geschätzt. Bei langsamen oder schnellen Passagen kann der Pin dem Video etwas vorauseilen oder hinterherlaufen. Im Sync-Editor kannst du Video und Strecke genau aufeinander ausrichten.') },
   { q: k('Was bedeutet „Perspektive wechseln“?'), a: k('Wenn mehrere Fahrten dieselbe Straße zeigen, kannst du an derselben Stelle zur anderen Fahrt springen: gleicher Ort, anderes Video.') },
   { q: k('Wer sieht meine Fahrten?'), a: k('Öffentlich: alle. Nicht gelistet: nur wer den Link hat. Privat: nur du. Tipp: Beginnt deine Aufzeichnung vor deiner Haustür, zeigt die Strecke deinen Wohnort. Starte die Aufzeichnung lieber ein Stück entfernt.') },
@@ -29,6 +31,7 @@ const FAQ: { q: string; a: string }[] = [
 
 export default function AboutPage() {
   const lang = useLang();
+  const [geoHelp, setGeoHelp] = useState(false);
   return (
     <PageShell current="about" title="About" subtitle={t('Über RouteCam, Hilfe und Rechtliches')}>
       {isDraft && (
@@ -66,13 +69,18 @@ export default function AboutPage() {
       <Section id="support">
         <Card title={t('Support · Häufige Fragen')}>
           <div className="flex flex-col divide-y divide-white/10">
-            {FAQ.map(({ q, a }) => (
+            {FAQ.map(({ q, a, more }) => (
               <details key={q} className="group py-3 first:pt-0 last:pb-0">
                 <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-sm font-medium">
                   {t(q)}
                   <span className="text-white/40 group-open:rotate-45 transition-transform text-lg leading-none">+</span>
                 </summary>
                 <p className="text-sm text-white/60 mt-2 leading-relaxed">{t(a)}</p>
+                {more === 'geo' && (
+                  <button type="button" onClick={() => setGeoHelp(true)} className="mt-2 text-xs text-[#CCFF00] hover:underline underline-offset-2">
+                    {t('Was sind GPX- und KML-Dateien?')} →
+                  </button>
+                )}
               </details>
             ))}
           </div>
@@ -103,6 +111,7 @@ export default function AboutPage() {
           <LegalEn />
         </>
       )}
+      {geoHelp && <GeoFilesHelp onClose={() => setGeoHelp(false)} />}
     </PageShell>
   );
 }
