@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Upload, FileCheck2, AlertTriangle, Video, Trash2, Clock, Camera } from 'lucide-react';
+import { X, Upload, FileCheck2, AlertTriangle, Video, Trash2, Clock, Camera, HelpCircle } from 'lucide-react';
+import GeoFilesHelp from '@/components/GeoFilesHelp';
 import { CAMERA_VIDEO_FILES, isCameraVideo, readCameraGps } from '@/lib/cameraGps';
 import {
   ACCEPTED_TRACK_FILES, parseTrackFile, trackStats, parseYouTubeId, formatClock,
@@ -31,6 +32,7 @@ interface Props {
 export default function CreateRideModal({ onClose, onCreate }: Props) {
   useT();
   const [ytInput, setYtInput] = useState('');
+  const [geoHelp, setGeoHelp] = useState(false);
   const [titleMode, setTitleMode] = useState<'youtube' | 'custom'>('youtube');
   const [customTitle, setCustomTitle] = useState('');
   // camera: GPS read from the camera's own video file (then the video offset is exact, too)
@@ -170,7 +172,16 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
             </Field>
 
             {/* Geodaten */}
-            <Field label={t('Geodaten')} required hint={t('GPX, KML oder Kamera-Video')}>
+            <Field
+              label={t('Geodaten')}
+              required
+              hint={t('GPX, KML oder Kamera-Video')}
+              action={
+                <button type="button" onClick={() => setGeoHelp(true)} className="ml-auto inline-flex items-center gap-1 text-xs text-[#CCFF00] hover:underline underline-offset-2">
+                  <HelpCircle size={13} /> {t('Was ist das?')}
+                </button>
+              }
+            >
               {reading !== null ? (
                 <div className="w-full h-[244px] rounded-xl border border-white/10 bg-white/[0.03] px-6 flex flex-col items-center justify-center gap-3">
                   <span className="w-11 h-11 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] flex items-center justify-center"><Camera size={20} /></span>
@@ -313,6 +324,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
           </button>
         </div>
       </form>
+      {geoHelp && <GeoFilesHelp onClose={() => setGeoHelp(false)} />}
     </div>
   );
 }
@@ -323,12 +335,13 @@ function inputCls(invalid: boolean) {
   }`;
 }
 
-function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
+function Field({ label, required, hint, action, children }: { label: string; required?: boolean; hint?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-2 flex items-baseline gap-2">
+      <div className="mb-2 flex items-baseline gap-2 flex-wrap">
         <span className="text-sm font-medium">{label}{required && <span className="text-[#CCFF00]"> *</span>}</span>
         {hint && <span className="text-xs text-white/40">{hint}</span>}
+        {action}
       </div>
       {children}
     </div>
