@@ -54,7 +54,20 @@ function SettingsPage() {
             </div>
             <button onClick={signOut} className="h-9 px-4 rounded-full text-sm bg-white/10 hover:bg-white/20">Abmelden</button>
           </div>
-        ) : (
+        ) : null}
+        {user && (
+          <p className="mt-4 pt-4 border-t border-white/10 text-xs text-white/50">
+            Konto löschen? Schreib uns – wir entfernen dein Konto mit allen Fahrten, Kommentaren, Likes und Gruppen
+            innerhalb von 30 Tagen.{' '}
+            <a
+              href={`mailto:admin@routecam.app?subject=${encodeURIComponent('Konto löschen')}&body=${encodeURIComponent(`Bitte lösche mein RouteCam-Konto (${user.email}) mit allen Daten.`)}`}
+              className="text-white/80 underline underline-offset-2 hover:text-white"
+            >
+              Löschung anfragen
+            </a>
+          </p>
+        )}
+        {!user && (
           <p className="text-sm text-white/60">Nicht angemeldet – oben rechts über den Avatar mit Google anmelden.</p>
         )}
       </Card>

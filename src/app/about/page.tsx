@@ -38,7 +38,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Wer sieht meine Fahrten?', a: 'Öffentlich: alle. Nicht gelistet: nur wer den Link hat. Privat: nur du. Tipp: Beginnt deine Aufzeichnung vor deiner Haustür, zeigt die Strecke deinen Wohnort. Starte die Aufzeichnung lieber ein Stück entfernt.' },
   { q: 'Wie melde ich einen Inhalt?', a: 'Eine Fahrt: im Community-Fenster auf der Karte über ⋯ → „Melden“. Einen Kommentar: mit der Maus über den Kommentar fahren und auf das Fähnchen klicken. Dann einen Grund auswählen. Wir prüfen jede Meldung.' },
   { q: 'Kostet RouteCam etwas?', a: 'Nein. RouteCam ist kostenlos und ohne Werbung.' },
-  { q: 'Wie lösche ich mein Konto?', a: 'Schreib uns über die Kontaktadresse unten. Wir löschen dein Konto mit allen Fahrten, Likes und Kommentaren.' },
+  { q: 'Wie lösche ich mein Konto?', a: 'In den Einstellungen unter „Konto“ auf „Löschung anfragen“ klicken oder an admin@routecam.app schreiben. Wir löschen dein Konto mit allen Fahrten, Kommentaren, Likes und Gruppen innerhalb von 30 Tagen.' },
 ];
 
 export default function AboutPage() {
