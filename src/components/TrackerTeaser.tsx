@@ -1,7 +1,7 @@
 'use client';
 
 // Teaser für die RouteCam-Tracker-App (Figma: „Schritt für Schritt“ → Marketing → Frame 2).
-// Erscheint auf der Karte ein paar Sekunden nach dem Laden unten rechts, kommt animiert herein
+// Erscheint auf der Karte ein paar Sekunden nach dem Laden unten links, kommt animiert herein
 // und lässt sich wegklicken. Weggeklickt (oder „Mehr erfahren“ geklickt) = gemerkt in
 // localStorage, danach kommt er nicht wieder.
 //
@@ -10,12 +10,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Bricolage_Grotesque, DM_Sans } from 'next/font/google';
 import { t, useT } from '@/lib/i18n';
 import { leaveWhilePlaying } from '@/lib/nav';
-
-const bricolage = Bricolage_Grotesque({ subsets: ['latin', 'latin-ext'], weight: '800', display: 'swap' });
-const dmSans = DM_Sans({ subsets: ['latin', 'latin-ext'], weight: '700', display: 'swap' });
 
 const DISMISS_KEY = 'routecam.trackerTeaserDismissed';
 /** Wie lange nach dem Laden der Karte, bis der Teaser hereinkommt. */
@@ -78,7 +74,7 @@ export default function TrackerTeaser() {
     <aside
       aria-label={t('RouteCam Tracker')}
       aria-hidden={!shown}
-      className="fixed right-4 bottom-4 md:right-6 md:bottom-6 z-[70]"
+      className="fixed left-5 bottom-5 md:left-8 md:bottom-8 z-[70]"
       style={{ pointerEvents: shown ? 'auto' : 'none' }}
     >
       <div
@@ -118,18 +114,18 @@ export default function TrackerTeaser() {
 
         {/* Badge */}
         <div
-          className="absolute left-[26px] top-[27px] rounded-full border-[0.774px] border-[#1f1f1f] px-[9.293px] py-[3.872px]"
+          className="absolute left-[26px] top-[27px] h-[20px] inline-flex items-center justify-center rounded-full border border-[#1f1f1f] px-[9px] font-sans"
           style={enter(360, 'translateY(8px)')}
         >
-          <span className={`${dmSans.className} block text-[9.293px] font-bold uppercase leading-normal tracking-[0.3872px] text-[#1f1f1f] whitespace-nowrap`}>
+          <span className="block text-[9.5px] font-bold uppercase leading-none tracking-[0.5px] text-[#1f1f1f] whitespace-nowrap">
             {t('Neu · Kostenlos')}
           </span>
         </div>
 
         {/* Headline */}
         <h2
-          className={`${bricolage.className} absolute left-[27px] top-[56.14px] m-0 text-[27.862px] font-extrabold leading-[27.862px] tracking-[-0.5358px] text-[#1f1f1f] whitespace-nowrap`}
-          style={{ fontVariationSettings: '"opsz" 14, "wdth" 100', ...enter(420, 'translateY(10px)') }}
+          className="absolute left-[26px] top-[56px] m-0 font-sans text-[28px] font-bold leading-[28px] tracking-[-0.8px] text-[#1f1f1f] whitespace-nowrap"
+          style={enter(420, 'translateY(10px)')}
         >
           {t('Dein GPS')}<br />{t('Tracker')}
         </h2>
