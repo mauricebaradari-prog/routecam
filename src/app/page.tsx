@@ -23,6 +23,7 @@ const YouTubeOverlay = dynamic(() => import('@/components/YouTubeOverlay'), { ss
 const GlobeMap = dynamic(() => import('@/components/GlobeMap'), { ssr: false });
 // client-only: its default position depends on window size
 const CommunityWidget = dynamic(() => import('@/components/CommunityWidget'), { ssr: false });
+const TrackerTeaser = dynamic(() => import('@/components/TrackerTeaser'), { ssr: false });
 
 export default function Home() {
   useT();
@@ -365,6 +366,9 @@ export default function Home() {
           syncHref={activeRoute?.timeline && loadUserRoutes().some(r => r.id === activeRoute.id) ? `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/sync?route=${activeRoute.id}` : null}
         />
         )}
+
+        {/* Teaser für die Tracker-App – kommt verzögert herein, wegklickbar */}
+        <TrackerTeaser />
 
         {/* Animation progress bar overlay */}
         {(state.isAnimating || state.animationProgress > 0) && (
