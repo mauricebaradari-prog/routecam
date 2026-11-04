@@ -74,7 +74,7 @@ export default function GeoFilesHelp({ onClose }: { onClose: () => void }) {
           {/* 3. where the file comes from */}
           <section className="flex flex-col gap-3">
             <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{t('Woher bekomme ich die Datei?')}</h3>
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="flex flex-col divide-y divide-white/10 border-y border-white/10">
               <Source
                 icon={<Smartphone size={18} />}
                 title={t('Handy-App')}
@@ -131,15 +131,17 @@ function FormatCard({ name, tag, text, sample }: { name: string; tag?: string; t
   );
 }
 
+// One source as a collapsible row – same open/close style as the FAQ on the About page.
 function Source({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
   return (
-    <div className="rounded-xl border border-white/10 p-4 flex gap-3 min-w-0">
-      <span className="w-9 h-9 shrink-0 rounded-lg bg-white/[0.06] text-[#CCFF00] flex items-center justify-center">{icon}</span>
-      <div className="min-w-0">
-        <div className="text-sm font-medium">{title}</div>
-        <p className="mt-1 text-[13px] leading-relaxed text-white/60">{text}</p>
-      </div>
-    </div>
+    <details className="group">
+      <summary className="cursor-pointer list-none flex items-center gap-3 py-3 text-sm font-medium hover:text-white">
+        <span className="w-9 h-9 shrink-0 rounded-lg bg-white/[0.06] text-[#CCFF00] flex items-center justify-center">{icon}</span>
+        <span className="min-w-0 flex-1">{title}</span>
+        <span className="shrink-0 text-white/40 group-open:rotate-45 transition-transform text-lg leading-none" aria-hidden="true">+</span>
+      </summary>
+      <p className="pb-3 pl-12 pr-1 text-[13px] leading-relaxed text-white/60">{text}</p>
+    </details>
   );
 }
 
