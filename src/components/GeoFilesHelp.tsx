@@ -61,12 +61,10 @@ export default function GeoFilesHelp({ onClose }: { onClose: () => void }) {
                 name="GPX"
                 tag={t('Empfohlen')}
                 text={t('Der Standard von Tracking-Apps, Navis und Sportuhren. Enthält meist für jeden Punkt die Uhrzeit – damit passt die Position im Video auf die Sekunde.')}
-                sample={'<trkpt lat="34.7768" lon="32.4245">\n  <ele>112</ele>\n  <time>2026-10-12T09:41:07Z</time>\n</trkpt>'}
               />
               <FormatCard
                 name="KML"
                 text={t('Das Format von Google Earth und Google My Maps. Oft eine vorab geplante Route ohne Uhrzeiten – RouteCam verteilt die Position dann gleichmäßig über die Strecke.')}
-                sample={'<coordinates>\n  32.4245,34.7768,112\n  32.4251,34.7772,115\n</coordinates>'}
               />
             </div>
           </section>
@@ -118,7 +116,7 @@ export default function GeoFilesHelp({ onClose }: { onClose: () => void }) {
   );
 }
 
-function FormatCard({ name, tag, text, sample }: { name: string; tag?: string; text: string; sample: string }) {
+function FormatCard({ name, tag, text }: { name: string; tag?: string; text: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-3 min-w-0">
       <div className="flex items-center gap-3">
@@ -126,7 +124,6 @@ function FormatCard({ name, tag, text, sample }: { name: string; tag?: string; t
         {tag && <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#CCFF00] text-black">{tag}</span>}
       </div>
       <p className="text-sm leading-relaxed text-white/70">{text}</p>
-      <pre dir="ltr" className="mt-auto overflow-x-auto rounded-lg bg-black/50 border border-white/5 px-3 py-2.5 text-[11px] leading-relaxed font-mono text-white/55"><code>{sample}</code></pre>
     </div>
   );
 }
