@@ -204,6 +204,14 @@ export default function TrackerTeaser() {
         </Link>
         )}
 
+        {/* Hinweis ganz unten */}
+        <p
+          className="absolute left-[26px] bottom-[12px] m-0 font-sans text-[10.5px] font-medium leading-none tracking-[0.2px] text-white/85 whitespace-nowrap"
+          style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9)', ...enter(typeEnd + 120, 'translateY(6px)', 420) }}
+        >
+          {t('Nur für Android')}
+        </p>
+
         {/* Schließen – Icon wie in Figma, Klickfläche 44 × 44 */}
         <button
           type="button"
