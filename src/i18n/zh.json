@@ -472,8 +472,6 @@
 "GoPro (mit GPS) und Insta360 (mit GPS-Fernbedienung oder App) speichern die Strecke im Video. Wähle hier einfach die Original-Videodatei – sie wird nicht hochgeladen.": "GoPro（带 GPS）和 Insta360（配合 GPS 遥控器或应用）会把路线存进视频。在这里直接选择原始视频文件即可——它不会被上传。",
 "Geplante Route": "规划的路线",
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "在 Google My Maps 中画一条路线并下载为 KML。不用记录也可以，但这样就没有时间信息。",
-"Am besten: Aufzeichnung mit Uhrzeit": "最佳选择：带时间的记录",
-"Mit Uhrzeiten weiß RouteCam für jede Sekunde im Video, wo du warst. Starte die Aufzeichnung <0>vor</0> der Kamera und lass sie bis nach dem Videoende laufen – den Rest richtest du im Sync-Editor aus.": "有了时间，RouteCam 就知道视频的每一秒你在哪里。请在相机<0>之前</0>开始记录，并一直记录到视频结束之后——其余部分在同步编辑器中对齐。",
 "Verstanden": "知道了",
 "Start": "起点",
 "Ziel": "终点"

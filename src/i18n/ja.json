@@ -472,8 +472,6 @@
 "GoPro (mit GPS) und Insta360 (mit GPS-Fernbedienung oder App) speichern die Strecke im Video. Wähle hier einfach die Original-Videodatei – sie wird nicht hochgeladen.": "GoPro（GPS 付き）と Insta360（GPS リモコンまたはアプリ使用）は、ルートを動画内に保存します。ここでオリジナルの動画ファイルを選ぶだけです。アップロードはされません。",
 "Geplante Route": "計画したルート",
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Google My Maps でルートを描いて KML としてダウンロードします。記録がなくても使えますが、その場合は時刻がありません。",
-"Am besten: Aufzeichnung mit Uhrzeit": "ベスト：時刻付きの記録",
-"Mit Uhrzeiten weiß RouteCam für jede Sekunde im Video, wo du warst. Starte die Aufzeichnung <0>vor</0> der Kamera und lass sie bis nach dem Videoende laufen – den Rest richtest du im Sync-Editor aus.": "時刻があれば、RouteCam は動画の各秒であなたがどこにいたかがわかります。記録はカメラより<0>先に</0>開始し、動画の終了後まで続けてください。残りは同期エディターで合わせられます。",
 "Verstanden": "わかりました",
 "Start": "出発",
 "Ziel": "到着"

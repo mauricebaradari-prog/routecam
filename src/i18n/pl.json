@@ -472,8 +472,6 @@
 "GoPro (mit GPS) und Insta360 (mit GPS-Fernbedienung oder App) speichern die Strecke im Video. Wähle hier einfach die Original-Videodatei – sie wird nicht hochgeladen.": "GoPro (z GPS) i Insta360 (z pilotem GPS lub aplikacją) zapisują trasę w filmie. Po prostu wybierz tutaj oryginalny plik wideo – nie zostanie przesłany.",
 "Geplante Route": "Zaplanowana trasa",
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Narysuj trasę w Google My Maps i pobierz ją jako KML. Działa to też bez nagrania, ale wtedy bez czasów.",
-"Am besten: Aufzeichnung mit Uhrzeit": "Najlepiej: nagranie z czasem",
-"Mit Uhrzeiten weiß RouteCam für jede Sekunde im Video, wo du warst. Starte die Aufzeichnung <0>vor</0> der Kamera und lass sie bis nach dem Videoende laufen – den Rest richtest du im Sync-Editor aus.": "Z czasami RouteCam wie, gdzie byłeś w każdej sekundzie filmu. Uruchom nagrywanie <0>przed</0> kamerą i zostaw je do końca filmu – resztę dopasujesz w edytorze synchronizacji.",
 "Verstanden": "Rozumiem",
 "Start": "Start",
 "Ziel": "Meta"

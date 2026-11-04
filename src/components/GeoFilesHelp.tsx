@@ -4,8 +4,8 @@
 // ohne es zu schließen. Esc und Klick daneben schließen nur dieses Fenster.
 
 import React, { useEffect, useRef } from 'react';
-import { X, Smartphone, Navigation, Camera, MapPinned, Clock } from 'lucide-react';
-import { t, rich, useT } from '@/lib/i18n';
+import { X, Smartphone, Navigation, Camera, MapPinned } from 'lucide-react';
+import { t, useT } from '@/lib/i18n';
 
 export default function GeoFilesHelp({ onClose }: { onClose: () => void }) {
   useT();
@@ -93,15 +93,6 @@ export default function GeoFilesHelp({ onClose }: { onClose: () => void }) {
                 title={t('Geplante Route')}
                 text={t('In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.')}
               />
-            </div>
-          </section>
-
-          {/* 4. why time matters */}
-          <section className="rounded-xl border border-[#CCFF00]/25 bg-[#CCFF00]/[0.06] p-4 flex gap-3">
-            <span className="w-9 h-9 shrink-0 rounded-lg bg-[#CCFF00]/15 text-[#CCFF00] flex items-center justify-center"><Clock size={18} /></span>
-            <div className="text-sm leading-relaxed text-white/75 flex flex-col gap-1.5">
-              <p className="font-medium text-white">{t('Am besten: Aufzeichnung mit Uhrzeit')}</p>
-              <p>{rich('Mit Uhrzeiten weiß RouteCam für jede Sekunde im Video, wo du warst. Starte die Aufzeichnung <0>vor</0> der Kamera und lass sie bis nach dem Videoende laufen – den Rest richtest du im Sync-Editor aus.', [s => <b className="text-white">{s}</b>])}</p>
             </div>
           </section>
         </div>
