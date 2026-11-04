@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "Pojedynczy przejazd lub komentarz najszybciej zgłosisz bezpośrednio w oknie społeczności przez ⋯ → „Zgłoś”.",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "Ten adres jest też pojedynczym punktem kontaktowym dla organów i użytkowników zgodnie z aktem o usługach cyfrowych (art. 11 i 12 DSA). Odpowiadamy po niemiecku i angielsku.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "Teksty prawne (Regulamin, Prywatność, Nota prawna) są dostępne po niemiecku i angielsku. Tutaj wyświetlana jest wersja angielska; wiążąca jest wersja niemiecka.",
-"Kopiert": "Skopiowano",
-"Kopieren": "Kopiuj",
 "Kanal nicht gefunden": "Nie znaleziono kanału",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "Ten kanał nie istnieje albo nie ma jeszcze publicznych przejazdów.",
 "Zur Karte": "Do mapy",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Narysuj trasę w Google My Maps i pobierz ją jako KML. Działa to też bez nagrania, ale wtedy bez czasów.",
 "Verstanden": "Rozumiem",
 "Start": "Start",
-"Ziel": "Meta"
+"Ziel": "Meta",
+"E-Mail-Adresse (steht auch im Impressum)": "Adres e-mail (podany też w nocie prawnej)"
 }

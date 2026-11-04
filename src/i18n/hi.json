@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "किसी राइड या टिप्पणी की रिपोर्ट सबसे जल्दी सीधे कम्युनिटी विंडो में ⋯ → “रिपोर्ट करें” से होती है।",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "यह पता डिजिटल सर्विसेज़ ऐक्ट (DSA अनुच्छेद 11 और 12) के तहत अधिकारियों और उपयोगकर्ताओं के लिए केंद्रीय संपर्क बिंदु भी है। हम जर्मन और अंग्रेज़ी में जवाब देते हैं।",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "कानूनी दस्तावेज़ (उपयोग की शर्तें, गोपनीयता, कानूनी जानकारी) जर्मन और अंग्रेज़ी में उपलब्ध हैं। यहाँ अंग्रेज़ी संस्करण दिखाया गया है; जर्मन संस्करण मान्य है।",
-"Kopiert": "कॉपी हो गया",
-"Kopieren": "कॉपी करें",
 "Kanal nicht gefunden": "चैनल नहीं मिला",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "यह चैनल मौजूद नहीं है या इसमें अभी कोई सार्वजनिक राइड नहीं है।",
 "Zur Karte": "मैप पर जाएँ",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Google My Maps में रूट बनाएँ और उसे KML के रूप में डाउनलोड करें। यह बिना रिकॉर्डिंग के भी चलता है, लेकिन तब समय नहीं होता।",
 "Verstanden": "समझ गया",
 "Start": "शुरुआत",
-"Ziel": "अंत"
+"Ziel": "अंत",
+"E-Mail-Adresse (steht auch im Impressum)": "ईमेल पता (कानूनी जानकारी में भी दिया गया है)"
 }

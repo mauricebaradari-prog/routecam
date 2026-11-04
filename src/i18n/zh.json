@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "举报单条骑行或评论最快的方式是直接在社区窗口中通过 ⋯ → “举报”。",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "根据《数字服务法》（DSA 第 11 和 12 条），此地址也是面向主管机关和用户的统一联系点。我们用德语和英语回复。",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "法律文本（使用条款、隐私、法律声明）提供德语和英语版本。此处显示英文版本；以德文版本为准。",
-"Kopiert": "已复制",
-"Kopieren": "复制",
 "Kanal nicht gefunden": "未找到频道",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "该频道不存在或尚无公开骑行。",
 "Zur Karte": "前往地图",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "在 Google My Maps 中画一条路线并下载为 KML。不用记录也可以，但这样就没有时间信息。",
 "Verstanden": "知道了",
 "Start": "起点",
-"Ziel": "终点"
+"Ziel": "终点",
+"E-Mail-Adresse (steht auch im Impressum)": "电子邮件地址（法律声明中也有列出）"
 }

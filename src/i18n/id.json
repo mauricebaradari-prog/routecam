@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "Cara tercepat melaporkan satu perjalanan atau komentar adalah langsung di jendela komunitas melalui ⋯ → “Laporkan”.",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "Alamat ini juga merupakan titik kontak tunggal bagi otoritas dan pengguna menurut Digital Services Act (Pasal 11 dan 12 DSA). Kami membalas dalam bahasa Jerman dan Inggris.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "Teks hukum (Ketentuan penggunaan, Privasi, Informasi hukum) tersedia dalam bahasa Jerman dan Inggris. Di sini ditampilkan versi bahasa Inggris; yang berlaku adalah versi bahasa Jerman.",
-"Kopiert": "Disalin",
-"Kopieren": "Salin",
 "Kanal nicht gefunden": "Kanal tidak ditemukan",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "Kanal ini tidak ada atau belum memiliki perjalanan publik.",
 "Zur Karte": "Ke peta",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Gambar rute di Google My Maps lalu unduh sebagai KML. Ini juga bisa tanpa rekaman, tetapi tanpa waktu.",
 "Verstanden": "Mengerti",
 "Start": "Awal",
-"Ziel": "Akhir"
+"Ziel": "Akhir",
+"E-Mail-Adresse (steht auch im Impressum)": "Alamat email (juga tercantum di informasi hukum)"
 }

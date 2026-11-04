@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "Le plus rapide pour signaler un trajet ou un commentaire est de le faire directement dans la fenêtre communauté, via ⋯ → « Signaler ».",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "Cette adresse est aussi le point de contact unique pour les autorités et les utilisateurs au titre du règlement sur les services numériques (art. 11 et 12 DSA). Nous répondons en allemand et en anglais.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "Les textes juridiques (Conditions d’utilisation, Confidentialité, Mentions légales) existent en allemand et en anglais. La version anglaise est affichée ici ; la version allemande fait foi.",
-"Kopiert": "Copié",
-"Kopieren": "Copier",
 "Kanal nicht gefunden": "Chaîne introuvable",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "Cette chaîne n’existe pas ou n’a pas encore de trajets publics.",
 "Zur Karte": "Vers la carte",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Tracez un itinéraire dans Google My Maps et téléchargez-le en KML. Cela marche aussi sans enregistrement, mais alors sans heures.",
 "Verstanden": "Compris",
 "Start": "Départ",
-"Ziel": "Arrivée"
+"Ziel": "Arrivée",
+"E-Mail-Adresse (steht auch im Impressum)": "Adresse e-mail (figure aussi dans les mentions légales)"
 }

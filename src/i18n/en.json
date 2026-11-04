@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "The fastest way to report a single ride or comment is directly in the community window via ⋯ → “Report”.",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "This address is also the single point of contact for authorities and users under the Digital Services Act (Art. 11 and 12 DSA). We reply in German and English.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "The legal texts (Terms of Use, Privacy, Legal notice) are available in German and English. The English version is shown here; the German version prevails.",
-"Kopiert": "Copied",
-"Kopieren": "Copy",
 "Kanal nicht gefunden": "Channel not found",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "This channel doesn’t exist or has no public rides yet.",
 "Zur Karte": "To the map",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Draw a route in Google My Maps and download it as KML. This works without a recording too, but then without times.",
 "Verstanden": "Got it",
 "Start": "Start",
-"Ziel": "Finish"
+"Ziel": "Finish",
+"E-Mail-Adresse (steht auch im Impressum)": "Email address (also listed in the legal notice)"
 }

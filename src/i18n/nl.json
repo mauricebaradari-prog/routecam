@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "Een rit of reactie meld je het snelst direct in het communityvenster via ⋯ → ‘Melden’.",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "Dit adres is ook het centrale contactpunt voor autoriteiten en gebruikers volgens de Digital Services Act (art. 11 en 12 DSA). We antwoorden in het Duits en Engels.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "De juridische teksten (Gebruiksvoorwaarden, Privacy, Colofon) zijn er in het Duits en Engels. Hier staat de Engelse versie; de Duitse versie is bindend.",
-"Kopiert": "Gekopieerd",
-"Kopieren": "Kopiëren",
 "Kanal nicht gefunden": "Kanaal niet gevonden",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "Dit kanaal bestaat niet of heeft nog geen openbare ritten.",
 "Zur Karte": "Naar de kaart",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Teken een route in Google My Maps en download hem als KML. Dat kan ook zonder opname, maar dan zonder tijden.",
 "Verstanden": "Begrepen",
 "Start": "Start",
-"Ziel": "Finish"
+"Ziel": "Finish",
+"E-Mail-Adresse (steht auch im Impressum)": "E-mailadres (staat ook in het colofon)"
 }

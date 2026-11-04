@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "個々のライドやコメントは、コミュニティウィンドウの ⋯ →「報告」から直接報告するのが一番早いです。",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "このアドレスは、デジタルサービス法（DSA 第 11 条・第 12 条）に基づく当局および利用者向けの窓口でもあります。ドイツ語と英語で回答します。",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "法的文書（利用規約、プライバシー、運営者情報）はドイツ語と英語で提供しています。ここでは英語版を表示しています。正文はドイツ語版です。",
-"Kopiert": "コピーしました",
-"Kopieren": "コピー",
 "Kanal nicht gefunden": "チャンネルが見つかりません",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "このチャンネルは存在しないか、まだ公開ライドがありません。",
 "Zur Karte": "地図へ",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Google My Maps でルートを描いて KML としてダウンロードします。記録がなくても使えますが、その場合は時刻がありません。",
 "Verstanden": "わかりました",
 "Start": "出発",
-"Ziel": "到着"
+"Ziel": "到着",
+"E-Mail-Adresse (steht auch im Impressum)": "メールアドレス（運営者情報にも記載）"
 }

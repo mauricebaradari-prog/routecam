@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "Быстрее всего пожаловаться на поездку или комментарий прямо в окне сообщества через ⋯ → «Пожаловаться».",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "Этот адрес также является единым контактным пунктом для органов власти и пользователей согласно Закону о цифровых услугах (ст. 11 и 12 DSA). Мы отвечаем на немецком и английском.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "Правовые тексты (Условия использования, Конфиденциальность, Правовая информация) доступны на немецком и английском. Здесь показана английская версия; определяющей является немецкая.",
-"Kopiert": "Скопировано",
-"Kopieren": "Копировать",
 "Kanal nicht gefunden": "Канал не найден",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "Такого канала нет или в нём ещё нет публичных поездок.",
 "Zur Karte": "К карте",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Нарисуйте маршрут в Google My Maps и скачайте его в KML. Это работает и без записи, но тогда без времени.",
 "Verstanden": "Понятно",
 "Start": "Старт",
-"Ziel": "Финиш"
+"Ziel": "Финиш",
+"E-Mail-Adresse (steht auch im Impressum)": "Адрес электронной почты (указан также в правовой информации)"
 }

@@ -5,7 +5,7 @@ import PageShell, { Card } from '@/components/PageShell';
 import { openOnboarding } from '@/components/Onboarding';
 import GeoFilesHelp from '@/components/GeoFilesHelp';
 import { t, useLang, k } from '@/lib/i18n';
-import { OPERATOR, isDraft, LegalDe, Section, Prose } from './legal';
+import { isDraft, LegalDe, Section, Prose } from './legal';
 import { LegalEn } from './legalEn';
 
 const SECTIONS = [
@@ -93,7 +93,16 @@ export default function AboutPage() {
         <Card title={t('Kontakt')}>
           <Prose>
             <p>{t('Fragen, Feedback, Fehler oder eine Bitte um Löschung: schreib uns.')}</p>
-            <CopyLine value={OPERATOR.email} />
+            {/* the address as a picture made of outlines – nothing to copy or scrape; it stays as text in the imprint */}
+            <span className="self-start inline-flex rounded-md bg-white/5 border border-white/10 px-3 py-2">
+              <img
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/contact-email.svg`}
+                width={140} height={15}
+                alt={t('E-Mail-Adresse (steht auch im Impressum)')}
+                draggable={false}
+                className="block h-[15px] w-auto select-none pointer-events-none"
+              />
+            </span>
             <p>{t('Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.')}</p>
             <p className="text-white/50">{t('Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.')}</p>
           </Prose>
@@ -113,19 +122,5 @@ export default function AboutPage() {
       )}
       {geoHelp && <GeoFilesHelp onClose={() => setGeoHelp(false)} />}
     </PageShell>
-  );
-}
-
-// e-mail as selectable text with a copy button (mailto links are unreliable)
-function CopyLine({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
-  };
-  return (
-    <div className="flex items-center gap-2">
-      <span className="select-all rounded-md bg-white/5 border border-white/10 px-3 py-1.5 text-white font-mono text-[13px]">{value}</span>
-      <button onClick={copy} className="text-xs text-white/50 hover:text-white px-2 py-1">{copied ? t('Kopiert') : t('Kopieren')}</button>
-    </div>
   );
 }

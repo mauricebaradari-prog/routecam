@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "أسرع طريقة للإبلاغ عن رحلة أو تعليق هي مباشرة في نافذة المجتمع عبر ⋯ ← «إبلاغ».",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "هذا العنوان هو أيضًا نقطة الاتصال الموحدة للسلطات والمستخدمين بموجب قانون الخدمات الرقمية (المادتان 11 و12 من DSA). نرد بالألمانية والإنجليزية.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "النصوص القانونية (شروط الاستخدام، الخصوصية، البيانات القانونية) متوفرة بالألمانية والإنجليزية. تُعرض هنا النسخة الإنجليزية؛ والمرجع هو النسخة الألمانية.",
-"Kopiert": "تم النسخ",
-"Kopieren": "نسخ",
 "Kanal nicht gefunden": "لم يُعثر على القناة",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "هذه القناة غير موجودة أو ليس فيها رحلات عامة بعد.",
 "Zur Karte": "إلى الخريطة",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "ارسم مسارًا في Google My Maps ونزّله بصيغة KML. يعمل ذلك من دون تسجيل أيضًا، لكن من دون أوقات.",
 "Verstanden": "فهمت",
 "Start": "البداية",
-"Ziel": "النهاية"
+"Ziel": "النهاية",
+"E-Mail-Adresse (steht auch im Impressum)": "عنوان البريد الإلكتروني (مذكور أيضًا في البيانات القانونية)"
 }

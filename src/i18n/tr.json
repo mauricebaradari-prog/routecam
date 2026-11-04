@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "Tek bir sürüşü veya yorumu en hızlı şekilde doğrudan topluluk penceresinde ⋯ → “Bildir” ile bildirirsin.",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "Bu adres aynı zamanda Dijital Hizmetler Yasası’na (DSA md. 11 ve 12) göre yetkililer ve kullanıcılar için tek irtibat noktasıdır. Almanca ve İngilizce yanıt veriyoruz.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "Yasal metinler (Kullanım koşulları, Gizlilik, Yasal bilgiler) Almanca ve İngilizce olarak mevcuttur. Burada İngilizce sürüm gösterilir; esas olan Almanca sürümdür.",
-"Kopiert": "Kopyalandı",
-"Kopieren": "Kopyala",
 "Kanal nicht gefunden": "Kanal bulunamadı",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "Bu kanal yok veya henüz herkese açık sürüşü yok.",
 "Zur Karte": "Haritaya",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Google My Maps’te bir rota çiz ve KML olarak indir. Bu kayıt olmadan da olur, ama o zaman saat bilgisi olmaz.",
 "Verstanden": "Anladım",
 "Start": "Başlangıç",
-"Ziel": "Bitiş"
+"Ziel": "Bitiş",
+"E-Mail-Adresse (steht auch im Impressum)": "E-posta adresi (yasal bilgilerde de yer alır)"
 }

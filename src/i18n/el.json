@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "Μια διαδρομή ή ένα σχόλιο το αναφέρεις πιο γρήγορα απευθείας στο παράθυρο κοινότητας μέσω ⋯ → «Αναφορά».",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "Αυτή η διεύθυνση είναι επίσης το ενιαίο σημείο επαφής για αρχές και χρήστες σύμφωνα με την Πράξη για τις Ψηφιακές Υπηρεσίες (άρθρα 11 και 12 DSA). Απαντάμε στα γερμανικά και στα αγγλικά.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "Τα νομικά κείμενα (Όροι χρήσης, Απόρρητο, Νομικές πληροφορίες) υπάρχουν στα γερμανικά και στα αγγλικά. Εδώ εμφανίζεται η αγγλική έκδοση· υπερισχύει η γερμανική.",
-"Kopiert": "Αντιγράφηκε",
-"Kopieren": "Αντιγραφή",
 "Kanal nicht gefunden": "Το κανάλι δεν βρέθηκε",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "Αυτό το κανάλι δεν υπάρχει ή δεν έχει ακόμη δημόσιες διαδρομές.",
 "Zur Karte": "Στον χάρτη",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Σχεδίασε μια διαδρομή στο Google My Maps και κατέβασέ τη ως KML. Γίνεται και χωρίς καταγραφή, αλλά τότε χωρίς ώρες.",
 "Verstanden": "Κατάλαβα",
 "Start": "Αφετηρία",
-"Ziel": "Τερματισμός"
+"Ziel": "Τερματισμός",
+"E-Mail-Adresse (steht auch im Impressum)": "Διεύθυνση email (υπάρχει και στις νομικές πληροφορίες)"
 }

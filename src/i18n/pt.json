@@ -36,8 +36,6 @@
 "Einzelne Fahrten oder Kommentare meldest du am schnellsten direkt im Community-Fenster über ⋯ → „Melden“.": "O jeito mais rápido de denunciar um passeio ou comentário é direto na janela da comunidade, em ⋯ → “Denunciar”.",
 "Diese Adresse ist auch die zentrale Kontaktstelle für Behörden und Nutzer nach dem Digital Services Act (Art. 11 und 12 DSA). Wir antworten auf Deutsch und Englisch.": "Este endereço também é o ponto de contato único para autoridades e usuários segundo o Digital Services Act (art. 11 e 12 DSA). Respondemos em alemão e inglês.",
 "Die Rechtstexte (Nutzungsbedingungen, Datenschutz, Impressum) gibt es auf Deutsch und Englisch. Hier steht die englische Fassung; maßgeblich ist die deutsche.": "Os textos legais (Termos de uso, Privacidade, Informações legais) estão disponíveis em alemão e inglês. Aqui aparece a versão em inglês; prevalece a versão em alemão.",
-"Kopiert": "Copiado",
-"Kopieren": "Copiar",
 "Kanal nicht gefunden": "Canal não encontrado",
 "Diesen Kanal gibt es nicht oder er hat noch keine öffentlichen Fahrten.": "Este canal não existe ou ainda não tem passeios públicos.",
 "Zur Karte": "Para o mapa",
@@ -474,5 +472,6 @@
 "In Google My Maps eine Route zeichnen und als KML herunterladen. Das geht auch ohne Aufzeichnung, dann aber ohne Uhrzeiten.": "Desenhe uma rota no Google My Maps e baixe como KML. Funciona também sem gravação, mas aí sem horários.",
 "Verstanden": "Entendi",
 "Start": "Início",
-"Ziel": "Fim"
+"Ziel": "Fim",
+"E-Mail-Adresse (steht auch im Impressum)": "Endereço de e-mail (também consta nas informações legais)"
 }
