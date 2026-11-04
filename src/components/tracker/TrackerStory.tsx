@@ -1,0 +1,332 @@
+'use client';
+
+// Onepager zur Tracker-App: eine Scroll-Geschichte, in der sich der Tracker-Screen Stück für Stück
+// zusammensetzt. Alles hängt am Scrollweg (p = 0…1), rückwärts scrollen baut es wieder ab.
+//
+//  1  Punkt pulsiert, „Scrollen ↓“
+//  2  Punkt fährt die echte Fahrt (#015) ab und zieht die Linie nach, Kamera folgt
+//  3  Höhe + Tempo kommen unscharf und versetzt von links/rechts, zählen mit
+//  4  Distanz + Laufzeit kommen dazu, die ersten werden scharf
+//  5  GPS-Zeit + GPS-Status, alles rückt zusammen
+//  6  Kontur des Smartphones entsteht, Lichtblitz, Kamera zoomt auf die ganze Strecke
+//  7  Karten fliegen in ihre Plätze – am Ende steht 1:1 der Tracker-Screen, Knopf „App Download“
+//
+// Koordinaten: „Welt“ = dp des Tracker-Bildschirms (411 × 915), skaliert auf das Fenster.
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Mountain, Gauge, Route, Timer, Satellite, SatelliteDish, Check } from 'lucide-react';
+import TrackerScreen, { LogoDefs, SCREEN_W, SCREEN_H, TARGETS, type Parts } from './TrackerScreen';
+import { PTS, ROUTE_ORIGIN, headAt, RIDE_START_UTC_S, RIDE_TZ_OFFSET_S, AVG_KMH } from './rideData';
+import LogoLockup from '@/components/LogoLockup';
+import { t, useT, locale } from '@/lib/i18n';
+import { k } from '@/lib/i18nKey';
+
+/** Ziel des Download-Knopfs – kommt später (Play Store oder APK). */
+export const APP_DOWNLOAD_HREF: string | null = null;
+
+const LIME = '#CCFF00';
+const MONO = 'var(--font-geist-mono), ui-monospace, monospace';
+const BEZEL = 9;
+/** Scrollhöhe der ganzen Geschichte in Fensterhöhen */
+const STORY_VH = 760;
+
+// ── Zeitplan (Anteil am Scrollweg) ────────────────────────────────────────────
+const P = {
+  hintOut: [0.004, 0.035],
+  route: [0.04, 0.6],
+  cam: [0.6, 0.76],
+  outline: [0.62, 0.72],
+  body: [0.68, 0.75],
+  flash: [0.68, 0.8],
+  chrome: [0.72, 0.79],
+  card: [0.74, 0.82],
+  header: [0.76, 0.84],
+  cta: [0.9, 0.97],
+} as const;
+
+type CardKey = 'ele' | 'speed' | 'dist' | 'time' | 'gpsTime' | 'gps';
+type CardDef = {
+  key: CardKey; side: -1 | 1; row: 0 | 1 | 2; enter: [number, number]; fly: [number, number];
+  target: keyof typeof TARGETS; part: keyof Parts; extraPart?: keyof Parts; label: string;
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>;
+};
+const CARDS: CardDef[] = [
+  { key: 'ele', side: -1, row: 0, enter: [0.15, 0.25], fly: [0.8, 0.88], target: 'profile', part: 'profile', label: k('Höhe'), Icon: Mountain },
+  { key: 'speed', side: 1, row: 0, enter: [0.19, 0.29], fly: [0.84, 0.92], target: 'tileSpeed', part: 'tileSpeed', label: k('Tempo'), Icon: Gauge },
+  { key: 'dist', side: -1, row: 1, enter: [0.29, 0.39], fly: [0.82, 0.9], target: 'tileDist', part: 'tileDist', label: k('Distanz'), Icon: Route },
+  { key: 'time', side: 1, row: 1, enter: [0.33, 0.43], fly: [0.78, 0.86], target: 'timer', part: 'timer', label: k('Laufzeit'), Icon: Timer },
+  { key: 'gpsTime', side: -1, row: 2, enter: [0.43, 0.53], fly: [0.8, 0.88], target: 'gpsTime', part: 'gpsTime', label: k('GPS-Zeit'), Icon: Satellite },
+  { key: 'gps', side: 1, row: 2, enter: [0.47, 0.57], fly: [0.86, 0.94], target: 'pill', part: 'pill', extraPart: 'tileGps', label: k('GPS-Status'), Icon: SatelliteDish },
+];
+// Schärfe: jede Karte kommt unscharf; scharf wird sie, wenn die nächste Welle kommt
+const SHARPEN: Record<number, [number, number]> = { 0: [0.29, 0.4], 1: [0.43, 0.54], 2: [0.57, 0.64] };
+
+// ── kleine Helfer ────────────────────────────────────────────────────────────
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const seg = (p: number, [a, b]: readonly [number, number]) => clamp01((p - a) / (b - a));
+const easeIO = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
+const lerp = (a: number, b: number, x: number) => a + (b - a) * x;
+const fmtDur = (s: number) => {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = Math.floor(s % 60);
+  return `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+};
+const clockOf = (utcS: number) => {
+  const d = new Date((utcS + RIDE_TZ_OFFSET_S) * 1000);
+  return [d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()].map(n => String(n).padStart(2, '0')).join(':');
+};
+
+// html/body scrollen in dieser App nicht (die Karte braucht das) – der Onepager hat einen eigenen Scroller.
+function useScrollStage(ref: React.RefObject<HTMLDivElement | null>) {
+  const [s, setS] = useState<{ p: number; y: number; vw: number; vh: number } | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let raf = 0;
+    const read = () => {
+      raf = 0;
+      const max = Math.max(1, el.scrollHeight - el.clientHeight);
+      setS({ p: clamp01(el.scrollTop / max), y: el.scrollTop, vw: el.clientWidth, vh: el.clientHeight });
+    };
+    const req = () => { if (!raf) raf = requestAnimationFrame(read); };
+    read();
+    el.addEventListener('scroll', req, { passive: true });
+    window.addEventListener('resize', req);
+    return () => { el.removeEventListener('scroll', req); window.removeEventListener('resize', req); cancelAnimationFrame(raf); };
+  }, [ref]);
+  return s;
+}
+
+export default function TrackerStory() {
+  useT();
+  const scroller = useRef<HTMLDivElement>(null);
+  const st = useScrollStage(scroller);
+  const loc = locale();
+
+  return (
+    <div ref={scroller} data-tracker-scroller className="fixed inset-0 overflow-y-auto overflow-x-hidden no-scrollbar" style={{ overscrollBehavior: 'none' }}>
+    <main className="relative bg-[#1f1f1f]" style={{ height: `${STORY_VH}vh` }}>
+      <LogoDefs />
+      <div
+        className="sticky top-0 h-[100dvh] w-full overflow-hidden"
+        style={{
+          backgroundColor: '#1f1f1f',
+          backgroundImage: 'linear-gradient(#333333 1px, transparent 1px), linear-gradient(90deg, #333333 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+          backgroundPosition: `0 ${-(st?.y ?? 0)}px`,
+        }}
+      >
+        {/* sanfte Abdunklung zum Rand, damit Punkt und Handy leuchten */}
+        <div aria-hidden className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 100%)' }} />
+
+        {/* auf schmalen Fenstern füllt das Handy am Ende den Bildschirm – dann tritt das Logo zurück */}
+        <Link href="/" className="absolute left-4 top-4 md:left-6 md:top-5 z-20 hover:!opacity-100 transition-opacity" aria-label={t('Zurück zu RouteCam')}
+          style={{ opacity: 0.8 * (st && st.vw < 768 ? 1 - seg(st.p, [0.64, 0.7]) : 1), pointerEvents: st && st.vw < 768 && st.p > 0.7 ? 'none' : undefined }}>
+          <LogoLockup />
+        </Link>
+
+        {st && <Stage p={st.p} vw={st.vw} vh={st.vh} loc={loc} />}
+      </div>
+    </main>
+    </div>
+  );
+}
+
+function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: string }) {
+  // Maßstab: Handy (mit Rand) passt ins Fenster
+  const s = Math.min((vh * 0.94) / (SCREEN_H + 2 * BEZEL), (vw * 0.94) / (SCREEN_W + 2 * BEZEL));
+  const ox = (vw - SCREEN_W * s) / 2;
+  const oy = (vh - SCREEN_H * s) / 2;
+  const sideRoom = (vw / s - SCREEN_W) / 2 - BEZEL;
+  const wide = sideRoom >= 250;
+
+  // ── Route + Kamera ──
+  const routeFrac = seg(p, P.route);
+  const head = headAt(routeFrac);
+  const cam = easeIO(seg(p, P.cam));
+  const zoom = lerp(2.6, 1, cam);
+  const anchor = { x: lerp(205.5, head.x, cam), y: lerp(500, head.y, cam) };
+  const T = (x: number, y: number) => [anchor.x + (x - head.x) * zoom, anchor.y + (y - head.y) * zoom] as const;
+
+  const routePath = useMemo(() => {
+    if (routeFrac <= 0) return '';
+    const out: string[] = [];
+    for (let i = 0; i <= head.i; i++) {
+      const [x, y] = T(PTS[i][0] + ROUTE_ORIGIN.x, PTS[i][1] + ROUTE_ORIGIN.y);
+      out.push(`${i ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)}`);
+    }
+    const [hx, hy] = T(head.x, head.y);
+    out.push(`L${hx.toFixed(2)},${hy.toFixed(2)}`);
+    return out.join('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- T hängt nur an head/anchor/zoom
+  }, [routeFrac, head.i, head.x, head.y, anchor.x, anchor.y, zoom]);
+
+  const [sx, sy] = T(ROUTE_ORIGIN.x, ROUTE_ORIGIN.y);
+  const last = PTS[PTS.length - 1];
+  const [ex, ey] = T(last[0] + ROUTE_ORIGIN.x, last[1] + ROUTE_ORIGIN.y);
+  const [hx, hy] = T(head.x, head.y);
+  const coreW = lerp(6, 4.2, cam);
+  const dotR = lerp(11, 7.6, cam);
+
+  // ── Handy + Screen ──
+  const outline = easeOut(seg(p, P.outline));
+  const body = seg(p, P.body);
+  const flashX = seg(p, P.flash);
+  const flash = Math.sin(Math.PI * flashX);
+  const parts: Parts = {
+    chrome: seg(p, P.chrome), card: seg(p, P.card), header: seg(p, P.header), cta: easeOut(seg(p, P.cta)),
+  };
+
+  // ── Karten ──
+  const cardW = wide ? 196 : 150;
+  const cardH = wide ? 84 : 70;
+  const rowGap = wide ? 108 : 86;
+  const rowsShown = 1 + easeOut(seg(p, CARDS[2].enter)) + easeOut(seg(p, CARDS[4].enter));
+  const colX = (side: -1 | 1) => wide
+    ? (side < 0 ? -BEZEL - 44 - cardW : SCREEN_W + BEZEL + 44)
+    : (side < 0 ? 10 : SCREEN_W - 10 - cardW);
+
+  const cards = CARDS.map(c => {
+    const e = easeOut(seg(p, c.enter));
+    const sharpen = seg(p, SHARPEN[c.row]);
+    const blur = 14 * (1 - e) + 5 * (1 - sharpen);
+    const fly = easeIO(seg(p, c.fly));
+    const x0 = colX(c.side) + c.side * 170 * (1 - e);
+    const y0 = 457 + (c.row - (rowsShown - 1) / 2) * rowGap - cardH / 2;
+    const tg = TARGETS[c.target];
+    const scale = lerp(1, Math.min(tg.w / cardW, tg.h / cardH) * 1.05, fly);
+    const cx = lerp(x0 + cardW / 2, tg.x + tg.w / 2, fly);
+    const cy = lerp(y0 + cardH / 2, tg.y + tg.h / 2, fly);
+    const arrive = seg(fly, [0.45, 1]);
+    parts[c.part] = arrive;
+    if (c.extraPart) parts[c.extraPart] = arrive;
+    return { c, e, blur: blur * (1 - fly), fly, scale, cx, cy, opacity: e * (1 - arrive), ready: sharpen >= 1 };
+  });
+
+  const values: Record<CardKey, string> = {
+    ele: `${Math.round(head.ele).toLocaleString(loc)} m`,
+    // unterwegs das aktuelle Tempo, am Ziel der Schnitt – so wie die Kachel im fertigen Screen
+    speed: routeFrac >= 1 ? `Ø ${Math.round(AVG_KMH)} km/h` : `${Math.round(head.kmh)} km/h`,
+    dist: `${(head.m / 1000).toLocaleString(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`,
+    time: fmtDur(head.t),
+    gpsTime: clockOf(RIDE_START_UTC_S + head.t),
+    gps: '',
+  };
+
+  const hintIn = 1 - seg(p, P.hintOut);
+  const hint2 = seg(p, [0.08, 0.12]) * (1 - (wide ? seg(p, [0.86, 0.9]) : seg(p, [0.62, 0.66])));
+
+  return (
+    <>
+      <div className="absolute left-0 top-0" style={{ transform: `translate(${ox}px, ${oy}px) scale(${s})`, transformOrigin: '0 0', width: SCREEN_W, height: SCREEN_H }}>
+        {/* Handy-Gehäuse (Android, schlicht) */}
+        <svg aria-hidden className="absolute" style={{ left: -BEZEL - 2, top: -BEZEL - 2, overflow: 'visible' }} width={SCREEN_W + 2 * BEZEL + 4} height={SCREEN_H + 2 * BEZEL + 4}>
+          <rect x="2" y="2" width={SCREEN_W + 2 * BEZEL} height={SCREEN_H + 2 * BEZEL} rx="46" fill="#0d0d0e" opacity={body} />
+          <rect x={2 + BEZEL} y={2 + BEZEL} width={SCREEN_W} height={SCREEN_H} rx="36" fill="#000" opacity={body} />
+          <rect x="2" y="2" width={SCREEN_W + 2 * BEZEL} height={SCREEN_H + 2 * BEZEL} rx="46" fill="none"
+            stroke={body > 0.5 ? '#2c2d30' : LIME} strokeOpacity={body > 0.5 ? 1 : 0.9} strokeWidth={body > 0.5 ? 1.5 : 2.2}
+            pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - outline} opacity={outline > 0 ? 1 : 0} />
+          {/* Seitentasten */}
+          <rect x={SCREEN_W + 2 * BEZEL + 1} y="190" width="3" height="70" rx="1.5" fill="#1d1e21" opacity={body} />
+          <rect x={SCREEN_W + 2 * BEZEL + 1} y="290" width="3" height="44" rx="1.5" fill="#1d1e21" opacity={body} />
+        </svg>
+
+        {/* der Tracker-Screen selbst; Bereiche blenden nach und nach ein */}
+        <div className="absolute left-0 top-0" style={{ width: SCREEN_W, height: SCREEN_H, borderRadius: 36, overflow: 'hidden' }}>
+          <TrackerScreen parts={parts} ctaLabel={t('App Download')} ctaHref={APP_DOWNLOAD_HREF} />
+        </div>
+
+        {/* Lichtblitz aus dem Punkt, wenn das Handy entsteht */}
+        {flash > 0.001 && (
+          <svg aria-hidden className="absolute pointer-events-none" style={{ left: hx - 260, top: hy - 260, opacity: flash }} width="520" height="520" viewBox="-260 -260 520 520">
+            <defs>
+              <radialGradient id="trk-flash">
+                <stop offset="0" stopColor={LIME} stopOpacity="0.55" />
+                <stop offset="1" stopColor={LIME} stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <circle r={60 + 120 * flashX} fill="url(#trk-flash)" />
+            {Array.from({ length: 56 }, (_, i) => {
+              const a = (i / 56) * Math.PI * 2;
+              const r0 = 18 + 30 * flashX, r1 = r0 + (i % 3 === 0 ? 210 : i % 2 ? 120 : 160) * (0.4 + 0.6 * flashX);
+              return <line key={i} x1={Math.cos(a) * r0} y1={Math.sin(a) * r0} x2={Math.cos(a) * r1} y2={Math.sin(a) * r1}
+                stroke={LIME} strokeOpacity={i % 3 === 0 ? 0.7 : 0.35} strokeWidth={i % 3 === 0 ? 1.4 : 0.8} strokeLinecap="round" />;
+            })}
+          </svg>
+        )}
+
+        {/* Route: Glow, Linie, Start- und Positionspunkt */}
+        <svg aria-hidden className="absolute left-0 top-0 pointer-events-none" width={SCREEN_W} height={SCREEN_H} style={{ overflow: 'visible' }}>
+          <defs>
+            <linearGradient id="trk-route" gradientUnits="userSpaceOnUse" x1={sx} y1={sy} x2={ex} y2={ey}>
+              <stop offset="0" stopColor="#ffffff" />
+              <stop offset="0.06" stopColor="#f6ffd6" />
+              <stop offset="0.2" stopColor={LIME} />
+              <stop offset="1" stopColor={LIME} />
+            </linearGradient>
+            <filter id="trk-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation={lerp(7, 4.6, cam)} />
+            </filter>
+          </defs>
+          {routePath && (
+            <>
+              <path d={routePath} fill="none" stroke={LIME} strokeOpacity={0.55} strokeWidth={coreW * 2.6} strokeLinecap="round" strokeLinejoin="round" filter="url(#trk-glow)" />
+              <path d={routePath} fill="none" stroke="url(#trk-route)" strokeWidth={coreW} strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx={sx} cy={sy} r={lerp(6, 4.6, cam)} fill="#fff" stroke="#0c0d11" strokeWidth="2" />
+            </>
+          )}
+          <circle cx={hx} cy={hy} r={dotR * 2.4} fill={LIME} opacity={0.22} filter="url(#trk-glow)" />
+          <circle cx={hx} cy={hy} r={dotR} fill={LIME} stroke="#0c0d11" strokeWidth="2.2" />
+        </svg>
+        {/* Puls wie beim GPS-Signal – stark am Anfang, im fertigen Screen aus */}
+        <span aria-hidden className="absolute pointer-events-none" style={{ left: hx - dotR, top: hy - dotR, width: dotR * 2, height: dotR * 2, opacity: 1 - cam }}>
+          <span className="absolute inset-0 rounded-full trk-pulse" style={{ border: `2px solid ${LIME}` }} />
+        </span>
+
+        {/* „Scrollen ↓“ unter dem Punkt (Szene 1) */}
+        <div className="absolute flex flex-col items-center gap-2 pointer-events-none" style={{ left: 205.5 - 100, width: 200, top: 540, opacity: hintIn }}>
+          <span style={{ fontFamily: MONO, fontSize: 14, letterSpacing: 3, color: '#d9dce1', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
+          <svg width="16" height="22" viewBox="0 0 16 22" aria-hidden className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#d9dce1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </div>
+
+        {/* Daten-Karten */}
+        {cards.map(({ c, blur, scale, cx, cy, opacity, ready }) => opacity > 0.002 && (
+          <div key={c.key} className="absolute" style={{
+            left: cx - cardW / 2, top: cy - cardH / 2, width: cardW, height: cardH, transform: `scale(${scale})`, opacity,
+            filter: blur > 0.2 ? `blur(${blur.toFixed(1)}px)` : undefined, borderRadius: 18, boxSizing: 'border-box',
+            background: 'rgba(14,14,15,0.92)', border: '1px solid #2a2b2e', boxShadow: '0 18px 40px rgba(0,0,0,0.45)',
+            padding: wide ? '14px 16px' : '11px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          }}>
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: wide ? 11 : 9.5, fontWeight: 600, letterSpacing: 1.6, color: '#9aa0a8', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{t(c.label)}</span>
+              <c.Icon size={wide ? 20 : 16} strokeWidth={1.8} color={LIME} />
+            </div>
+            {c.key === 'gps' ? (
+              <span className="flex items-center gap-2" style={{ fontFamily: MONO, fontSize: wide ? 24 : 19, fontWeight: 700, color: ready ? LIME : '#7d828c', lineHeight: 1 }}>
+                {ready ? t('Bereit') : t('Suche…')}
+                {ready && <span className="inline-flex items-center justify-center rounded-full" style={{ width: wide ? 20 : 16, height: wide ? 20 : 16, background: LIME }}><Check size={wide ? 13 : 11} strokeWidth={3.2} color="#000" /></span>}
+              </span>
+            ) : (
+              <span style={{ fontFamily: MONO, fontSize: wide ? 26 : 20, fontWeight: 700, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{values[c.key]}</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Scroll-Hinweis unten, solange noch etwas kommt */}
+      <div aria-hidden className="absolute left-1/2 -translate-x-1/2 bottom-4 flex items-center gap-2 pointer-events-none" style={{ opacity: hint2 * 0.75 }}>
+        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: 2.5, color: '#c9ccd2', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
+        <svg width="12" height="16" viewBox="0 0 16 22" className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#c9ccd2" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </div>
+
+      <style>{`
+        @keyframes trkPulse { 0% { transform: scale(1); opacity: .9 } 100% { transform: scale(3.2); opacity: 0 } }
+        @keyframes trkBob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(5px) } }
+        .trk-pulse { animation: trkPulse 1.8s ease-out infinite; }
+        .trk-bob { animation: trkBob 1.6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .trk-pulse, .trk-bob { animation: none } }
+      `}</style>
+    </>
+  );
+}

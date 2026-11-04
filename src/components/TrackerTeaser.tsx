@@ -19,7 +19,7 @@ const SHOW_DELAY_MS = 2500;
 /** Ziel von „Mehr erfahren“ – der Onepager zur App kommt später. */
 export const TRACKER_PAGE_HREF = '/tracker';
 /** Erst auf true setzen, wenn der Onepager unter TRACKER_PAGE_HREF online ist – bis dahin kein Link. */
-const TRACKER_PAGE_READY = false;
+const TRACKER_PAGE_READY = true;
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
