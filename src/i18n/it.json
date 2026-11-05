@@ -488,5 +488,7 @@
 "Laufzeit": "Durata",
 "GPS-Zeit": "Ora GPS",
 "GPS-Status": "Stato GPS",
-"Animation abspielen": "Riproduci animazione"
+"Animation abspielen": "Riproduci animazione",
+"Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf: Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Filme zu Beginn kurz die große GPS-Uhr im Display ab – damit legt RouteCam dein Video und die Strecke später sekundengenau übereinander. Die Aufzeichnung läuft im Hintergrund weiter, auch bei gesperrtem Bildschirm und ohne Netz. Ein Konto brauchst du dafür nicht.": "RouteCam Tracker registra il tuo giro ogni secondo: posizione, altitudine e velocità, sempre con l’ora GPS esatta. All’inizio riprendi per un attimo il grande orologio GPS sullo schermo: così RouteCam allinea poi video e percorso al secondo. La registrazione continua in background, anche a schermo bloccato e senza rete. Non serve nessun account.",
+"GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.": "GPX è lo standard di app di tracciamento, navigatori e orologi sportivi. Il tracker salva l’ora GPS di ogni punto, così la posizione coincide con il video al secondo."
 }

@@ -488,5 +488,7 @@
 "Laufzeit": "走行時間",
 "GPS-Zeit": "GPS時刻",
 "GPS-Status": "GPS状態",
-"Animation abspielen": "アニメーションを再生"
+"Animation abspielen": "アニメーションを再生",
+"Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf: Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Filme zu Beginn kurz die große GPS-Uhr im Display ab – damit legt RouteCam dein Video und die Strecke später sekundengenau übereinander. Die Aufzeichnung läuft im Hintergrund weiter, auch bei gesperrtem Bildschirm und ohne Netz. Ein Konto brauchst du dafür nicht.": "RouteCam Tracker は走行を毎秒記録します。位置・標高・速度を、それぞれ正確な GPS 時刻とともに。走り出す前に画面の大きな GPS 時計を少しだけ撮影しておけば、RouteCam が動画とルートを秒単位で重ね合わせます。画面をロックしても、電波がなくても、記録はバックグラウンドで続きます。アカウントは不要です。",
+"GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.": "GPX は記録アプリ、カーナビ、スポーツウォッチで使われる標準形式です。Tracker はすべてのポイントに GPS 時刻を保存するので、位置が動画と秒単位で一致します。"
 }

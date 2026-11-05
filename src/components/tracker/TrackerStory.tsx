@@ -20,6 +20,7 @@ import { Mountain, Gauge, Route, Timer, Satellite, SatelliteDish, Check } from '
 import TrackerScreen, { LogoDefs, SCREEN_W, SCREEN_H, TARGETS, type Parts } from './TrackerScreen';
 import { PTS, ROUTE_ORIGIN, headAt, RIDE_START_UTC_S, RIDE_TZ_OFFSET_S, AVG_KMH } from './rideData';
 import LogoLockup from '@/components/LogoLockup';
+import { FileBadge } from '@/components/GeoFilesHelp';
 import { t, useT, locale } from '@/lib/i18n';
 import { k } from '@/lib/i18nKey';
 
@@ -47,6 +48,7 @@ const P = {
   header: [0.76, 0.84],
   cta: [0.9, 0.97],
   title: [0.86, 0.98],
+  side: [0.9, 1],
 } as const;
 
 type CardKey = 'ele' | 'speed' | 'dist' | 'time' | 'gpsTime' | 'gps';
@@ -107,6 +109,18 @@ function dotGrid(st: { y: number; vw: number; vh: number; max: number } | null):
   };
 }
 
+/** Scrollweg der Geschichte selbst – darunter kann (auf schmalen Fenstern) noch Text folgen. */
+function storyMax(el: HTMLDivElement) {
+  const main = el.querySelector('main');
+  return Math.max(1, (main?.offsetHeight ?? el.scrollHeight) - el.clientHeight);
+}
+/** Seitlich neben dem Handy ist Platz für Text und GPX-Karte (px pro Seite)? */
+const SIDE_MIN_PX = 300;
+function sideRoomPx(vw: number, vh: number) {
+  const { s, ox } = geom(vw, vh);
+  return ox - BEZEL * s;
+}
+
 function useScrollStage(ref: React.RefObject<HTMLDivElement | null>) {
   const [s, setS] = useState<{ p: number; y: number; vw: number; vh: number; max: number } | null>(null);
   useEffect(() => {
@@ -115,7 +129,7 @@ function useScrollStage(ref: React.RefObject<HTMLDivElement | null>) {
     let raf = 0;
     const read = () => {
       raf = 0;
-      const max = Math.max(1, el.scrollHeight - el.clientHeight);
+      const max = storyMax(el);
       setS({ p: clamp01(el.scrollTop / max), y: el.scrollTop, vw: el.clientWidth, vh: el.clientHeight, max });
     };
     const req = () => { if (!raf) raf = requestAnimationFrame(read); };
@@ -156,7 +170,7 @@ export default function TrackerStory() {
     const el = scroller.current;
     if (!el) return;
     stopPlay.current?.();
-    const from = el.scrollTop, to = el.scrollHeight - el.clientHeight;
+    const from = Math.min(el.scrollTop, storyMax(el)), to = storyMax(el);
     const dur = AUTOPLAY_MS * Math.max(0.15, (to - from) / Math.max(1, to));
     const t0 = performance.now();
     let raf = 0;
@@ -190,6 +204,7 @@ export default function TrackerStory() {
         </Link>
 
         {st && <Stage p={st.p} vw={st.vw} vh={st.vh} loc={loc} onPlay={play} />}
+        {st && sideRoomPx(st.vw, st.vh) >= SIDE_MIN_PX && <SideInfo p={st.p} vw={st.vw} vh={st.vh} />}
 
         {/* dauerhafter dunkler Schein vom Fensterrand nach innen */}
         <div aria-hidden className="absolute inset-0 pointer-events-none z-10" style={{
@@ -197,7 +212,56 @@ export default function TrackerStory() {
         }} />
       </div>
     </main>
+    {/* schmale Fenster: kein Platz neben dem Handy – Text und GPX-Karte folgen darunter */}
+    {st && sideRoomPx(st.vw, st.vh) < SIDE_MIN_PX && (
+      <section className="relative px-6 pt-10 pb-16 flex flex-col gap-6" style={{ background: `linear-gradient(rgba(0,0,0,0.8), ${CARD_BG} 120px)` }}>
+        <div className="w-full max-w-[520px] mx-auto flex flex-col gap-6">
+          <IntroText />
+          <GpxCard />
+        </div>
+      </section>
+    )}
     </div>
+  );
+}
+
+// ── Endbild: worum es geht (links) und was rauskommt (rechts) ──────────────────
+function IntroText({ className = '' }: { className?: string }) {
+  return (
+    <p className={`m-0 text-white ${className}`} style={{ fontSize: 17, lineHeight: 1.6, letterSpacing: 0.1 }}>
+      {t('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf: Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Filme zu Beginn kurz die große GPS-Uhr im Display ab – damit legt RouteCam dein Video und die Strecke später sekundengenau übereinander. Die Aufzeichnung läuft im Hintergrund weiter, auch bei gesperrtem Bildschirm und ohne Netz. Ein Konto brauchst du dafür nicht.')}
+    </p>
+  );
+}
+
+/** Das Export-Format – wie die GPX-Karte im Erklärfenster „Fahrt anlegen“, ohne „Empfohlen“. */
+function GpxCard() {
+  return (
+    <div className="rounded-2xl border border-white/10 p-5 flex flex-col gap-4" style={{ background: "rgba(20,21,25,0.94)" }}>
+      <FileBadge ext="gpx" highlight />
+      <p className="m-0 leading-relaxed text-white/70" style={{ fontSize: 15 }}>
+        {t('GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.')}
+      </p>
+    </div>
+  );
+}
+
+function SideInfo({ p, vw, vh }: { p: number; vw: number; vh: number }) {
+  const room = sideRoomPx(vw, vh);
+  const gap = Math.min(64, room * 0.14);
+  const w = Math.min(380, room - gap - 40);
+  const x = easeOut(seg(p, P.side));
+  const shift = (1 - x) * 24;
+  const common: React.CSSProperties = { position: 'absolute', top: '50%', width: w, opacity: x, pointerEvents: x > 0.5 ? 'auto' : 'none' };
+  return (
+    <>
+      <div style={{ ...common, right: vw - room + gap, transform: `translate(${-shift}px, -50%)` }}>
+        <IntroText />
+      </div>
+      <div style={{ ...common, left: vw - room + gap, transform: `translate(${shift}px, -50%)`, width: Math.min(340, w) }}>
+        <GpxCard />
+      </div>
+    </>
   );
 }
 

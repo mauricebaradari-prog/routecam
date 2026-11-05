@@ -121,7 +121,7 @@ function FormatCard({ name, tag, text }: { name: string; tag?: string; text: str
 
 // A file as a drawn sheet with a folded corner; the extension sits on the band across it.
 // highlight = the recommended format, so it carries the lime accent.
-function FileBadge({ ext, highlight }: { ext: string; highlight?: boolean }) {
+export function FileBadge({ ext, highlight }: { ext: string; highlight?: boolean }) {
   return (
     <svg viewBox="0 0 44 54" width="40" height="49" className="shrink-0" role="img" aria-label={`.${ext}`}>
       {/* sheet with the top-right corner folded away */}
