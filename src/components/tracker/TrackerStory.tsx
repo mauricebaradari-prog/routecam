@@ -13,7 +13,7 @@
 //
 // Koordinaten: „Welt“ = dp des Tracker-Bildschirms (411 × 915), skaliert auf das Fenster.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Mountain, Gauge, Route, Timer, Satellite, SatelliteDish, Check } from 'lucide-react';
 import TrackerScreen, { LogoDefs, SCREEN_W, SCREEN_H, TARGETS, type Parts } from './TrackerScreen';
@@ -122,11 +122,55 @@ function useScrollStage(ref: React.RefObject<HTMLDivElement | null>) {
   return s;
 }
 
+/** Automatisch abspielen: so lange dauert der ganze Weg bis zum fertigen Screen. */
+const AUTOPLAY_MS = 22000;
+/**
+ * Tempo-Verlauf fürs Abspielen: kurz anfahren (erste 8 %), dann gleichmäßig – damit die Karten
+ * Zeit zum Lesen haben –, in den letzten 30 % sanft abbremsen bis zum Stand.
+ */
+function autoplayEase(x: number) {
+  const A = 0.08, B = 0.7;
+  const total = A / 2 + (B - A) + (1 - B) / 2;
+  let d: number;
+  if (x <= A) d = (x * x) / (2 * A);
+  else if (x <= B) d = A / 2 + (x - A);
+  else { const u = x - B; d = A / 2 + (B - A) + u - (u * u) / (2 * (1 - B)); }
+  return clamp01(d / total);
+}
+
 export default function TrackerStory() {
   useT();
   const scroller = useRef<HTMLDivElement>(null);
   const st = useScrollStage(scroller);
   const loc = locale();
+  const stopPlay = useRef<(() => void) | null>(null);
+
+  // „Animation abspielen“: scrollt selbst bis ans Ende und bremst dort ab.
+  // Jede eigene Eingabe (Rad, Finger, Taste) übernimmt sofort wieder.
+  const play = useCallback(() => {
+    const el = scroller.current;
+    if (!el) return;
+    stopPlay.current?.();
+    const from = el.scrollTop, to = el.scrollHeight - el.clientHeight;
+    const dur = AUTOPLAY_MS * Math.max(0.15, (to - from) / Math.max(1, to));
+    const t0 = performance.now();
+    let raf = 0;
+    const stop = () => {
+      cancelAnimationFrame(raf);
+      ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(ev => window.removeEventListener(ev, stop));
+      stopPlay.current = null;
+    };
+    const step = (now: number) => {
+      const x = clamp01((now - t0) / dur);
+      el.scrollTop = from + (to - from) * autoplayEase(x);
+      if (x < 1) raf = requestAnimationFrame(step); else stop();
+    };
+    // erst nach dem Klick selbst auf Abbruch hören
+    requestAnimationFrame(() => ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, stop, { passive: true })));
+    raf = requestAnimationFrame(step);
+    stopPlay.current = stop;
+  }, []);
+  useEffect(() => () => stopPlay.current?.(), []);
 
   return (
     <div ref={scroller} data-tracker-scroller className="fixed inset-0 overflow-y-auto overflow-x-hidden no-scrollbar" style={{ overscrollBehavior: 'none' }}>
@@ -140,14 +184,14 @@ export default function TrackerStory() {
           <LogoLockup />
         </Link>
 
-        {st && <Stage p={st.p} vw={st.vw} vh={st.vh} loc={loc} />}
+        {st && <Stage p={st.p} vw={st.vw} vh={st.vh} loc={loc} onPlay={play} />}
       </div>
     </main>
     </div>
   );
 }
 
-function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: string }) {
+function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; loc: string; onPlay: () => void }) {
   // Maßstab: Handy (mit Rand) passt ins Fenster
   const { s, ox, oy } = geom(vw, vh);
   const sideRoom = (vw / s - SCREEN_W) / 2 - BEZEL;
@@ -227,7 +271,6 @@ function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: str
   };
 
   const hintIn = 1 - seg(p, P.hintOut);
-  const hint2 = seg(p, [0.08, 0.12]) * (1 - (wide ? seg(p, [0.86, 0.9]) : seg(p, [0.62, 0.66])));
 
   return (
     <>
@@ -292,10 +335,16 @@ function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: str
           <span className="absolute inset-0 rounded-full trk-pulse" style={{ border: `2px solid ${LIME}` }} />
         </span>
 
-        {/* „Scrollen ↓“ unter dem Punkt (Szene 1) */}
-        <div className="absolute flex flex-col items-center gap-2 pointer-events-none" style={{ left: 205.5 - 100, width: 200, top: 540, opacity: hintIn }}>
+        {/* „Scrollen ↓“ unter dem Punkt (Szene 1) – verschwindet, sobald es losgeht.
+            Darunter die Alternative für alle, die nicht scrollen wollen. */}
+        <div className="absolute flex flex-col items-center gap-2" style={{ left: 205.5 - 120, width: 240, top: 540, opacity: hintIn, pointerEvents: hintIn > 0.5 ? 'auto' : 'none' }}>
           <span style={{ fontFamily: MONO, fontSize: 14, letterSpacing: 3, color: '#d9dce1', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
           <svg width="16" height="22" viewBox="0 0 16 22" aria-hidden className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#d9dce1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <button type="button" onClick={onPlay} tabIndex={hintIn > 0.5 ? 0 : -1}
+            className="mt-3 px-3 py-2 underline underline-offset-4 decoration-1 hover:text-white transition-colors"
+            style={{ fontSize: 13, color: '#9aa0a8', background: 'none', border: 'none', cursor: 'pointer' }}>
+            {t('Animation abspielen')}
+          </button>
         </div>
 
         {/* Daten-Karten */}
@@ -320,12 +369,6 @@ function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: str
             )}
           </div>
         ))}
-      </div>
-
-      {/* Scroll-Hinweis unten, solange noch etwas kommt */}
-      <div aria-hidden className="absolute left-1/2 -translate-x-1/2 bottom-4 flex items-center gap-2 pointer-events-none" style={{ opacity: hint2 * 0.75 }}>
-        <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: 2.5, color: '#c9ccd2', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
-        <svg width="12" height="16" viewBox="0 0 16 22" className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#c9ccd2" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </div>
 
       <style>{`
