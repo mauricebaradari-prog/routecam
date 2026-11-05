@@ -9,7 +9,8 @@
 //  4  Distanz + Laufzeit kommen dazu, die ersten werden scharf
 //  5  GPS-Zeit + Höhe, alles rückt zusammen
 //  6  Kontur des Smartphones entsteht, Lichtblitz, Kamera zoomt auf die ganze Strecke
-//  7  Karten fliegen in ihre Plätze – am Ende steht 1:1 der Tracker-Screen, Knopf „App Download“
+//  7  Karten fliegen in ihre Plätze – am Ende steht 1:1 der Tracker-Screen, Knopf „App Download“,
+//     dahinter groß und leise „DEIN GPS TRACKER“
 //
 // Koordinaten: „Welt“ = dp des Tracker-Bildschirms (411 × 915), skaliert auf das Fenster.
 
@@ -43,6 +44,7 @@ const P = {
   card: [0.74, 0.82],
   header: [0.76, 0.84],
   cta: [0.9, 0.97],
+  title: [0.86, 0.98],
 } as const;
 
 type CardKey = 'ele' | 'speed' | 'dist' | 'time' | 'gpsTime' | 'gps';
@@ -271,9 +273,19 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
   };
 
   const hintIn = 1 - seg(p, P.hintOut);
+  // Endbild: groß und leise hinter dem Handy
+  const titleIn = easeOut(seg(p, P.title));
+  const titleSize = Math.min(vw * 0.155, vh * 0.3);
 
   return (
     <>
+      <h1 className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
+        top: '50%', transform: `translateY(calc(-50% + ${(1 - titleIn) * 40}px))`, opacity: titleIn,
+        fontSize: titleSize, lineHeight: 0.92, fontWeight: 900, letterSpacing: '-0.02em', textTransform: 'uppercase',
+        color: 'rgba(226, 229, 234, 0.09)', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
+      }}>
+        {t('Dein GPS')}<br />{t('Tracker')}
+      </h1>
       <div className="absolute left-0 top-0" style={{ transform: `translate(${ox}px, ${oy}px) scale(${s})`, transformOrigin: '0 0', width: SCREEN_W, height: SCREEN_H }}>
         {/* Handy-Gehäuse (Android, schlicht) */}
         <svg aria-hidden className="absolute" style={{ left: -BEZEL - 2, top: -BEZEL - 2, overflow: 'visible' }} width={SCREEN_W + 2 * BEZEL + 4} height={SCREEN_H + 2 * BEZEL + 4}>
