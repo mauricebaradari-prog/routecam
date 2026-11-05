@@ -479,18 +479,5 @@
 "Dein GPS": "GPS",
 "Tracker": "Takipçin",
 "Mehr erfahren": "Daha fazla bilgi",
-"Nur für Android": "Yalnızca Android için",
-"Scrollen": "Kaydır",
-"Zurück zu RouteCam": "RouteCam’e dön",
-"App Download": "Uygulamayı indir",
-"Bereit": "Hazır",
-"Höhe": "Rakım",
-"Laufzeit": "Süre",
-"GPS-Zeit": "GPS saati",
-"GPS-Status": "GPS durumu",
-"Animation abspielen": "Animasyonu oynat",
-"GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.": "GPX; takip uygulamaları, navigasyon cihazları ve spor saatlerinin standardıdır. Tracker her nokta için GPS saatini kaydeder – böylece konum videoyla saniyesi saniyesine örtüşür.",
-"Auf die Sekunde synchron.": "Saniyesi saniyesine senkron.",
-"Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Damit legt RouteCam Video und Strecke sekundengenau übereinander.": "RouteCam Tracker sürüşünü her saniye kaydeder – konum, rakım ve hız, her biri tam GPS saatiyle. Böylece RouteCam videoyu ve rotayı saniyesi saniyesine eşler.",
-"Starte dein\nAbenteuer": "Maceranı\nbaşlat"
+"Nur für Android": "Yalnızca Android için"
 }

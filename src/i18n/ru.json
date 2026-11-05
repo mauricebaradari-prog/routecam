@@ -479,18 +479,5 @@
 "Dein GPS": "Твой GPS",
 "Tracker": "трекер",
 "Mehr erfahren": "Подробнее",
-"Nur für Android": "Только для Android",
-"Scrollen": "Прокрутите",
-"Zurück zu RouteCam": "Назад в RouteCam",
-"App Download": "Скачать приложение",
-"Bereit": "Готово",
-"Höhe": "Высота",
-"Laufzeit": "Время в пути",
-"GPS-Zeit": "Время GPS",
-"GPS-Status": "Статус GPS",
-"Animation abspielen": "Воспроизвести анимацию",
-"GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.": "GPX — стандарт трекинговых приложений, навигаторов и спортивных часов. Трекер сохраняет время GPS для каждой точки — так положение совпадает с видео до секунды.",
-"Auf die Sekunde synchron.": "Синхронно до секунды.",
-"Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Damit legt RouteCam Video und Strecke sekundengenau übereinander.": "RouteCam Tracker записывает поездку каждую секунду — положение, высоту и скорость, всегда с точным временем GPS. Благодаря этому RouteCam совмещает видео и маршрут с точностью до секунды.",
-"Starte dein\nAbenteuer": "Начни своё\nприключение"
+"Nur für Android": "Только для Android"
 }

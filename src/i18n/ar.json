@@ -479,18 +479,5 @@
 "Dein GPS": "متتبع",
 "Tracker": "GPS الخاص بك",
 "Mehr erfahren": "اعرف المزيد",
-"Nur für Android": "لنظام Android فقط",
-"Scrollen": "مرّر",
-"Zurück zu RouteCam": "العودة إلى RouteCam",
-"App Download": "تنزيل التطبيق",
-"Bereit": "جاهز",
-"Höhe": "الارتفاع",
-"Laufzeit": "المدة",
-"GPS-Zeit": "توقيت GPS",
-"GPS-Status": "حالة GPS",
-"Animation abspielen": "تشغيل الرسوم المتحركة",
-"GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.": "GPX هو المعيار المستخدم في تطبيقات التتبع وأجهزة الملاحة والساعات الرياضية. يحفظ المتتبع توقيت GPS لكل نقطة، فيتطابق الموقع مع الفيديو بدقة الثانية.",
-"Auf die Sekunde synchron.": "متزامن بدقة الثانية.",
-"Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Damit legt RouteCam Video und Strecke sekundengenau übereinander.": "يسجّل RouteCam Tracker رحلتك كل ثانية: الموقع والارتفاع والسرعة، مع توقيت GPS الدقيق لكل منها. وبذلك يطابق RouteCam الفيديو والمسار بدقة الثانية.",
-"Starte dein\nAbenteuer": "ابدأ\nمغامرتك"
+"Nur für Android": "لنظام Android فقط"
 }

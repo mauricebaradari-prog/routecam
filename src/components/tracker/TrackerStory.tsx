@@ -21,8 +21,8 @@ import TrackerScreen, { LogoDefs, SCREEN_W, SCREEN_H, TARGETS, type Parts } from
 import { PTS, ROUTE_ORIGIN, headAt, RIDE_START_UTC_S, RIDE_TZ_OFFSET_S, AVG_KMH } from './rideData';
 import LogoLockup from '@/components/LogoLockup';
 import { FileBadge } from '@/components/GeoFilesHelp';
-import { t, useT, locale } from '@/lib/i18n';
-import { k } from '@/lib/i18nKey';
+import { useT, currentLang } from '@/lib/i18n';
+import { tx } from './copy';
 
 /** Ziel des Download-Knopfs – kommt später (Play Store oder APK). */
 export const APP_DOWNLOAD_HREF: string | null = null;
@@ -62,12 +62,12 @@ type CardDef = {
   Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>;
 };
 const CARDS: CardDef[] = [
-  { key: 'gps', side: -1, row: 0, enter: [0.005, 0.05], fly: [0.86, 0.94], target: 'pill', part: 'pill', extraPart: 'tileGps', label: k('GPS-Status'), Icon: SatelliteDish },
-  { key: 'speed', side: 1, row: 0, enter: [0.02, 0.07], fly: [0.84, 0.92], target: 'tileSpeed', part: 'tileSpeed', label: k('Tempo'), Icon: Gauge },
-  { key: 'dist', side: -1, row: 1, enter: [0.07, 0.12], fly: [0.82, 0.9], target: 'tileDist', part: 'tileDist', label: k('Distanz'), Icon: Route },
-  { key: 'time', side: 1, row: 1, enter: [0.09, 0.14], fly: [0.78, 0.86], target: 'timer', part: 'timer', label: k('Laufzeit'), Icon: Timer },
-  { key: 'gpsTime', side: -1, row: 2, enter: [0.14, 0.19], fly: [0.8, 0.88], target: 'gpsTime', part: 'gpsTime', label: k('GPS-Zeit'), Icon: Satellite },
-  { key: 'ele', side: 1, row: 2, enter: [0.16, 0.21], fly: [0.8, 0.88], target: 'profile', part: 'profile', label: k('Höhe'), Icon: Mountain },
+  { key: 'gps', side: -1, row: 0, enter: [0.005, 0.05], fly: [0.86, 0.94], target: 'pill', part: 'pill', extraPart: 'tileGps', label: 'GPS-Status', Icon: SatelliteDish },
+  { key: 'speed', side: 1, row: 0, enter: [0.02, 0.07], fly: [0.84, 0.92], target: 'tileSpeed', part: 'tileSpeed', label: 'Tempo', Icon: Gauge },
+  { key: 'dist', side: -1, row: 1, enter: [0.07, 0.12], fly: [0.82, 0.9], target: 'tileDist', part: 'tileDist', label: 'Distanz', Icon: Route },
+  { key: 'time', side: 1, row: 1, enter: [0.09, 0.14], fly: [0.78, 0.86], target: 'timer', part: 'timer', label: 'Laufzeit', Icon: Timer },
+  { key: 'gpsTime', side: -1, row: 2, enter: [0.14, 0.19], fly: [0.8, 0.88], target: 'gpsTime', part: 'gpsTime', label: 'GPS-Zeit', Icon: Satellite },
+  { key: 'ele', side: 1, row: 2, enter: [0.16, 0.21], fly: [0.8, 0.88], target: 'profile', part: 'profile', label: 'Höhe', Icon: Mountain },
 ];
 // Schärfe: jede Karte kommt unscharf; scharf wird sie, wenn die nächste Welle kommt
 const SHARPEN: Record<number, [number, number]> = { 0: [0.07, 0.13], 1: [0.14, 0.2], 2: [0.21, 0.27] };
@@ -196,7 +196,7 @@ export default function TrackerStory() {
   const st = useScrollStage(scroller);
   const stage = useRef<HTMLDivElement>(null);
   useCursorDepth(stage);
-  const loc = locale();
+  const loc = currentLang() === 'de' ? 'de-DE' : 'en-GB'; // Zahlen passend zur Seitensprache (de/en)
   const stopPlay = useRef<(() => void) | null>(null);
 
   // „Animation abspielen“: scrollt selbst bis ans Ende und bremst dort ab.
@@ -234,7 +234,7 @@ export default function TrackerStory() {
         style={{ ...dotGrid(st), ['--pk' as string]: st ? easeIO(seg(st.p, P.parallax)).toFixed(3) : '0' }}>
 
         {/* auf schmalen Fenstern füllt das Handy am Ende den Bildschirm – dann tritt das Logo zurück */}
-        <Link href="/" className="absolute left-4 top-4 md:left-6 md:top-5 z-20 hover:!opacity-100 transition-opacity" aria-label={t('Zurück zu RouteCam')}
+        <Link href="/" className="absolute left-4 top-4 md:left-6 md:top-5 z-20 hover:!opacity-100 transition-opacity" aria-label={tx('Zurück zu RouteCam')}
           style={{ opacity: 0.8 * (st && st.vw < 768 ? 1 - seg(st.p, [0.64, 0.7]) : 1), pointerEvents: st && st.vw < 768 && st.p > 0.7 ? 'none' : undefined }}>
           <LogoLockup />
         </Link>
@@ -266,10 +266,10 @@ function IntroText({ className = '' }: { className?: string }) {
   return (
     <div className={className}>
       <h2 className="m-0 mb-3" style={{ color: LIME, fontSize: 26, lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.01em' }}>
-        {t('Auf die Sekunde synchron.')}
+        {tx('Auf die Sekunde synchron.')}
       </h2>
       <p className="m-0 text-white" style={{ fontSize: 17, lineHeight: 1.6, letterSpacing: 0.1 }}>
-        {t('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Damit legt RouteCam Video und Strecke sekundengenau übereinander.')}
+        {tx('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Damit legt RouteCam Video und Strecke sekundengenau übereinander.')}
       </p>
     </div>
   );
@@ -281,7 +281,7 @@ function GpxCard() {
     <div className="flex flex-col gap-4">
       <FileBadge ext="gpx" solid size={52} />
       <p className="m-0 leading-relaxed text-white/70" style={{ fontSize: 15 }}>
-        {t('GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.')}
+        {tx('GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.')}
       </p>
     </div>
   );
@@ -400,13 +400,13 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
 
   return (
     <>
-      <h1 className="sr-only">{t('Starte dein\nAbenteuer')}</h1>
-      {startVisible && <ParticleTitle text={t('Starte dein\nAbenteuer')} size={titleSize} scrollY={scrollY} vw={vw} vh={vh} cy={oy + START_Y * s} />}
+      <h1 className="sr-only">{tx('Starte dein\nAbenteuer')}</h1>
+      {startVisible && <ParticleTitle text={tx('Starte dein\nAbenteuer')} size={titleSize} scrollY={scrollY} vw={vw} vh={vh} cy={oy + START_Y * s} />}
       <div aria-hidden className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
         ...bigTitle, top: '50%', opacity: titleIn,
         transform: `translate(calc(${-DEPTH.far}px * var(--mx, 0) * var(--pk, 0)), calc(-50% + ${(1 - titleIn) * 40}px - ${DEPTH.far * 0.7}px * var(--my, 0) * var(--pk, 0)))`,
       }}>
-        {t('Dein GPS')}<br />{t('Tracker')}
+        {tx('Dein GPS')}<br />{tx('Tracker')}
       </div>
       <div className="absolute left-0 top-0" style={{
         transform: `translate(${ox}px, ${oy}px) scale(${s}) translate(${SCREEN_W / 2}px, ${SCREEN_H / 2}px) perspective(1600px) rotateY(calc(${DEPTH.tilt}deg * var(--mx, 0) * var(--pk, 0))) rotateX(calc(${-DEPTH.tilt * 0.8}deg * var(--my, 0) * var(--pk, 0))) translate(${-SCREEN_W / 2}px, ${-SCREEN_H / 2}px)`,
@@ -433,7 +433,7 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
 
         {/* der Tracker-Screen selbst; Bereiche blenden nach und nach ein */}
         <div className="absolute left-0 top-0" style={{ width: SCREEN_W, height: SCREEN_H, borderRadius: 36, overflow: 'hidden' }}>
-          <TrackerScreen parts={parts} ctaLabel={t('App Download')} ctaHref={APP_DOWNLOAD_HREF} ctaClassName={(parts.cta ?? 0) >= 1 ? 'trk-cta-pulse' : ''} />
+          <TrackerScreen parts={parts} ctaLabel={tx('App Download')} ctaHref={APP_DOWNLOAD_HREF} ctaClassName={(parts.cta ?? 0) >= 1 ? 'trk-cta-pulse' : ''} />
         </div>
 
         {/* Spiegelung auf dem Display: erscheint, wenn der Zeiger nach links oben geht (Licht von dort) */}
@@ -459,7 +459,7 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
           left: 0, width: SCREEN_W, top: SCREEN_H + BEZEL + 18, fontSize: 13, letterSpacing: 0.3, color: '#7d828c',
           opacity: parts.cta ?? 0, fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
         }}>
-          {t('Nur für Android')}
+          {tx('Nur für Android')}
         </p>
 
         {/* weiches Aufleuchten um den Punkt, wenn das Handy entsteht */}
@@ -505,7 +505,7 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
           <span className="absolute inset-0 rounded-full trk-pulse" style={{ border: `2px solid ${LIME}` }} />
         </span>
         {startBig > 0.05 && (
-          <button type="button" onClick={onPlay} aria-label={t('Animation abspielen')} tabIndex={startBig > 0.5 ? 0 : -1}
+          <button type="button" onClick={onPlay} aria-label={tx('Animation abspielen')} tabIndex={startBig > 0.5 ? 0 : -1}
             className="absolute rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
             style={{ left: hx - dotR, top: hy - dotR, width: dotR * 2, height: dotR * 2, background: 'transparent', border: 'none', padding: 0, pointerEvents: startBig > 0.5 ? 'auto' : 'none' }}>
             <svg width={dotR * 0.8} height={dotR * 0.8} viewBox="0 0 24 24" aria-hidden style={{ opacity: startBig, marginLeft: dotR * 0.1 }}>
@@ -524,13 +524,13 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
             padding: wide ? '14px 16px' : '11px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           }}>
             <div className="flex items-center justify-between">
-              <span style={{ fontSize: wide ? 11 : 9.5, fontWeight: 600, letterSpacing: 1.6, color: '#9aa0a8', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{t(c.label)}</span>
+              <span style={{ fontSize: wide ? 11 : 9.5, fontWeight: 600, letterSpacing: 1.6, color: '#9aa0a8', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{tx(c.label)}</span>
               <c.Icon size={wide ? 20 : 16} strokeWidth={1.8} color={LIME} />
             </div>
             {c.key === 'gps' ? (
               // GPS ist von Anfang an bereit – ohne GPS keine Aufzeichnung
               <span className="flex items-center gap-2" style={{ fontFamily: MONO, fontSize: wide ? 24 : 19, fontWeight: 700, color: LIME, lineHeight: 1 }}>
-                {t('Bereit')}
+                {tx('Bereit')}
                 <span className="inline-flex items-center justify-center rounded-full" style={{ width: wide ? 20 : 16, height: wide ? 20 : 16, background: LIME }}><Check size={wide ? 13 : 11} strokeWidth={3.2} color="#000" /></span>
               </span>
             ) : (
@@ -543,7 +543,7 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
       {/* „Scrollen ↓“ am unteren Fensterrand – verschwindet, sobald es losgeht.
           Wer nicht scrollen will, tippt auf den Punkt (Play). */}
       <div aria-hidden className="absolute left-1/2 -translate-x-1/2 bottom-6 md:bottom-8 z-20 flex flex-col items-center gap-2 pointer-events-none" style={{ opacity: hintIn }}>
-        <span style={{ fontFamily: MONO, fontSize: 13, letterSpacing: 3, color: '#d9dce1', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
+        <span style={{ fontFamily: MONO, fontSize: 13, letterSpacing: 3, color: '#d9dce1', textTransform: 'uppercase' }}>{tx('Scrollen')}</span>
         <svg width="16" height="22" viewBox="0 0 16 22" aria-hidden className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#d9dce1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </div>
 
