@@ -61,10 +61,12 @@ export function useClock() {
 const hms = (d: Date | null) => d ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--';
 const hm = (d: Date | null) => d ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '--:--';
 
-export default function TrackerScreen({ parts = {}, ctaLabel, ctaHref }: {
+export default function TrackerScreen({ parts = {}, ctaLabel, ctaHref, ctaClassName = '' }: {
   parts?: Parts;
   ctaLabel: string;
   ctaHref?: string | null;
+  /** zusätzliche Klasse für den großen Knopf (z. B. Puls im Onepager) */
+  ctaClassName?: string;
 }) {
   const now = useClock();
   const o = (k: ScreenPart): React.CSSProperties => {
@@ -198,8 +200,8 @@ export default function TrackerScreen({ parts = {}, ctaLabel, ctaHref }: {
           letterSpacing: 0.6, textTransform: 'uppercase', textDecoration: 'none', border: 'none', fontFamily: SANS, cursor: 'pointer', ...o('cta'),
         };
         return ctaHref
-          ? <a className="absolute" href={ctaHref} style={style}>{inner}</a>
-          : <button type="button" className="absolute" style={style}>{inner}</button>;
+          ? <a className={`absolute ${ctaClassName}`} href={ctaHref} style={style}>{inner}</a>
+          : <button type="button" className={`absolute ${ctaClassName}`} style={style}>{inner}</button>;
       })()}
 
     </div>

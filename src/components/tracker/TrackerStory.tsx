@@ -309,7 +309,7 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
 
         {/* der Tracker-Screen selbst; Bereiche blenden nach und nach ein */}
         <div className="absolute left-0 top-0" style={{ width: SCREEN_W, height: SCREEN_H, borderRadius: 36, overflow: 'hidden' }}>
-          <TrackerScreen parts={parts} ctaLabel={t('App Download')} ctaHref={APP_DOWNLOAD_HREF} />
+          <TrackerScreen parts={parts} ctaLabel={t('App Download')} ctaHref={APP_DOWNLOAD_HREF} ctaClassName={(parts.cta ?? 0) >= 1 ? 'trk-cta-pulse' : ''} />
         </div>
 
         {/* Hinweis unter dem Handy, kommt mit dem Download-Knopf */}
@@ -405,7 +405,11 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
         @keyframes trkBob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(5px) } }
         .trk-pulse { animation: trkPulse 1.8s ease-out infinite; }
         .trk-bob { animation: trkBob 1.6s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) { .trk-pulse, .trk-bob { animation: none } }
+        /* Download-Knopf pulsiert sanft, sobald der Screen fertig ist */
+        @keyframes trkCta { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204,255,0,.55) } 50% { transform: scale(1.025) } 70% { box-shadow: 0 0 0 12px rgba(204,255,0,0) } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204,255,0,0) } }
+        .trk-cta-pulse { animation: trkCta 1.8s ease-in-out infinite; }
+        .trk-cta-pulse:hover { animation-play-state: paused; }
+        @media (prefers-reduced-motion: reduce) { .trk-pulse, .trk-bob, .trk-cta-pulse { animation: none } }
       `}</style>
     </>
   );
