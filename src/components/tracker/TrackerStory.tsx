@@ -312,6 +312,14 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
           <TrackerScreen parts={parts} ctaLabel={t('App Download')} ctaHref={APP_DOWNLOAD_HREF} />
         </div>
 
+        {/* Hinweis unter dem Handy, kommt mit dem Download-Knopf */}
+        <p className="absolute m-0 text-center whitespace-nowrap" style={{
+          left: 0, width: SCREEN_W, top: SCREEN_H + BEZEL + 18, fontSize: 13, letterSpacing: 0.3, color: '#7d828c',
+          opacity: parts.cta ?? 0, fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
+        }}>
+          {t('Nur für Android')}
+        </p>
+
         {/* weiches Aufleuchten um den Punkt, wenn das Handy entsteht */}
         {flash > 0.001 && (
           <svg aria-hidden className="absolute pointer-events-none" style={{ left: hx - 260, top: hy - 260, opacity: flash }} width="520" height="520" viewBox="-260 -260 520 520">
