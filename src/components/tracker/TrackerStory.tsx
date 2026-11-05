@@ -30,6 +30,8 @@ export const APP_DOWNLOAD_HREF: string | null = null;
 const LIME = '#CCFF00';
 const MONO = 'var(--font-geist-mono), ui-monospace, monospace';
 const BEZEL = 9;
+/** Höhe (Screen-dp) des Startpunkts und Kamera-Anker, solange der Punkt fährt */
+const START_Y = SCREEN_H / 2 + 43;
 /** Anteil des Fensters, den das Handy (mit Rand) höchstens einnimmt */
 const PHONE_FILL = 0.8;
 /** Scrollhöhe der ganzen Geschichte in Fensterhöhen */
@@ -315,7 +317,7 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
   const head = headAt(routeFrac);
   const cam = easeIO(seg(p, P.cam));
   const zoom = lerp(2.6, 1, cam);
-  const anchor = { x: lerp(205.5, head.x, cam), y: lerp(SCREEN_H / 2 + 43, head.y, cam) };
+  const anchor = { x: lerp(205.5, head.x, cam), y: lerp(START_Y, head.y, cam) };
   const T = (x: number, y: number) => [anchor.x + (x - head.x) * zoom, anchor.y + (y - head.y) * zoom] as const;
 
   const routePath = useMemo(() => {
@@ -399,7 +401,7 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
   return (
     <>
       <h1 className="sr-only">{t('Starte dein\nAbenteuer')}</h1>
-      {startVisible && <ParticleTitle text={t('Starte dein\nAbenteuer')} size={titleSize} scrollY={scrollY} vw={vw} vh={vh} />}
+      {startVisible && <ParticleTitle text={t('Starte dein\nAbenteuer')} size={titleSize} scrollY={scrollY} vw={vw} vh={vh} cy={oy + START_Y * s} />}
       <div aria-hidden className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
         ...bigTitle, top: '50%', opacity: titleIn,
         transform: `translate(calc(${-DEPTH.far}px * var(--mx, 0) * var(--pk, 0)), calc(-50% + ${(1 - titleIn) * 40}px - ${DEPTH.far * 0.7}px * var(--my, 0) * var(--pk, 0)))`,
@@ -576,13 +578,17 @@ function setTitleFont(g: CanvasRenderingContext2D, lines: string[], size: number
   const px = widest > vw * 0.94 ? size * (vw * 0.94) / widest : size;
   apply(px);
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  return px;
+  // 'middle' meint die Mitte des Schriftkegels, nicht der Großbuchstaben – so weit liegen diese tiefer
+  const m = g.measureText('H');
+  const capShift = (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+  return { px, capShift };
 }
 
-function ParticleTitle({ text, size, scrollY, vw, vh }: { text: string; size: number; scrollY: number; vw: number; vh: number }) {
+/** cy = Höhe (px), auf der die Lücke zwischen den beiden Zeilen liegt – dort sitzt der Startpunkt. */
+function ParticleTitle({ text, size, scrollY, vw, vh, cy }: { text: string; size: number; scrollY: number; vw: number; vh: number; cy: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [particles, setParticles] = useState<{ pts: Particle[]; key: string } | null>(null);
-  const key = `${text}|${Math.round(size)}|${vw}|${vh}`;
+  const key = `${text}|${Math.round(size)}|${vw}|${vh}|${Math.round(cy)}`;
 
   // Kontur einmal zeichnen und abtasten (nach dem Laden der Schrift, bei Größen- oder Sprachwechsel neu)
   useEffect(() => {
@@ -595,16 +601,16 @@ function ParticleTitle({ text, size, scrollY, vw, vh }: { text: string; size: nu
       const g = off.getContext('2d', { willReadFrequently: true });
       if (!g) return;
       const lines = text.toUpperCase().split('\n');
-      const px = setTitleFont(g, lines, size, vw);
+      const { px, capShift } = setTitleFont(g, lines, size, vw);
       g.lineWidth = 3; g.strokeStyle = '#fff';
       const lh = px * 0.92;
-      lines.forEach((ln, i) => g.strokeText(ln, vw / 2, vh / 2 + (i - (lines.length - 1) / 2) * lh));
+      lines.forEach((ln, i) => g.strokeText(ln, vw / 2, cy + capShift + (i - (lines.length - 1) / 2) * lh));
       const data = g.getImageData(0, 0, vw, vh).data;
       const step = vw < 700 ? 2 : 3;
       const pts: Particle[] = [];
       for (let y = 0; y < vh; y += step) for (let x = 0; x < vw; x += step) {
         if (data[(y * vw + x) * 4 + 3] < 110) continue;
-        const line = y < vh / 2 ? 0 : 1;
+        const line = y < cy ? 0 : 1;
         const dir = line === 0 ? 1 : -1;
         // vordere Kante zuerst: oben rechts (wandert nach rechts), unten links (wandert nach links)
         const lead = line === 0 ? x / vw : 1 - x / vw;
@@ -614,7 +620,7 @@ function ParticleTitle({ text, size, scrollY, vw, vh }: { text: string; size: nu
       if (!cancelled) setParticles({ pts, key });
     })();
     return () => { cancelled = true; };
-  }, [key, text, size, vw, vh]);
+  }, [key, text, size, vw, vh, cy]);
 
   // je Scrollstand neu zeichnen
   useEffect(() => {
@@ -634,9 +640,10 @@ function ParticleTitle({ text, size, scrollY, vw, vh }: { text: string; size: nu
     const crisp = 1 - clamp01(q / 0.04);
     if (crisp > 0 || !particles) {
       g.globalAlpha = particles ? crisp : 1;
-      const lh = setTitleFont(g, lines, size, vw) * 0.92;
+      const { px, capShift } = setTitleFont(g, lines, size, vw);
+      const lh = px * 0.92;
       g.lineWidth = 3; g.strokeStyle = 'rgba(226, 229, 234, 0.16)';
-      lines.forEach((ln, i) => g.strokeText(ln, vw / 2 + shift(i), vh / 2 + (i - (lines.length - 1) / 2) * lh - scrollY));
+      lines.forEach((ln, i) => g.strokeText(ln, vw / 2 + shift(i), cy + capShift + (i - (lines.length - 1) / 2) * lh - scrollY));
       g.globalAlpha = 1;
     }
     if (!particles || particles.key !== key || q <= 0) return;
@@ -655,7 +662,7 @@ function ParticleTitle({ text, size, scrollY, vw, vh }: { text: string; size: nu
       const r = d > 0 ? 1.6 : 1.3;
       g.fillRect(x, y, r, r);
     }
-  }, [scrollY, vw, vh, size, text, particles, key]);
+  }, [scrollY, vw, vh, size, text, particles, key, cy]);
 
   return <canvas ref={canvas} aria-hidden className="absolute left-0 top-0 pointer-events-none" style={{ width: vw, height: vh }} />;
 }
