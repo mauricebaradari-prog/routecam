@@ -271,7 +271,9 @@ function Stage({ p, vw, vh, loc }: { p: number; vw: number; vh: number; loc: str
               <stop offset="0.2" stopColor={LIME} />
               <stop offset="1" stopColor={LIME} />
             </linearGradient>
-            <filter id="trk-glow" x="-50%" y="-50%" width="200%" height="200%">
+            {/* feste Fläche statt Anteil der Linienbreite: am Anfang ist die Route fast senkrecht und
+                nur wenige Pixel breit – ein relativer Bereich schnitte den Schein links und rechts ab */}
+            <filter id="trk-glow" filterUnits="userSpaceOnUse" x="-3000" y="-3000" width="7000" height="8000">
               <feGaussianBlur stdDeviation={lerp(7, 4.6, cam)} />
             </filter>
           </defs>
