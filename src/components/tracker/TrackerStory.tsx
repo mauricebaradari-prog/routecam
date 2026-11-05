@@ -41,6 +41,7 @@ const P = {
   route: [0.01, 0.6],
   cam: [0.6, 0.76],
   outline: [0.62, 0.72],
+  outlineFade: [0.72, 0.84],
   body: [0.68, 0.75],
   flash: [0.68, 0.8],
   chrome: [0.72, 0.79],
@@ -379,9 +380,12 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
         <svg aria-hidden className="absolute" style={{ left: -BEZEL - 2, top: -BEZEL - 2, overflow: 'visible' }} width={SCREEN_W + 2 * BEZEL + 4} height={SCREEN_H + 2 * BEZEL + 4}>
           <rect x="2" y="2" width={SCREEN_W + 2 * BEZEL} height={SCREEN_H + 2 * BEZEL} rx="46" fill="#0d0d0e" opacity={body} />
           <rect x={2 + BEZEL} y={2 + BEZEL} width={SCREEN_W} height={SCREEN_H} rx="36" fill="#000" opacity={body} />
+          {/* dezente Kante des fertigen Gehäuses */}
+          <rect x="2" y="2" width={SCREEN_W + 2 * BEZEL} height={SCREEN_H + 2 * BEZEL} rx="46" fill="none" stroke="#2c2d30" strokeWidth="1.5" opacity={body} />
+          {/* neongrüne Kontur, die das Handy zeichnet – danach weich ausblenden statt abrupt */}
           <rect x="2" y="2" width={SCREEN_W + 2 * BEZEL} height={SCREEN_H + 2 * BEZEL} rx="46" fill="none"
-            stroke={body > 0.5 ? '#2c2d30' : LIME} strokeOpacity={body > 0.5 ? 1 : 0.9} strokeWidth={body > 0.5 ? 1.5 : 2.2}
-            pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - outline} opacity={outline > 0 ? 1 : 0} />
+            stroke={LIME} strokeOpacity={0.9} strokeWidth={2.2}
+            pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - outline} opacity={outline > 0 ? 1 - easeIO(seg(p, P.outlineFade)) : 0} />
           {/* Seitentasten */}
           <rect x={SCREEN_W + 2 * BEZEL + 1} y="190" width="3" height="70" rx="1.5" fill="#1d1e21" opacity={body} />
           <rect x={SCREEN_W + 2 * BEZEL + 1} y="290" width="3" height="44" rx="1.5" fill="#1d1e21" opacity={body} />
