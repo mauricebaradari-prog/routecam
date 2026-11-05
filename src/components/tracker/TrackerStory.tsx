@@ -29,6 +29,8 @@ export const APP_DOWNLOAD_HREF: string | null = null;
 const LIME = '#CCFF00';
 const MONO = 'var(--font-geist-mono), ui-monospace, monospace';
 const BEZEL = 9;
+/** Anteil des Fensters, den das Handy (mit Rand) höchstens einnimmt */
+const PHONE_FILL = 0.8;
 /** Scrollhöhe der ganzen Geschichte in Fensterhöhen */
 const STORY_VH = 760;
 
@@ -86,7 +88,7 @@ const CARD_BG = '#0c0d11';
 const DOT = '#16171b';
 const DOT_STEP = 20.9; // dp, wie in der App
 function geom(vw: number, vh: number) {
-  const s = Math.min((vh * 0.94) / (SCREEN_H + 2 * BEZEL), (vw * 0.94) / (SCREEN_W + 2 * BEZEL));
+  const s = Math.min((vh * PHONE_FILL) / (SCREEN_H + 2 * BEZEL), (vw * PHONE_FILL) / (SCREEN_W + 2 * BEZEL));
   return { s, ox: (vw - SCREEN_W * s) / 2, oy: (vh - SCREEN_H * s) / 2 };
 }
 function dotGrid(st: { y: number; vw: number; vh: number; max: number } | null): React.CSSProperties {
