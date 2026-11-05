@@ -34,7 +34,7 @@ const STORY_VH = 760;
 // ── Zeitplan (Anteil am Scrollweg) ────────────────────────────────────────────
 const P = {
   hintOut: [0.004, 0.035],
-  route: [0.04, 0.6],
+  route: [0.01, 0.6],
   cam: [0.6, 0.76],
   outline: [0.62, 0.72],
   body: [0.68, 0.75],
@@ -52,15 +52,15 @@ type CardDef = {
   Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>;
 };
 const CARDS: CardDef[] = [
-  { key: 'gps', side: -1, row: 0, enter: [0.05, 0.13], fly: [0.86, 0.94], target: 'pill', part: 'pill', extraPart: 'tileGps', label: k('GPS-Status'), Icon: SatelliteDish },
-  { key: 'speed', side: 1, row: 0, enter: [0.08, 0.16], fly: [0.84, 0.92], target: 'tileSpeed', part: 'tileSpeed', label: k('Tempo'), Icon: Gauge },
-  { key: 'dist', side: -1, row: 1, enter: [0.16, 0.24], fly: [0.82, 0.9], target: 'tileDist', part: 'tileDist', label: k('Distanz'), Icon: Route },
-  { key: 'time', side: 1, row: 1, enter: [0.19, 0.27], fly: [0.78, 0.86], target: 'timer', part: 'timer', label: k('Laufzeit'), Icon: Timer },
-  { key: 'gpsTime', side: -1, row: 2, enter: [0.27, 0.35], fly: [0.8, 0.88], target: 'gpsTime', part: 'gpsTime', label: k('GPS-Zeit'), Icon: Satellite },
-  { key: 'ele', side: 1, row: 2, enter: [0.3, 0.38], fly: [0.8, 0.88], target: 'profile', part: 'profile', label: k('Höhe'), Icon: Mountain },
+  { key: 'gps', side: -1, row: 0, enter: [0.005, 0.05], fly: [0.86, 0.94], target: 'pill', part: 'pill', extraPart: 'tileGps', label: k('GPS-Status'), Icon: SatelliteDish },
+  { key: 'speed', side: 1, row: 0, enter: [0.02, 0.07], fly: [0.84, 0.92], target: 'tileSpeed', part: 'tileSpeed', label: k('Tempo'), Icon: Gauge },
+  { key: 'dist', side: -1, row: 1, enter: [0.07, 0.12], fly: [0.82, 0.9], target: 'tileDist', part: 'tileDist', label: k('Distanz'), Icon: Route },
+  { key: 'time', side: 1, row: 1, enter: [0.09, 0.14], fly: [0.78, 0.86], target: 'timer', part: 'timer', label: k('Laufzeit'), Icon: Timer },
+  { key: 'gpsTime', side: -1, row: 2, enter: [0.14, 0.19], fly: [0.8, 0.88], target: 'gpsTime', part: 'gpsTime', label: k('GPS-Zeit'), Icon: Satellite },
+  { key: 'ele', side: 1, row: 2, enter: [0.16, 0.21], fly: [0.8, 0.88], target: 'profile', part: 'profile', label: k('Höhe'), Icon: Mountain },
 ];
 // Schärfe: jede Karte kommt unscharf; scharf wird sie, wenn die nächste Welle kommt
-const SHARPEN: Record<number, [number, number]> = { 0: [0.16, 0.26], 1: [0.27, 0.37], 2: [0.38, 0.46] };
+const SHARPEN: Record<number, [number, number]> = { 0: [0.07, 0.13], 1: [0.14, 0.2], 2: [0.21, 0.27] };
 
 // ── kleine Helfer ────────────────────────────────────────────────────────────
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
