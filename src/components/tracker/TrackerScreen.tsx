@@ -1,7 +1,7 @@
 'use client';
 
 // Der Ruhe-Screen der RouteCam-Tracker-App (Android), 1:1 nach dem Original-Screenshot
-// (Fahrt #015). Alle Maße in dp der App (Bildschirm 411 × 915), gemessen am Screenshot.
+// (Fahrt #015). Alle Maße in dp der App (Bildschirm 411 × 915, hier ohne die Navigationsleiste unten), gemessen am Screenshot.
 // Die Route selbst zeichnet TrackerStory darüber – hier nur alles drumherum.
 //
 // `parts` blendet einzelne Bereiche ein (0…1), damit die Story sie nacheinander aufbauen kann.
@@ -10,7 +10,8 @@ import React from 'react';
 import { PTS, ELE_MIN, ELE_MAX, TOTAL_M, TOTAL_S, AVG_KMH, META } from './rideData';
 
 export const SCREEN_W = 411;
-export const SCREEN_H = 915;
+/** Höhe ohne Android-Navigationsleiste: Screen endet 16 dp unter dem großen Knopf */
+export const SCREEN_H = 870;
 
 export type ScreenPart =
   | 'chrome' | 'header' | 'pill' | 'card' | 'profile' | 'timer' | 'gpsTime'
@@ -201,12 +202,6 @@ export default function TrackerScreen({ parts = {}, ctaLabel, ctaHref }: {
           : <button type="button" className="absolute" style={style}>{inner}</button>;
       })()}
 
-      {/* Navigationsleiste */}
-      <svg aria-hidden className="absolute" style={{ left: 0, top: 880, ...o('chrome') }} width={SCREEN_W} height="24" viewBox={`0 0 ${SCREEN_W} 24`} fill="none" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M95.5 4.5 L88 12 L95.5 19.5" />
-        <circle cx="205.5" cy="12" r="7.3" />
-        <path d="M313 5v14M318.5 5v14M324 5v14" />
-      </svg>
     </div>
   );
 }

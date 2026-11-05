@@ -12,7 +12,7 @@
 //  7  Karten fliegen in ihre Plätze – am Ende steht 1:1 der Tracker-Screen, Knopf „App Download“,
 //     dahinter groß und leise „DEIN GPS TRACKER“
 //
-// Koordinaten: „Welt“ = dp des Tracker-Bildschirms (411 × 915), skaliert auf das Fenster.
+// Koordinaten: „Welt“ = dp des Tracker-Bildschirms (411 × 870), skaliert auf das Fenster.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -88,7 +88,8 @@ const CARD_BG = '#0c0d11';
 const DOT = '#16171b';
 const DOT_STEP = 20.9; // dp, wie in der App
 function geom(vw: number, vh: number) {
-  const s = Math.min((vh * PHONE_FILL) / (SCREEN_H + 2 * BEZEL), (vw * PHONE_FILL) / (SCREEN_W + 2 * BEZEL));
+  // Maßstab wie mit Navigationsleiste (915 dp) – ohne sie wird das Handy kürzer, nicht breiter
+  const s = Math.min((vh * PHONE_FILL) / (915 + 2 * BEZEL), (vw * PHONE_FILL) / (SCREEN_W + 2 * BEZEL));
   return { s, ox: (vw - SCREEN_W * s) / 2, oy: (vh - SCREEN_H * s) / 2 };
 }
 function dotGrid(st: { y: number; vw: number; vh: number; max: number } | null): React.CSSProperties {
@@ -206,7 +207,7 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
   const head = headAt(routeFrac);
   const cam = easeIO(seg(p, P.cam));
   const zoom = lerp(2.6, 1, cam);
-  const anchor = { x: lerp(205.5, head.x, cam), y: lerp(500, head.y, cam) };
+  const anchor = { x: lerp(205.5, head.x, cam), y: lerp(SCREEN_H / 2 + 43, head.y, cam) };
   const T = (x: number, y: number) => [anchor.x + (x - head.x) * zoom, anchor.y + (y - head.y) * zoom] as const;
 
   const routePath = useMemo(() => {
@@ -253,7 +254,7 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
     const blur = 14 * (1 - e) + 5 * (1 - sharpen);
     const fly = easeIO(seg(p, c.fly));
     const x0 = colX(c.side) + c.side * 170 * (1 - e);
-    const y0 = 457 + (c.row - (rowsShown - 1) / 2) * rowGap - cardH / 2;
+    const y0 = SCREEN_H / 2 + (c.row - (rowsShown - 1) / 2) * rowGap - cardH / 2;
     const tg = TARGETS[c.target];
     const scale = lerp(1, Math.min(tg.w / cardW, tg.h / cardH) * 1.05, fly);
     const cx = lerp(x0 + cardW / 2, tg.x + tg.w / 2, fly);
@@ -356,7 +357,7 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
 
         {/* „Scrollen ↓“ unter dem Punkt (Szene 1) – verschwindet, sobald es losgeht.
             Darunter die Alternative für alle, die nicht scrollen wollen. */}
-        <div className="absolute flex flex-col items-center gap-2" style={{ left: 205.5 - 120, width: 240, top: 540, opacity: hintIn, pointerEvents: hintIn > 0.5 ? 'auto' : 'none' }}>
+        <div className="absolute flex flex-col items-center gap-2" style={{ left: 205.5 - 120, width: 240, top: SCREEN_H / 2 + 83, opacity: hintIn, pointerEvents: hintIn > 0.5 ? 'auto' : 'none' }}>
           <span style={{ fontFamily: MONO, fontSize: 14, letterSpacing: 3, color: '#d9dce1', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
           <svg width="16" height="22" viewBox="0 0 16 22" aria-hidden className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#d9dce1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <button type="button" onClick={onPlay} tabIndex={hintIn > 0.5 ? 0 : -1}
