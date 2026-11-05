@@ -358,17 +358,12 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
     color: 'transparent', WebkitTextStroke: '3px rgba(226, 229, 234, 0.16)', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
   };
   // Anfang: dieselbe große Kontur-Schrift, sie scrollt mit dem ersten Scrollen nach oben weg
-  const startVisible = scrollY < vh * 1.2;
+  const startVisible = scrollY < vh * DISSOLVE_VH;
 
   return (
     <>
-      {startVisible && (
-        <h1 className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
-          ...bigTitle, top: '50%', transform: `translateY(calc(-50% - ${scrollY.toFixed(1)}px))`,
-        }}>
-          {t('Starte dein\nAbenteuer')}
-        </h1>
-      )}
+      <h1 className="sr-only">{t('Starte dein\nAbenteuer')}</h1>
+      {startVisible && <ParticleTitle text={t('Starte dein\nAbenteuer')} size={titleSize} scrollY={scrollY} vw={vw} vh={vh} />}
       <div aria-hidden className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
         ...bigTitle, top: '50%', transform: `translateY(calc(-50% + ${(1 - titleIn) * 40}px))`, opacity: titleIn,
       }}>
@@ -448,17 +443,6 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
           <span className="absolute inset-0 rounded-full trk-pulse" style={{ border: `2px solid ${LIME}` }} />
         </span>
 
-        {/* „Scrollen ↓“ unter dem Punkt (Szene 1) – verschwindet, sobald es losgeht.
-            Darunter die Alternative für alle, die nicht scrollen wollen. */}
-        <div className="absolute flex flex-col items-center gap-2" style={{ left: 205.5 - 120, width: 240, top: SCREEN_H / 2 + 83, opacity: hintIn, pointerEvents: hintIn > 0.5 ? 'auto' : 'none' }}>
-          <span style={{ fontFamily: MONO, fontSize: 14, letterSpacing: 3, color: '#d9dce1', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
-          <svg width="16" height="22" viewBox="0 0 16 22" aria-hidden className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#d9dce1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <button type="button" onClick={onPlay} tabIndex={hintIn > 0.5 ? 0 : -1}
-            className="mt-3 px-3 py-2 underline underline-offset-4 decoration-1 hover:text-white transition-colors"
-            style={{ fontSize: 13, color: '#9aa0a8', background: 'none', border: 'none', cursor: 'pointer' }}>
-            {t('Animation abspielen')}
-          </button>
-        </div>
 
         {/* Daten-Karten */}
         {cards.map(({ c, blur, scale, cx, cy, opacity }) => opacity > 0.002 && (
@@ -485,6 +469,18 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
         ))}
       </div>
 
+      {/* „Scrollen ↓“ am unteren Fensterrand – verschwindet, sobald es losgeht.
+          Darunter die Alternative für alle, die nicht scrollen wollen. */}
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-6 md:bottom-8 z-20 flex flex-col items-center gap-2" style={{ opacity: hintIn, pointerEvents: hintIn > 0.5 ? 'auto' : 'none' }}>
+        <span style={{ fontFamily: MONO, fontSize: 13, letterSpacing: 3, color: '#d9dce1', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
+        <svg width="16" height="22" viewBox="0 0 16 22" aria-hidden className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#d9dce1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <button type="button" onClick={onPlay} tabIndex={hintIn > 0.5 ? 0 : -1}
+          className="mt-1 px-3 py-2 underline underline-offset-4 decoration-1 hover:text-white transition-colors"
+          style={{ fontSize: 13, color: '#9aa0a8', background: 'none', border: 'none', cursor: 'pointer' }}>
+          {t('Animation abspielen')}
+        </button>
+      </div>
+
       <style>{`
         @keyframes trkPulse { 0% { transform: scale(1); opacity: .9 } 100% { transform: scale(3.2); opacity: 0 } }
         @keyframes trkBob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(5px) } }
@@ -498,4 +494,108 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
       `}</style>
     </>
   );
+}
+
+// ── Anfangs-Schriftzug, der beim ersten Scrollen in Partikel zerfällt ─────────
+// Die Kontur der Buchstaben wird einmal auf eine Leinwand gezeichnet und in Punkte zerlegt.
+// Beim Scrollen wandert die obere Zeile nach rechts, die untere nach links, beide nach oben;
+// gleichzeitig lösen sich die Punkte – zuerst an der vorderen Kante – und verwehen.
+/** Nach so vielen Fensterhöhen Scrollweg ist der Schriftzug ganz zerfallen. */
+const DISSOLVE_VH = 0.8;
+type Particle = { x: number; y: number; line: number; vx: number; vy: number; delay: number };
+
+/** Schrift wie bei „DEIN GPS TRACKER“ setzen und so verkleinern, dass die längste Zeile ins Fenster passt. */
+function setTitleFont(g: CanvasRenderingContext2D, lines: string[], size: number, vw: number) {
+  const family = getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif';
+  const apply = (px: number) => {
+    g.font = `900 ${px}px ${family}`;
+    (g as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = `${(-0.02 * px).toFixed(2)}px`;
+  };
+  apply(size);
+  const widest = Math.max(...lines.map(l => g.measureText(l).width));
+  const px = widest > vw * 0.94 ? size * (vw * 0.94) / widest : size;
+  apply(px);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  return px;
+}
+
+function ParticleTitle({ text, size, scrollY, vw, vh }: { text: string; size: number; scrollY: number; vw: number; vh: number }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [particles, setParticles] = useState<{ pts: Particle[]; key: string } | null>(null);
+  const key = `${text}|${Math.round(size)}|${vw}|${vh}`;
+
+  // Kontur einmal zeichnen und abtasten (nach dem Laden der Schrift, bei Größen- oder Sprachwechsel neu)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try { await document.fonts.ready; } catch { /* ältere Browser */ }
+      if (cancelled) return;
+      const off = document.createElement('canvas');
+      off.width = vw; off.height = vh;
+      const g = off.getContext('2d', { willReadFrequently: true });
+      if (!g) return;
+      const lines = text.toUpperCase().split('\n');
+      const px = setTitleFont(g, lines, size, vw);
+      g.lineWidth = 3; g.strokeStyle = '#fff';
+      const lh = px * 0.92;
+      lines.forEach((ln, i) => g.strokeText(ln, vw / 2, vh / 2 + (i - (lines.length - 1) / 2) * lh));
+      const data = g.getImageData(0, 0, vw, vh).data;
+      const step = vw < 700 ? 2 : 3;
+      const pts: Particle[] = [];
+      for (let y = 0; y < vh; y += step) for (let x = 0; x < vw; x += step) {
+        if (data[(y * vw + x) * 4 + 3] < 110) continue;
+        const line = y < vh / 2 ? 0 : 1;
+        const dir = line === 0 ? 1 : -1;
+        // vordere Kante zuerst: oben rechts (wandert nach rechts), unten links (wandert nach links)
+        const lead = line === 0 ? x / vw : 1 - x / vw;
+        pts.push({ x, y, line, vx: dir * (0.4 + Math.random()) + (Math.random() - 0.5) * 0.8, vy: -0.3 - Math.random() * 1.2,
+          delay: 0.55 * (1 - lead) + Math.random() * 0.2 });
+      }
+      if (!cancelled) setParticles({ pts, key });
+    })();
+    return () => { cancelled = true; };
+  }, [key, text, size, vw, vh]);
+
+  // je Scrollstand neu zeichnen
+  useEffect(() => {
+    const c = canvas.current;
+    if (!c) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(vw * dpr) || c.height !== Math.round(vh * dpr)) { c.width = Math.round(vw * dpr); c.height = Math.round(vh * dpr); }
+    const g = c.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, vw, vh);
+    const q = clamp01(scrollY / (vh * DISSOLVE_VH));
+    const lines = text.toUpperCase().split('\n');
+    const shift = (line: number) => (line === 0 ? 1 : -1) * easeIO(q) * vw * 0.35;
+
+    // solange noch nicht gescrollt: die saubere Kontur (wie „DEIN GPS TRACKER“ am Ende)
+    const crisp = 1 - clamp01(q / 0.04);
+    if (crisp > 0 || !particles) {
+      g.globalAlpha = particles ? crisp : 1;
+      const lh = setTitleFont(g, lines, size, vw) * 0.92;
+      g.lineWidth = 3; g.strokeStyle = 'rgba(226, 229, 234, 0.16)';
+      lines.forEach((ln, i) => g.strokeText(ln, vw / 2 + shift(i), vh / 2 + (i - (lines.length - 1) / 2) * lh - scrollY));
+      g.globalAlpha = 1;
+    }
+    if (!particles || particles.key !== key || q <= 0) return;
+
+    const intro = clamp01(q / 0.04);
+    for (const pt of particles.pts) {
+      const d = clamp01((q - pt.delay) / 0.35);
+      const e = d * d;
+      const x = pt.x + shift(pt.line) + pt.vx * e * 220;
+      const y = pt.y - scrollY + pt.vy * e * 220;
+      if (y < -10 || y > vh + 10 || x < -10 || x > vw + 10) continue;
+      // fest im Schriftzug leise, beim Loslösen kurz heller, dann verweht
+      const a = intro * (d <= 0 ? 0.16 : (0.16 + 0.5 * Math.sin(Math.PI * Math.min(1, d * 1.4))) * (1 - d));
+      if (a <= 0.004) continue;
+      g.fillStyle = d > 0.05 && pt.delay % 0.1 < 0.012 ? `rgba(204,255,0,${a})` : `rgba(226,229,234,${a})`;
+      const r = d > 0 ? 1.6 : 1.3;
+      g.fillRect(x, y, r, r);
+    }
+  }, [scrollY, vw, vh, size, text, particles, key]);
+
+  return <canvas ref={canvas} aria-hidden className="absolute left-0 top-0 pointer-events-none" style={{ width: vw, height: vh }} />;
 }
