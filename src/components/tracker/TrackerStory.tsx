@@ -228,17 +228,22 @@ export default function TrackerStory() {
 // ── Endbild: worum es geht (links) und was rauskommt (rechts) ──────────────────
 function IntroText({ className = '' }: { className?: string }) {
   return (
-    <p className={`m-0 text-white ${className}`} style={{ fontSize: 17, lineHeight: 1.6, letterSpacing: 0.1 }}>
-      {t('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf: Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Filme zu Beginn kurz die große GPS-Uhr im Display ab – damit legt RouteCam dein Video und die Strecke später sekundengenau übereinander. Die Aufzeichnung läuft im Hintergrund weiter, auch bei gesperrtem Bildschirm und ohne Netz. Ein Konto brauchst du dafür nicht.')}
-    </p>
+    <div className={className}>
+      <h2 className="m-0 mb-3" style={{ color: LIME, fontSize: 26, lineHeight: 1.15, fontWeight: 700, letterSpacing: '-0.01em' }}>
+        {t('Auf die Sekunde synchron.')}
+      </h2>
+      <p className="m-0 text-white" style={{ fontSize: 17, lineHeight: 1.6, letterSpacing: 0.1 }}>
+        {t('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Filme zu Beginn kurz die große GPS-Uhr im Display ab, dann legt RouteCam Video und Strecke sekundengenau übereinander. Die Aufnahme läuft auch bei gesperrtem Bildschirm und ohne Netz weiter – ganz ohne Konto.')}
+      </p>
+    </div>
   );
 }
 
-/** Das Export-Format – wie die GPX-Karte im Erklärfenster „Fahrt anlegen“, ohne „Empfohlen“. */
+/** Das Export-Format – Datei-Symbol (grau) und Text frei, ohne Kasten. */
 function GpxCard() {
   return (
-    <div className="rounded-2xl border border-white/10 p-5 flex flex-col gap-4" style={{ background: "rgba(20,21,25,0.94)" }}>
-      <FileBadge ext="gpx" highlight />
+    <div className="flex flex-col gap-4">
+      <FileBadge ext="gpx" />
       <p className="m-0 leading-relaxed text-white/70" style={{ fontSize: 15 }}>
         {t('GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.')}
       </p>
