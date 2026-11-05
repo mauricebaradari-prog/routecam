@@ -233,17 +233,17 @@ function IntroText({ className = '' }: { className?: string }) {
         {t('Auf die Sekunde synchron.')}
       </h2>
       <p className="m-0 text-white" style={{ fontSize: 17, lineHeight: 1.6, letterSpacing: 0.1 }}>
-        {t('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Filme zu Beginn kurz die große GPS-Uhr im Display ab, dann legt RouteCam Video und Strecke sekundengenau übereinander. Die Aufnahme läuft auch bei gesperrtem Bildschirm und ohne Netz weiter – ganz ohne Konto.')}
+        {t('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Filme zu Beginn kurz die große GPS-Uhr im Display ab, dann legt RouteCam Video und Strecke sekundengenau übereinander.')}
       </p>
     </div>
   );
 }
 
-/** Das Export-Format – Datei-Symbol (grau) und Text frei, ohne Kasten. */
+/** Das Export-Format – Datei-Symbol in Neongrün (Gegengewicht zur Überschrift links), Text frei, ohne Kasten. */
 function GpxCard() {
   return (
     <div className="flex flex-col gap-4">
-      <FileBadge ext="gpx" />
+      <FileBadge ext="gpx" solid size={52} />
       <p className="m-0 leading-relaxed text-white/70" style={{ fontSize: 15 }}>
         {t('GPX ist der Standard von Tracking-Apps, Navis und Sportuhren. Der Tracker speichert für jeden Punkt die GPS-Uhrzeit – damit passt die Position im Video auf die Sekunde.')}
       </p>

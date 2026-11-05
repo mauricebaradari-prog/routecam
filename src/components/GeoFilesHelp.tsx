@@ -121,23 +121,25 @@ function FormatCard({ name, tag, text }: { name: string; tag?: string; text: str
 
 // A file as a drawn sheet with a folded corner; the extension sits on the band across it.
 // highlight = the recommended format, so it carries the lime accent.
-export function FileBadge({ ext, highlight }: { ext: string; highlight?: boolean }) {
+// solid = opaque sheet in full lime (Tracker-Onepager, liegt über Hintergrund-Schrift); size = width in px.
+export function FileBadge({ ext, highlight, solid, size = 40 }: { ext: string; highlight?: boolean; solid?: boolean; size?: number }) {
+  const lime = highlight || solid;
   return (
-    <svg viewBox="0 0 44 54" width="40" height="49" className="shrink-0" role="img" aria-label={`.${ext}`}>
+    <svg viewBox="0 0 44 54" width={size} height={(size * 54) / 44} className="shrink-0" role="img" aria-label={`.${ext}`}>
       {/* sheet with the top-right corner folded away */}
       <path
         d="M 6 2 H 28 L 40 14 V 48 A 4 4 0 0 1 36 52 H 6 A 4 4 0 0 1 2 48 V 6 A 4 4 0 0 1 6 2 Z"
-        fill="rgba(255,255,255,0.07)"
-        stroke={highlight ? 'rgba(204,255,0,0.55)' : 'rgba(255,255,255,0.22)'}
+        fill={solid ? '#14160c' : 'rgba(255,255,255,0.07)'}
+        stroke={solid ? '#CCFF00' : highlight ? 'rgba(204,255,0,0.55)' : 'rgba(255,255,255,0.22)'}
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
       {/* the fold itself */}
-      <path d="M 28 2 L 40 14 H 28 Z" fill={highlight ? 'rgba(204,255,0,0.35)' : 'rgba(255,255,255,0.22)'} />
+      <path d="M 28 2 L 40 14 H 28 Z" fill={solid ? '#CCFF00' : highlight ? 'rgba(204,255,0,0.35)' : 'rgba(255,255,255,0.22)'} />
       {/* two hinted lines of content above the band */}
-      <path d="M 9 21 H 24 M 9 26 H 20" stroke="rgba(255,255,255,0.20)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M 9 21 H 24 M 9 26 H 20" stroke={solid ? 'rgba(204,255,0,0.45)' : 'rgba(255,255,255,0.20)'} strokeWidth="2" strokeLinecap="round" />
       {/* band carrying the extension */}
-      <rect x="5" y="32" width="34" height="15" rx="3" fill={highlight ? '#CCFF00' : 'rgba(255,255,255,0.30)'} />
+      <rect x="5" y="32" width="34" height="15" rx="3" fill={lime ? '#CCFF00' : 'rgba(255,255,255,0.30)'} />
       <text
         x="22" y="42.5"
         textAnchor="middle"
@@ -145,7 +147,7 @@ export function FileBadge({ ext, highlight }: { ext: string; highlight?: boolean
         fontSize="11"
         fontWeight="700"
         letterSpacing="0.3"
-        fill={highlight ? '#0b0c0a' : '#ffffff'}
+        fill={lime ? '#0b0c0a' : '#ffffff'}
       >
         {ext.toUpperCase()}
       </text>
