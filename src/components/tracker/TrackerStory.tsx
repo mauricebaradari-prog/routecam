@@ -273,7 +273,7 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
   };
 
   const hintIn = 1 - seg(p, P.hintOut);
-  // Endbild: groß und leise hinter dem Handy
+  // Endbild: groß und leise hinter dem Handy, nur als Kontur (3 px)
   const titleIn = easeOut(seg(p, P.title));
   const titleSize = Math.min(vw * 0.155, vh * 0.3);
 
@@ -282,7 +282,7 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
       <h1 className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
         top: '50%', transform: `translateY(calc(-50% + ${(1 - titleIn) * 40}px))`, opacity: titleIn,
         fontSize: titleSize, lineHeight: 0.92, fontWeight: 900, letterSpacing: '-0.02em', textTransform: 'uppercase',
-        color: 'rgba(226, 229, 234, 0.09)', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
+        color: 'transparent', WebkitTextStroke: '3px rgba(226, 229, 234, 0.16)', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
       }}>
         {t('Dein GPS')}<br />{t('Tracker')}
       </h1>
