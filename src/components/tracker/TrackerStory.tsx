@@ -233,7 +233,7 @@ function IntroText({ className = '' }: { className?: string }) {
         {t('Auf die Sekunde synchron.')}
       </h2>
       <p className="m-0 text-white" style={{ fontSize: 17, lineHeight: 1.6, letterSpacing: 0.1 }}>
-        {t('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Filme zu Beginn kurz die große GPS-Uhr im Display ab, dann legt RouteCam Video und Strecke sekundengenau übereinander.')}
+        {t('Der RouteCam Tracker zeichnet deine Fahrt jede Sekunde auf – Position, Höhe und Tempo, jeweils mit der exakten GPS-Uhrzeit. Damit legt RouteCam Video und Strecke sekundengenau übereinander.')}
       </p>
     </div>
   );
