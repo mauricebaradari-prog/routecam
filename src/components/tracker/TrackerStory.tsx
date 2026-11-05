@@ -32,7 +32,7 @@ const BEZEL = 9;
 /** Anteil des Fensters, den das Handy (mit Rand) höchstens einnimmt */
 const PHONE_FILL = 0.8;
 /** Scrollhöhe der ganzen Geschichte in Fensterhöhen */
-const STORY_VH = 760;
+const STORY_VH = 500;
 
 // ── Zeitplan (Anteil am Scrollweg) ────────────────────────────────────────────
 const P = {
@@ -128,7 +128,7 @@ function useScrollStage(ref: React.RefObject<HTMLDivElement | null>) {
 }
 
 /** Automatisch abspielen: so lange dauert der ganze Weg bis zum fertigen Screen. */
-const AUTOPLAY_MS = 22000;
+const AUTOPLAY_MS = 14000;
 /**
  * Tempo-Verlauf fürs Abspielen: kurz anfahren (erste 8 %), dann gleichmäßig – damit die Karten
  * Zeit zum Lesen haben –, in den letzten 30 % sanft abbremsen bis zum Stand.
