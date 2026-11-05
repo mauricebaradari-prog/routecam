@@ -303,7 +303,9 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
   const [ex, ey] = T(last[0] + ROUTE_ORIGIN.x, last[1] + ROUTE_ORIGIN.y);
   const [hx, hy] = T(head.x, head.y);
   const coreW = lerp(6, 4.2, cam);
-  const dotR = lerp(11, 7.6, cam);
+  // am Anfang groß mit Play-Symbol (antippen = abspielen), schrumpft mit dem ersten Scrollen
+  const startBig = 1 - easeIO(seg(p, [0.004, 0.05]));
+  const dotR = lerp(11, 7.6, cam) + 19 * startBig;
 
   // ── Handy + Screen ──
   const outline = easeOut(seg(p, P.outline));
@@ -455,6 +457,15 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
         <span aria-hidden className="absolute pointer-events-none" style={{ left: hx - dotR, top: hy - dotR, width: dotR * 2, height: dotR * 2, opacity: 1 - cam }}>
           <span className="absolute inset-0 rounded-full trk-pulse" style={{ border: `2px solid ${LIME}` }} />
         </span>
+        {startBig > 0.05 && (
+          <button type="button" onClick={onPlay} aria-label={t('Animation abspielen')} tabIndex={startBig > 0.5 ? 0 : -1}
+            className="absolute rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+            style={{ left: hx - dotR, top: hy - dotR, width: dotR * 2, height: dotR * 2, background: 'transparent', border: 'none', padding: 0, pointerEvents: startBig > 0.5 ? 'auto' : 'none' }}>
+            <svg width={dotR * 0.8} height={dotR * 0.8} viewBox="0 0 24 24" aria-hidden style={{ opacity: startBig, marginLeft: dotR * 0.1 }}>
+              <path d="M6 3.5 L20.5 12 L6 20.5 Z" fill="#000" strokeLinejoin="round" stroke="#000" strokeWidth="1.5" />
+            </svg>
+          </button>
+        )}
 
 
         {/* Daten-Karten */}
@@ -483,15 +494,10 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
       </div>
 
       {/* „Scrollen ↓“ am unteren Fensterrand – verschwindet, sobald es losgeht.
-          Darunter die Alternative für alle, die nicht scrollen wollen. */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-6 md:bottom-8 z-20 flex flex-col items-center gap-2" style={{ opacity: hintIn, pointerEvents: hintIn > 0.5 ? 'auto' : 'none' }}>
+          Wer nicht scrollen will, tippt auf den Punkt (Play). */}
+      <div aria-hidden className="absolute left-1/2 -translate-x-1/2 bottom-6 md:bottom-8 z-20 flex flex-col items-center gap-2 pointer-events-none" style={{ opacity: hintIn }}>
         <span style={{ fontFamily: MONO, fontSize: 13, letterSpacing: 3, color: '#d9dce1', textTransform: 'uppercase' }}>{t('Scrollen')}</span>
         <svg width="16" height="22" viewBox="0 0 16 22" aria-hidden className="trk-bob"><path d="M8 2v17M2 13l6 6 6-6" stroke="#d9dce1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        <button type="button" onClick={onPlay} tabIndex={hintIn > 0.5 ? 0 : -1}
-          className="mt-1 px-3 py-2 underline underline-offset-4 decoration-1 hover:text-white transition-colors"
-          style={{ fontSize: 13, color: '#9aa0a8', background: 'none', border: 'none', cursor: 'pointer' }}>
-          {t('Animation abspielen')}
-        </button>
       </div>
 
       <style>{`
