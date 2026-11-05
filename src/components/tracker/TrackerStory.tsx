@@ -190,6 +190,11 @@ export default function TrackerStory() {
         </Link>
 
         {st && <Stage p={st.p} vw={st.vw} vh={st.vh} loc={loc} onPlay={play} />}
+
+        {/* dauerhafter dunkler Schein vom Fensterrand nach innen */}
+        <div aria-hidden className="absolute inset-0 pointer-events-none z-10" style={{
+          boxShadow: 'inset 0 0 min(18vw, 22vh) min(4vw, 5vh) rgba(0,0,0,0.85)',
+        }} />
       </div>
     </main>
     </div>
