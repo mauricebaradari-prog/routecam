@@ -203,7 +203,7 @@ export default function TrackerStory() {
           <LogoLockup />
         </Link>
 
-        {st && <Stage p={st.p} vw={st.vw} vh={st.vh} loc={loc} onPlay={play} />}
+        {st && <Stage p={st.p} scrollY={Math.min(st.y, st.max)} vw={st.vw} vh={st.vh} loc={loc} onPlay={play} />}
         {st && sideRoomPx(st.vw, st.vh) >= SIDE_MIN_PX && <SideInfo p={st.p} vw={st.vw} vh={st.vh} />}
 
         {/* dauerhafter dunkler Schein vom Fensterrand nach innen */}
@@ -270,7 +270,7 @@ function SideInfo({ p, vw, vh }: { p: number; vw: number; vh: number }) {
   );
 }
 
-function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; loc: string; onPlay: () => void }) {
+function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number; vw: number; vh: number; loc: string; onPlay: () => void }) {
   // Maßstab: Handy (mit Rand) passt ins Fenster
   const { s, ox, oy } = geom(vw, vh);
   const sideRoom = (vw / s - SCREEN_W) / 2 - BEZEL;
@@ -353,16 +353,27 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
   // Endbild: groß und leise hinter dem Handy, nur als Kontur (3 px)
   const titleIn = easeOut(seg(p, P.title));
   const titleSize = Math.min(vw * 0.155, vh * 0.3);
+  const bigTitle: React.CSSProperties = {
+    fontSize: titleSize, lineHeight: 0.92, fontWeight: 900, letterSpacing: '-0.02em', textTransform: 'uppercase', whiteSpace: 'pre-line',
+    color: 'transparent', WebkitTextStroke: '3px rgba(226, 229, 234, 0.16)', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
+  };
+  // Anfang: dieselbe große Kontur-Schrift, sie scrollt mit dem ersten Scrollen nach oben weg
+  const startVisible = scrollY < vh * 1.2;
 
   return (
     <>
-      <h1 className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
-        top: '50%', transform: `translateY(calc(-50% + ${(1 - titleIn) * 40}px))`, opacity: titleIn,
-        fontSize: titleSize, lineHeight: 0.92, fontWeight: 900, letterSpacing: '-0.02em', textTransform: 'uppercase',
-        color: 'transparent', WebkitTextStroke: '3px rgba(226, 229, 234, 0.16)', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
+      {startVisible && (
+        <h1 className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
+          ...bigTitle, top: '50%', transform: `translateY(calc(-50% - ${scrollY.toFixed(1)}px))`,
+        }}>
+          {t('Starte dein\nAbenteuer')}
+        </h1>
+      )}
+      <div aria-hidden className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
+        ...bigTitle, top: '50%', transform: `translateY(calc(-50% + ${(1 - titleIn) * 40}px))`, opacity: titleIn,
       }}>
         {t('Dein GPS')}<br />{t('Tracker')}
-      </h1>
+      </div>
       <div className="absolute left-0 top-0" style={{ transform: `translate(${ox}px, ${oy}px) scale(${s})`, transformOrigin: '0 0', width: SCREEN_W, height: SCREEN_H }}>
         {/* Schatten unter dem Handy – gibt dem Endbild Tiefe */}
         <div aria-hidden className="absolute pointer-events-none" style={{
