@@ -436,6 +436,15 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
           <TrackerScreen parts={parts} ctaLabel={t('App Download')} ctaHref={APP_DOWNLOAD_HREF} ctaClassName={(parts.cta ?? 0) >= 1 ? 'trk-cta-pulse' : ''} />
         </div>
 
+        {/* Spiegelung auf dem Display: erscheint, wenn der Zeiger nach links oben geht (Licht von dort) */}
+        <div aria-hidden className="absolute left-0 top-0 pointer-events-none" style={{
+          width: SCREEN_W, height: SCREEN_H, borderRadius: 36, mixBlendMode: 'screen',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 28%, rgba(255,255,255,0) 52%)',
+          backgroundSize: '160% 160%',
+          backgroundPosition: 'calc(50% + 40% * var(--mx, 0)) calc(50% + 40% * var(--my, 0))',
+          opacity: 'calc(var(--pk, 0) * max(0, -0.6 * (var(--mx, 0) + var(--my, 0))))',
+        }} />
+
         {/* Lichtreflex: läuft im Endbild immer wieder von links oben nach rechts unten übers Handy –
             als 1-px-Linie auf der Außenkante, ganz leicht übers Glas */}
         {(parts.cta ?? 0) > 0 && (
