@@ -257,7 +257,7 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
     const arrive = seg(fly, [0.45, 1]);
     parts[c.part] = arrive;
     if (c.extraPart) parts[c.extraPart] = arrive;
-    return { c, e, blur: blur * (1 - fly), fly, scale, cx, cy, opacity: e * (1 - arrive), ready: sharpen >= 1 };
+    return { c, e, blur: blur * (1 - fly), fly, scale, cx, cy, opacity: e * (1 - arrive) };
   });
 
   const values: Record<CardKey, string> = {
@@ -348,7 +348,7 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
         </div>
 
         {/* Daten-Karten */}
-        {cards.map(({ c, blur, scale, cx, cy, opacity, ready }) => opacity > 0.002 && (
+        {cards.map(({ c, blur, scale, cx, cy, opacity }) => opacity > 0.002 && (
           <div key={c.key} className="absolute" style={{
             left: cx - cardW / 2, top: cy - cardH / 2, width: cardW, height: cardH, transform: `scale(${scale})`, opacity,
             filter: blur > 0.2 ? `blur(${blur.toFixed(1)}px)` : undefined, borderRadius: 18, boxSizing: 'border-box',
@@ -360,9 +360,10 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
               <c.Icon size={wide ? 20 : 16} strokeWidth={1.8} color={LIME} />
             </div>
             {c.key === 'gps' ? (
-              <span className="flex items-center gap-2" style={{ fontFamily: MONO, fontSize: wide ? 24 : 19, fontWeight: 700, color: ready ? LIME : '#7d828c', lineHeight: 1 }}>
-                {ready ? t('Bereit') : t('Suche…')}
-                {ready && <span className="inline-flex items-center justify-center rounded-full" style={{ width: wide ? 20 : 16, height: wide ? 20 : 16, background: LIME }}><Check size={wide ? 13 : 11} strokeWidth={3.2} color="#000" /></span>}
+              // GPS ist von Anfang an bereit – ohne GPS keine Aufzeichnung
+              <span className="flex items-center gap-2" style={{ fontFamily: MONO, fontSize: wide ? 24 : 19, fontWeight: 700, color: LIME, lineHeight: 1 }}>
+                {t('Bereit')}
+                <span className="inline-flex items-center justify-center rounded-full" style={{ width: wide ? 20 : 16, height: wide ? 20 : 16, background: LIME }}><Check size={wide ? 13 : 11} strokeWidth={3.2} color="#000" /></span>
               </span>
             ) : (
               <span style={{ fontFamily: MONO, fontSize: wide ? 26 : 20, fontWeight: 700, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{values[c.key]}</span>
