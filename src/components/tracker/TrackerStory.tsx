@@ -287,6 +287,11 @@ function Stage({ p, vw, vh, loc, onPlay }: { p: number; vw: number; vh: number; 
         {t('Dein GPS')}<br />{t('Tracker')}
       </h1>
       <div className="absolute left-0 top-0" style={{ transform: `translate(${ox}px, ${oy}px) scale(${s})`, transformOrigin: '0 0', width: SCREEN_W, height: SCREEN_H }}>
+        {/* Schatten unter dem Handy – gibt dem Endbild Tiefe */}
+        <div aria-hidden className="absolute pointer-events-none" style={{
+          left: -BEZEL, top: -BEZEL, width: SCREEN_W + 2 * BEZEL, height: SCREEN_H + 2 * BEZEL, borderRadius: 46, opacity: body,
+          boxShadow: '0 70px 120px -10px rgba(0,0,0,0.85), 0 30px 50px -8px rgba(0,0,0,0.7), 0 8px 16px rgba(0,0,0,0.55)',
+        }} />
         {/* Handy-Gehäuse (Android, schlicht) */}
         <svg aria-hidden className="absolute" style={{ left: -BEZEL - 2, top: -BEZEL - 2, overflow: 'visible' }} width={SCREEN_W + 2 * BEZEL + 4} height={SCREEN_H + 2 * BEZEL + 4}>
           <rect x="2" y="2" width={SCREEN_W + 2 * BEZEL} height={SCREEN_H + 2 * BEZEL} rx="46" fill="#0d0d0e" opacity={body} />
