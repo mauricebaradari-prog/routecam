@@ -5,9 +5,9 @@
 //
 //  1  Punkt pulsiert, „Scrollen ↓“
 //  2  Punkt fährt die echte Fahrt (#015) ab und zieht die Linie nach, Kamera folgt
-//  3  Höhe + Tempo kommen unscharf und versetzt von links/rechts, zählen mit
+//  3  GPS-Status + Tempo kommen unscharf und versetzt von links/rechts (GPS zuerst – ohne GPS keine Aufzeichnung)
 //  4  Distanz + Laufzeit kommen dazu, die ersten werden scharf
-//  5  GPS-Zeit + GPS-Status, alles rückt zusammen
+//  5  GPS-Zeit + Höhe, alles rückt zusammen
 //  6  Kontur des Smartphones entsteht, Lichtblitz, Kamera zoomt auf die ganze Strecke
 //  7  Karten fliegen in ihre Plätze – am Ende steht 1:1 der Tracker-Screen, Knopf „App Download“
 //
@@ -52,12 +52,12 @@ type CardDef = {
   Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string }>;
 };
 const CARDS: CardDef[] = [
-  { key: 'ele', side: -1, row: 0, enter: [0.15, 0.25], fly: [0.8, 0.88], target: 'profile', part: 'profile', label: k('Höhe'), Icon: Mountain },
+  { key: 'gps', side: -1, row: 0, enter: [0.15, 0.25], fly: [0.86, 0.94], target: 'pill', part: 'pill', extraPart: 'tileGps', label: k('GPS-Status'), Icon: SatelliteDish },
   { key: 'speed', side: 1, row: 0, enter: [0.19, 0.29], fly: [0.84, 0.92], target: 'tileSpeed', part: 'tileSpeed', label: k('Tempo'), Icon: Gauge },
   { key: 'dist', side: -1, row: 1, enter: [0.29, 0.39], fly: [0.82, 0.9], target: 'tileDist', part: 'tileDist', label: k('Distanz'), Icon: Route },
   { key: 'time', side: 1, row: 1, enter: [0.33, 0.43], fly: [0.78, 0.86], target: 'timer', part: 'timer', label: k('Laufzeit'), Icon: Timer },
   { key: 'gpsTime', side: -1, row: 2, enter: [0.43, 0.53], fly: [0.8, 0.88], target: 'gpsTime', part: 'gpsTime', label: k('GPS-Zeit'), Icon: Satellite },
-  { key: 'gps', side: 1, row: 2, enter: [0.47, 0.57], fly: [0.86, 0.94], target: 'pill', part: 'pill', extraPart: 'tileGps', label: k('GPS-Status'), Icon: SatelliteDish },
+  { key: 'ele', side: 1, row: 2, enter: [0.47, 0.57], fly: [0.8, 0.88], target: 'profile', part: 'profile', label: k('Höhe'), Icon: Mountain },
 ];
 // Schärfe: jede Karte kommt unscharf; scharf wird sie, wenn die nächste Welle kommt
 const SHARPEN: Record<number, [number, number]> = { 0: [0.29, 0.4], 1: [0.43, 0.54], 2: [0.57, 0.64] };
