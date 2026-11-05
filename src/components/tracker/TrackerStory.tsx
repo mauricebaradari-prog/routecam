@@ -50,6 +50,7 @@ const P = {
   cta: [0.9, 0.97],
   title: [0.86, 0.98],
   side: [0.9, 1],
+  parallax: [0.9, 1],
 } as const;
 
 type CardKey = 'ele' | 'speed' | 'dist' | 'time' | 'gpsTime' | 'gps';
@@ -158,10 +159,41 @@ function autoplayEase(x: number) {
   return clamp01(d / total);
 }
 
+// ── Endbild reagiert auf den Mauszeiger: Handy kippt leicht, Ebenen verschieben sich ──
+// Zeigerposition als CSS-Variablen --mx/--my (−1…1) am Bühnen-Element, weich nachgezogen;
+// --pk (0…1) blendet den Effekt erst im Endbild ein. Nur mit Maus, nicht bei reduzierter Bewegung.
+const DEPTH = { tilt: 7, near: 14, far: 26 };
+function useCursorDepth(ref: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.matchMedia('(pointer: fine)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const target = { x: 0, y: 0 }, cur = { x: 0, y: 0 };
+    let raf = 0;
+    const tick = () => {
+      cur.x += (target.x - cur.x) * 0.08;
+      cur.y += (target.y - cur.y) * 0.08;
+      el.style.setProperty('--mx', cur.x.toFixed(4));
+      el.style.setProperty('--my', cur.y.toFixed(4));
+      raf = Math.abs(target.x - cur.x) + Math.abs(target.y - cur.y) > 0.001 ? requestAnimationFrame(tick) : 0;
+    };
+    const move = (e: PointerEvent) => {
+      target.x = Math.max(-1, Math.min(1, (e.clientX / window.innerWidth) * 2 - 1));
+      target.y = Math.max(-1, Math.min(1, (e.clientY / window.innerHeight) * 2 - 1));
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    const leave = () => { target.x = 0; target.y = 0; if (!raf) raf = requestAnimationFrame(tick); };
+    window.addEventListener('pointermove', move, { passive: true });
+    document.documentElement.addEventListener('pointerleave', leave);
+    return () => { window.removeEventListener('pointermove', move); document.documentElement.removeEventListener('pointerleave', leave); cancelAnimationFrame(raf); };
+  }, [ref]);
+}
+
 export default function TrackerStory() {
   useT();
   const scroller = useRef<HTMLDivElement>(null);
   const st = useScrollStage(scroller);
+  const stage = useRef<HTMLDivElement>(null);
+  useCursorDepth(stage);
   const loc = locale();
   const stopPlay = useRef<(() => void) | null>(null);
 
@@ -196,7 +228,8 @@ export default function TrackerStory() {
     <div ref={scroller} data-tracker-scroller className="fixed inset-0 overflow-y-auto overflow-x-hidden no-scrollbar" style={{ overscrollBehavior: 'none' }}>
     <main className="relative" style={{ height: `${STORY_VH}vh`, background: CARD_BG }}>
       <LogoDefs />
-      <div className="sticky top-0 h-[100dvh] w-full overflow-hidden" style={dotGrid(st)}>
+      <div ref={stage} className="sticky top-0 h-[100dvh] w-full overflow-hidden"
+        style={{ ...dotGrid(st), ['--pk' as string]: st ? easeIO(seg(st.p, P.parallax)).toFixed(3) : '0' }}>
 
         {/* auf schmalen Fenstern füllt das Handy am Ende den Bildschirm – dann tritt das Logo zurück */}
         <Link href="/" className="absolute left-4 top-4 md:left-6 md:top-5 z-20 hover:!opacity-100 transition-opacity" aria-label={t('Zurück zu RouteCam')}
@@ -261,10 +294,10 @@ function SideInfo({ p, vw, vh }: { p: number; vw: number; vh: number }) {
   const common: React.CSSProperties = { position: 'absolute', top: '50%', width: w, opacity: x, pointerEvents: x > 0.5 ? 'auto' : 'none' };
   return (
     <>
-      <div style={{ ...common, right: vw - room + gap, transform: `translate(${-shift}px, -50%)` }}>
+      <div style={{ ...common, right: vw - room + gap, transform: `translate(calc(${-shift}px + ${DEPTH.near}px * var(--mx, 0) * var(--pk, 0)), calc(-50% + ${DEPTH.near * 0.7}px * var(--my, 0) * var(--pk, 0)))` }}>
         <IntroText />
       </div>
-      <div style={{ ...common, left: vw - room + gap, transform: `translate(${shift}px, -50%)`, width: Math.min(340, w) }}>
+      <div style={{ ...common, left: vw - room + gap, transform: `translate(calc(${shift}px + ${DEPTH.near}px * var(--mx, 0) * var(--pk, 0)), calc(-50% + ${DEPTH.near * 0.7}px * var(--my, 0) * var(--pk, 0)))`, width: Math.min(340, w) }}>
         <GpxCard />
       </div>
     </>
@@ -368,11 +401,14 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
       <h1 className="sr-only">{t('Starte dein\nAbenteuer')}</h1>
       {startVisible && <ParticleTitle text={t('Starte dein\nAbenteuer')} size={titleSize} scrollY={scrollY} vw={vw} vh={vh} />}
       <div aria-hidden className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
-        ...bigTitle, top: '50%', transform: `translateY(calc(-50% + ${(1 - titleIn) * 40}px))`, opacity: titleIn,
+        ...bigTitle, top: '50%', opacity: titleIn,
+        transform: `translate(calc(${-DEPTH.far}px * var(--mx, 0) * var(--pk, 0)), calc(-50% + ${(1 - titleIn) * 40}px - ${DEPTH.far * 0.7}px * var(--my, 0) * var(--pk, 0)))`,
       }}>
         {t('Dein GPS')}<br />{t('Tracker')}
       </div>
-      <div className="absolute left-0 top-0" style={{ transform: `translate(${ox}px, ${oy}px) scale(${s})`, transformOrigin: '0 0', width: SCREEN_W, height: SCREEN_H }}>
+      <div className="absolute left-0 top-0" style={{
+        transform: `translate(${ox}px, ${oy}px) scale(${s}) translate(${SCREEN_W / 2}px, ${SCREEN_H / 2}px) perspective(1600px) rotateY(calc(${DEPTH.tilt}deg * var(--mx, 0) * var(--pk, 0))) rotateX(calc(${-DEPTH.tilt * 0.8}deg * var(--my, 0) * var(--pk, 0))) translate(${-SCREEN_W / 2}px, ${-SCREEN_H / 2}px)`,
+        transformOrigin: '0 0', width: SCREEN_W, height: SCREEN_H }}>
         {/* Schatten unter dem Handy – gibt dem Endbild Tiefe */}
         <div aria-hidden className="absolute pointer-events-none" style={{
           left: -BEZEL, top: -BEZEL, width: SCREEN_W + 2 * BEZEL, height: SCREEN_H + 2 * BEZEL, borderRadius: 46, opacity: body,
