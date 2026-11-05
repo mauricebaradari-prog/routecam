@@ -397,11 +397,11 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
         </div>
 
         {/* Lichtreflex: läuft im Endbild immer wieder von links oben nach rechts unten übers Handy –
-            kräftig auf dem Rahmen, ganz leicht übers Glas */}
+            als 1-px-Linie auf der Außenkante, ganz leicht übers Glas */}
         {(parts.cta ?? 0) > 0 && (
           <div aria-hidden className="absolute pointer-events-none" style={{ left: -BEZEL, top: -BEZEL, width: SCREEN_W + 2 * BEZEL, height: SCREEN_H + 2 * BEZEL, opacity: parts.cta }}>
             <div className="absolute inset-0 trk-sheen" style={{ borderRadius: 46, opacity: 0.09 }} />
-            <div className="absolute inset-0 trk-sheen trk-rim" style={{ borderRadius: 46, padding: BEZEL, opacity: 0.9 }} />
+            <div className="absolute inset-0 trk-sheen trk-rim" style={{ borderRadius: 46, padding: 1 / s, opacity: 1 }} />
           </div>
         )}
 
@@ -502,9 +502,9 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
         /* Download-Knopf pulsiert sanft, sobald der Screen fertig ist */
         @keyframes trkCta { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204,255,0,.55) } 50% { transform: scale(1.025) } 70% { box-shadow: 0 0 0 12px rgba(204,255,0,0) } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(204,255,0,0) } }
         .trk-cta-pulse { animation: trkCta 1.8s ease-in-out infinite; }
-        /* Lichtreflex: diagonales Band, wandert in ~1,4 s übers Handy, dann ~5 s Pause */
-        @keyframes trkSheen { 0% { background-position: 100% 100% } 22% { background-position: 0% 0% } 100% { background-position: 0% 0% } }
-        .trk-sheen { background: linear-gradient(135deg, transparent 44%, rgba(255,255,255,0.55) 49%, #fff 50%, rgba(255,255,255,0.55) 51%, transparent 56%) no-repeat; background-size: 300% 300%; background-position: 100% 100%; animation: trkSheen 6.5s cubic-bezier(.45,0,.25,1) 0.6s infinite; }
+        /* Lichtreflex: diagonales Band, wandert in ~3 s übers Handy, dann ~6 s Pause */
+        @keyframes trkSheen { 0% { background-position: 100% 100% } 34% { background-position: 0% 0% } 100% { background-position: 0% 0% } }
+        .trk-sheen { background: linear-gradient(135deg, transparent 44%, rgba(255,255,255,0.55) 49%, #fff 50%, rgba(255,255,255,0.55) 51%, transparent 56%) no-repeat; background-size: 300% 300%; background-position: 100% 100%; animation: trkSheen 9s cubic-bezier(.45,0,.25,1) 0.6s infinite; }
         /* nur der Rahmen: Inhalt ausgespart */
         .trk-rim { -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
         .trk-cta-pulse:hover { animation-play-state: paused; }
