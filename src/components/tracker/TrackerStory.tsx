@@ -25,6 +25,8 @@ import { useT, currentLang } from '@/lib/i18n';
 import { tx } from './copy';
 
 /** Ziel des Download-Knopfs: die APK in public/downloads/ (neue Version: Datei ersetzen, gleicher Name). */
+/** Version der APK in public/downloads/ – bei jeder neuen APK mit anpassen. */
+export const TRACKER_VERSION = '1.1';
 export const APP_DOWNLOAD_HREF: string | null = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/downloads/routecam-tracker.apk`;
 
 const LIME = '#CCFF00';
@@ -238,6 +240,15 @@ export default function TrackerStory() {
           style={{ opacity: 0.8 * (st && st.vw < 768 ? 1 - seg(st.p, [0.64, 0.7]) : 1), pointerEvents: st && st.vw < 768 && st.p > 0.7 ? 'none' : undefined }}>
           <LogoLockup />
         </Link>
+
+        {/* Download oben rechts – immer erreichbar, nicht erst am Ende der Animation */}
+        <div className="absolute right-4 top-3 md:right-6 md:top-4 z-20 flex flex-col items-end">
+          <a href={APP_DOWNLOAD_HREF ?? undefined} download="RouteCam-Tracker.apk"
+            className="inline-flex items-center h-9 md:h-10 px-4 md:px-5 rounded-full bg-[#CCFF00] text-black text-sm font-semibold hover:brightness-110 transition">
+            {tx('App Download')}
+          </a>
+          <span className="mt-1 text-[11px] text-white/45">{tx('Nur für Android')}</span>
+        </div>
 
         {st && <Stage p={st.p} scrollY={Math.min(st.y, st.max)} vw={st.vw} vh={st.vh} loc={loc} onPlay={play} />}
         {st && sideRoomPx(st.vw, st.vh) >= SIDE_MIN_PX && <SideInfo p={st.p} vw={st.vw} vh={st.vh} />}
@@ -459,7 +470,7 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
           left: 0, width: SCREEN_W, top: SCREEN_H + BEZEL + 18, fontSize: 13, letterSpacing: 0.3, color: '#7d828c',
           opacity: parts.cta ?? 0, fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
         }}>
-          {tx('Nur für Android')}
+          {tx('Nur für Android')} · Version {TRACKER_VERSION}
         </p>
 
         {/* weiches Aufleuchten um den Punkt, wenn das Handy entsteht */}
