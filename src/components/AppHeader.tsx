@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Layers, ShieldCheck, Info, SquareUser as UserSquare } from 'lucide-react';
+import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Layers, ShieldCheck, Info, SquareUser as UserSquare, Smartphone } from 'lucide-react';
 import { useDb } from '@/lib/db';
 import { channelHref, ownerOf } from '@/lib/channels';
 import { useAllRoutes } from '@/lib/userRoutes';
@@ -17,6 +17,7 @@ import SignupWall from '@/components/SignupWall';
 import { requireAccount } from '@/lib/signupWall';
 import { useAuth } from '@/lib/auth';
 import { t, rich, useT } from '@/lib/i18n';
+import { useTrackerTeaserDismissed } from '@/lib/trackerTeaser';
 
 export const HEADER_HEIGHT = 56;
 
@@ -27,12 +28,14 @@ interface Props {
   onCreate: () => void;
   current?: 'map' | 'dashboard' | 'about' | 'other'; // highlights the matching drawer link
   showSearch?: boolean;          // the dashboard has its own search → no header search there
+  trackerCta?: boolean;          // Hauptseite: nach dem Wegklicken des Tracker-Teasers „GPS Tracker App“ neben „Anlegen“
   sticky?: boolean;              // sticky inside a scrolling page instead of floating over the map
 }
 
 // YouTube-style top bar: menu + logo | search | create, notifications, account.
 // Create / notifications / account are placeholders until accounts exist (see 07_TODO.md).
-export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCreate: onCreateRaw, current = 'map', showSearch: showSearchProp = true, sticky = false }: Props) {
+export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCreate: onCreateRaw, current = 'map', showSearch: showSearchProp = true, sticky = false, trackerCta = false }: Props) {
+  const teaserGone = useTrackerTeaserDismissed();
   useT();
   // creating a ride needs an account – visitors get the sign-up wall instead
   const onCreate = () => { if (requireAccount('create')) onCreateRaw(); };
@@ -122,6 +125,20 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                 <span className="md:hidden">
                   <IconButton label={t('Suchen')} onClick={() => setMobileSearch(true)}><Search size={20} /></IconButton>
                 </span>
+              )}
+              {/* Tracker-Teaser weggeklickt → der Weg zur App bleibt hier in der Kopfzeile */}
+              {trackerCta && teaserGone && (
+                <>
+                  <Link href="/tracker" onClick={leaveWhilePlaying}
+                    className="hidden sm:inline-flex items-center gap-1.5 h-9 pl-3 pr-4 rounded-full text-sm font-medium text-[#CCFF00] border border-[#CCFF00]/45 hover:bg-[#CCFF00]/10 transition-colors">
+                    <Smartphone size={17} />
+                    {t('GPS Tracker App')}
+                  </Link>
+                  <Link href="/tracker" onClick={leaveWhilePlaying} title={t('GPS Tracker App')} aria-label={t('GPS Tracker App')}
+                    className="sm:hidden w-9 h-9 rounded-full flex items-center justify-center text-[#CCFF00] border border-[#CCFF00]/45 hover:bg-[#CCFF00]/10 transition-colors">
+                    <Smartphone size={18} />
+                  </Link>
+                </>
               )}
               {/* signed out: the lime call to action – the one thing a new visitor should notice */}
               <button

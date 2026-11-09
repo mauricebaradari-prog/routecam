@@ -272,7 +272,7 @@ export default function Home() {
     <div className="h-screen w-full relative overflow-hidden bg-black text-white font-sans">
 
       {/* ── Top bar (YouTube-style) ── */}
-      <AppHeader routes={listedRoutes} activeRouteId={state.activeRouteId} onSelectRoute={setActiveRoute} onCreate={() => setCreateOpen(true)} />
+      <AppHeader routes={listedRoutes} activeRouteId={state.activeRouteId} onSelectRoute={setActiveRoute} onCreate={() => setCreateOpen(true)} trackerCta />
       {createOpen && <CreateRideModal onClose={() => setCreateOpen(false)} onCreate={handleCreateRide} />}
       
       {/* ── Map area ── */}

@@ -12,8 +12,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { t, useT } from '@/lib/i18n';
 import { leaveWhilePlaying } from '@/lib/nav';
+import { isTrackerTeaserDismissed, dismissTrackerTeaser } from '@/lib/trackerTeaser';
 
-const DISMISS_KEY = 'routecam.trackerTeaserDismissed';
 /** Wie lange nach dem Laden der Karte, bis der Teaser hereinkommt. */
 const SHOW_DELAY_MS = 2500;
 /** Ziel von „Mehr erfahren“ – der Onepager zur App kommt später. */
@@ -36,12 +36,8 @@ const CHAR_MS = 58;
 
 type Phase = 'waiting' | 'in' | 'out' | 'gone';
 
-function isDismissed() {
-  try { return localStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; }
-}
-function markDismissed() {
-  try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* privates Fenster o. Ä. */ }
-}
+const isDismissed = isTrackerTeaserDismissed;
+const markDismissed = dismissTrackerTeaser;
 
 export default function TrackerTeaser() {
   useT();
