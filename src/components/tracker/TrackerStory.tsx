@@ -242,7 +242,7 @@ export default function TrackerStory() {
         </Link>
 
         {/* Download oben rechts – immer erreichbar, nicht erst am Ende der Animation */}
-        <div className="absolute right-4 top-3 md:right-6 md:top-4 z-20 flex flex-col items-end">
+        <div className="absolute right-4 top-3 md:right-6 md:top-4 z-20 flex flex-col items-center">
           <a href={APP_DOWNLOAD_HREF ?? undefined} download="RouteCam-Tracker.apk"
             className="inline-flex items-center h-9 md:h-10 px-4 md:px-5 rounded-full bg-[#CCFF00] text-black text-sm font-semibold hover:brightness-110 transition">
             {tx('App Download')}
@@ -688,13 +688,13 @@ function ParticleTitle({ text, size, scrollY, vw, vh, cy }: { text: string; size
 }
 
 // ── Endbild-Schriftzug, der unter dem Mauszeiger in Punkte zerfällt ─────────────
-// Jeder Punkt hat seinen festen Platz auf der Kontur. Nahe am Zeiger wird er weggedrückt und
-// leuchtet auf, eine Feder zieht ihn danach zurück. Ruht alles, wird wieder die saubere Kontur
+// Jeder Punkt hat seinen festen Platz auf der Kontur. Kommt der Zeiger nahe, explodiert er nach
+// außen und glüht auf; eine (anfangs schwache) Feder holt ihn danach zurück. Ruht alles, wird wieder die saubere Kontur
 // gezeichnet und die Schleife schläft, bis sich der Zeiger erneut nähert.
-const HOVER_R = 120;   // Wirkradius um den Zeiger (px)
-const PUSH = 2.6;      // Stärke des Wegdrückens
-const SPRING = 0.045;  // Rückstellkraft
-const DAMP = 0.86;     // Dämpfung
+const HOVER_R = 110;   // Wirkradius um den Zeiger (px)
+const KICK = 13;       // Anfangsgeschwindigkeit der Explosion
+const SPRING = 0.03;   // Rückstellkraft (im Flug abgeschwächt)
+const DAMP = 0.9;      // Dämpfung
 
 function HoverParticleTitle({ text, size, vw, vh, active }: { text: string; size: number; vw: number; vh: number; active: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -726,16 +726,20 @@ function HoverParticleTitle({ text, size, vw, vh, active }: { text: string; size
       const R2 = HOVER_R * HOVER_R;
       for (let i = 0; i < n; i++) {
         const dx = x[i] - pointer.x, dy = y[i] - pointer.y, d2 = dx * dx + dy * dy;
-        if (pointer.inside && d2 < R2) {
-          const d = Math.sqrt(d2) || 1, f = (1 - d / HOVER_R);
-          vx[i] += (dx / d) * f * PUSH + (Math.random() - 0.5) * f * 1.2;
-          vy[i] += (dy / d) * f * PUSH + (Math.random() - 0.5) * f * 1.2;
-          if (f > heat[i]) heat[i] = f;
+        // Explosion: ein ruhender Punkt in Zeigernähe bekommt einen einmaligen Stoß nach außen,
+        // mit Streuung – er fliegt weit, glüht und kommt erst danach zurück
+        if (pointer.inside && d2 < R2 && heat[i] < 0.25) {
+          const d = Math.sqrt(d2) || 1, f = 0.45 + 0.55 * (1 - d / HOVER_R);
+          const ang = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1.6;
+          const sp = KICK * f * (0.5 + Math.random());
+          vx[i] += Math.cos(ang) * sp; vy[i] += Math.sin(ang) * sp - Math.random() * 2;
+          heat[i] = 1;
         }
-        vx[i] = (vx[i] + (hx[i] - x[i]) * SPRING) * DAMP;
-        vy[i] = (vy[i] + (hy[i] - y[i]) * SPRING) * DAMP;
+        const k = SPRING * (1 - 0.85 * heat[i]);
+        vx[i] = (vx[i] + (hx[i] - x[i]) * k) * DAMP;
+        vy[i] = (vy[i] + (hy[i] - y[i]) * k) * DAMP;
         x[i] += vx[i]; y[i] += vy[i];
-        heat[i] *= 0.95;
+        heat[i] *= 0.965;
         const off = Math.abs(x[i] - hx[i]) + Math.abs(y[i] - hy[i]);
         if (off > 0.25 || heat[i] > 0.02) moving++;
       }
@@ -743,9 +747,9 @@ function HoverParticleTitle({ text, size, vw, vh, active }: { text: string; size
       g.clearRect(0, 0, vw, vh);
       for (let i = 0; i < n; i++) {
         const h = heat[i];
-        const a = 0.12 + 0.6 * h;
-        g.fillStyle = h > 0.25 && i % 7 === 0 ? `rgba(204,255,0,${a})` : `rgba(226,229,234,${a})`;
-        const r = 2 + h * 0.6;
+        const a = 0.12 + 0.75 * h;
+        g.fillStyle = h > 0.2 && i % 5 === 0 ? `rgba(204,255,0,${a})` : `rgba(226,229,234,${a})`;
+        const r = 2 + h * 1.2;
         g.fillRect(x[i] - r / 2, y[i] - r / 2, r, r);
       }
       raf = requestAnimationFrame(step);
