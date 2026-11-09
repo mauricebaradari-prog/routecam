@@ -151,47 +151,55 @@ export default function ConsentBanner() {
   return (
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="consent-title">
       <div className="absolute inset-0 bg-black/55 backdrop-blur-md" />
-      <div className="relative w-full max-w-[540px] max-h-[calc(100dvh-32px)] flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0c0d11]/95 shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pt-7 pb-4 md:px-8">
-        <RouteCookie />
-        <h2 id="consent-title" className="mt-4 mb-2 text-center text-[21px] md:text-[23px] font-bold leading-tight text-white">{c.title}</h2>
-        <p className="m-0 text-center text-sm leading-relaxed text-white/65">{c.intro}</p>
+      {/* Desktop: links Keks, Text und Knöpfe – rechts das FAQ. Handy: untereinander, Knöpfe unten. */}
+      <div className="consent-card relative w-full max-w-[540px] md:max-w-[980px] max-h-[calc(100dvh-32px)] overflow-hidden rounded-3xl border border-white/10 bg-[#0c0d11]/95 shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
+        <div className="[grid-area:intro] self-center px-6 pt-7 pb-4 md:px-12 md:pt-10 md:pb-6">
+          <RouteCookie />
+          <h2 id="consent-title" className="mt-4 md:mt-6 mb-2 md:mb-3 text-center text-[21px] md:text-[28px] font-bold leading-tight text-white">{c.title}</h2>
+          <p className="m-0 text-center text-sm md:text-[15px] leading-relaxed text-white/65">{c.intro}</p>
+        </div>
 
-        <div className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: LIME }}>{c.optionalTitle}</span>
-            <span className="text-xs text-white/40">{c.optionalNote}</span>
+        {/* scrollt, aber ohne sichtbaren Scrollbalken; unten blendet es weich aus */}
+        <div className="consent-scroll [grid-area:faq] min-h-0 overflow-y-auto overscroll-contain px-6 pb-4 md:px-8 md:py-8 md:border-l md:border-white/[0.08]">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[13px] font-semibold uppercase tracking-wider" style={{ color: LIME }}>{c.optionalTitle}</span>
+              <span className="text-xs text-white/40">{c.optionalNote}</span>
+            </div>
+            <div className="mt-1">{c.optional.map(it => <Faq key={it.name} item={it} />)}</div>
           </div>
-          <div className="mt-1">{c.optional.map(it => <Faq key={it.name} item={it} />)}</div>
-        </div>
 
-        <div className="mt-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[13px] font-semibold uppercase tracking-wider text-white/80">{c.necessaryTitle}</span>
-            <span className="text-xs text-white/40">{c.always}</span>
+          <div className="mt-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[13px] font-semibold uppercase tracking-wider text-white/80">{c.necessaryTitle}</span>
+              <span className="text-xs text-white/40">{c.always}</span>
+            </div>
+            <div className="mt-0.5 text-xs text-white/40">{c.necessaryNote}</div>
+            <div className="mt-1">{c.necessary.map(it => <Faq key={it.name} item={it} />)}</div>
           </div>
-          <div className="mt-0.5 text-xs text-white/40">{c.necessaryNote}</div>
-          <div className="mt-1">{c.necessary.map(it => <Faq key={it.name} item={it} />)}</div>
+
+          <p className="mt-4 mb-0 text-xs leading-relaxed text-white/45">
+            {c.footer} <Link href="/about#datenschutz" className="underline underline-offset-2 hover:text-white" onClick={() => setReopened(false)}>{c.privacy}</Link>
+          </p>
         </div>
 
-        <p className="mt-4 mb-0 text-xs leading-relaxed text-white/45">
-          {c.footer} <Link href="/about#datenschutz" className="underline underline-offset-2 hover:text-white" onClick={() => setReopened(false)}>{c.privacy}</Link>
-        </p>
-
-        </div>
         {/* gleich große Knöpfe, immer sichtbar: Ablehnen ist so leicht wie Zustimmen */}
-        <div className="shrink-0 border-t border-white/[0.08] px-6 py-4 md:px-8 grid grid-cols-2 gap-2.5">
+        <div className="[grid-area:btn] border-t border-white/[0.08] px-6 py-4 md:px-12 md:py-6 grid grid-cols-2 gap-2.5 md:gap-3">
           <button type="button" onClick={() => decide('necessary')}
-            className={`h-12 rounded-full text-[14px] sm:text-[15px] font-semibold border transition-colors ${current === 'necessary' ? 'border-white/40' : 'border-white/15'} bg-white/[0.08] text-white hover:bg-white/[0.14]`}>
+            className={`h-12 md:h-14 rounded-full text-[14px] sm:text-[15px] md:text-base font-semibold border transition-colors ${current === 'necessary' ? 'border-white/40' : 'border-white/15'} bg-white/[0.08] text-white hover:bg-white/[0.14]`}>
             {c.reject}
           </button>
           <button type="button" onClick={() => decide('all')}
-            className="h-12 rounded-full text-[14px] sm:text-[15px] font-semibold text-black hover:brightness-110 transition" style={{ background: LIME }}>
+            className="h-12 md:h-14 rounded-full text-[14px] sm:text-[15px] md:text-base font-semibold text-black hover:brightness-110 transition" style={{ background: LIME }}>
             {c.accept}
           </button>
         </div>
       </div>
       <style>{`
+        .consent-card { display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr) auto; grid-template-areas: 'intro' 'faq' 'btn'; }
+        @media (min-width: 768px) { .consent-card { grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-rows: minmax(0,1fr) auto; grid-template-areas: 'intro faq' 'btn faq'; } }
+        .consent-scroll { scrollbar-width: none; -ms-overflow-style: none; -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); }
+        .consent-scroll::-webkit-scrollbar { display: none; }
         .cookie-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: cookieDraw 1.4s cubic-bezier(.45,0,.2,1) .15s forwards; }
         .cookie-crumb { opacity: 0; transform-box: fill-box; transform-origin: center; animation: cookieCrumb .35s ease-out forwards; }
         @keyframes cookieDraw { to { stroke-dashoffset: 0 } }
