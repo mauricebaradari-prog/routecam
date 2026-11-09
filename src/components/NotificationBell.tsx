@@ -68,8 +68,9 @@ export default function NotificationBell() {
       >
         <Bell size={20} />
         {unread > 0 && (
-          <span className="absolute top-1 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#CCFF00] text-black text-[10px] font-bold leading-[18px] text-center border-2 border-[#0f0f0f]">
-            {unread > 9 ? '9+' : unread}
+          // Flex statt line-height: so steht die Zahl mittig, auch mit Rand. Ab 100 „99+“, die Pille wächst nach links über die Glocke.
+          <span className={`absolute top-0.5 -right-1 min-w-[20px] h-[20px] box-border rounded-full bg-[#CCFF00] text-black font-bold ${unread > 99 ? 'px-[4px] text-[9.5px]' : 'px-[5px] text-[10.5px]'} leading-none tabular-nums tracking-[-0.3px] flex items-center justify-center border-2 border-[#0f0f0f]`}>
+            {unread > 99 ? '99+' : unread}
           </span>
         )}
       </button>
