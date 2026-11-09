@@ -18,6 +18,7 @@ import { requireAccount } from '@/lib/signupWall';
 import { useAuth } from '@/lib/auth';
 import { t, rich, useT } from '@/lib/i18n';
 import { openConsent } from '@/lib/consent';
+import UserAvatar from '@/components/UserAvatar';
 import { consentCopy } from '@/components/ConsentBanner';
 import { useTrackerTeaserDismissed } from '@/lib/trackerTeaser';
 
@@ -324,11 +325,9 @@ function AccountMenu() {
         aria-label={user ? t('Konto: {name}', { name: user.name }) : t('Anmelden')}
         className="w-8 h-8 rounded-full overflow-hidden bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 transition-colors"
       >
-        {user?.picture
-          ? <img src={user.picture} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-          : user
-            ? <span className="text-xs font-semibold">{user.name.slice(0, 1).toUpperCase()}</span>
-            : <User size={18} />}
+        {user
+          ? <UserAvatar name={user.name} picture={user.picture} seed={user.id} size={32} />
+          : <User size={18} />}
       </button>
 
       {open && (
@@ -336,9 +335,7 @@ function AccountMenu() {
           {user ? (
             <>
               <div className="flex items-center gap-3 p-4 border-b border-white/10">
-                {user.picture
-                  ? <img src={user.picture} alt="" referrerPolicy="no-referrer" className="w-10 h-10 rounded-full" />
-                  : <span className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-semibold">{user.name.slice(0, 1)}</span>}
+                <UserAvatar name={user.name} picture={user.picture} seed={user.id} size={40} />
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-white truncate">{user.name}</div>
                   <div className="text-xs text-white/50 truncate">{user.email}</div>

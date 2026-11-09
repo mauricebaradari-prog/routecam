@@ -16,6 +16,8 @@ export interface AppNotification {
   routeId: string;
   actor: string;          // display name
   color: string;          // avatar colour
+  actorId?: string;       // account that did it (avatar colour)
+  picture?: string;       // profile picture of the actor
   createdAt: string;      // ISO
   read: boolean;
   seconds?: number;       // comment: position in the video
@@ -26,7 +28,7 @@ export interface AppNotification {
 function toNotification(n: NotificationRow, profiles: Record<string, Profile>): AppNotification {
   return {
     id: n.id, kind: n.kind, routeId: n.route_id, actor: (n.actor_id && profiles[n.actor_id]?.name) || t('Jemand'),
-    color: '#CCFF00', createdAt: n.created_at, read: n.read,
+    color: '#CCFF00', actorId: n.actor_id ?? undefined, picture: (n.actor_id && profiles[n.actor_id]?.picture) || undefined, createdAt: n.created_at, read: n.read,
     ...(n.seconds != null ? { seconds: n.seconds } : {}), ...(n.text ? { text: n.text } : {}), ...(n.stars ? { stars: n.stars } : {}),
   };
 }

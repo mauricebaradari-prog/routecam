@@ -88,7 +88,7 @@ body.is-dragging iframe {
 .rc-avatar {
   width: 24px; height: 24px; border-radius: 9999px;
   display: flex; align-items: center; justify-content: center;
-  font: 700 9px/1 var(--font-geist-sans, system-ui, sans-serif); color: #0b0d10;
+  font: 700 9px/1 var(--font-geist-sans, system-ui, sans-serif); color: #0b0d10; overflow: hidden;
   border: 2px solid #0b0d10; box-shadow: 0 0 0 1.5px rgba(255,255,255,0.85), 0 2px 8px rgba(0,0,0,0.5);
   transition: transform 150ms ease;
 }

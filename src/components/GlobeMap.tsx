@@ -12,7 +12,8 @@ import { City, VehicleConfig, MapStyleId } from '@/hooks/useEditorState';
 import { greatCircleArc } from '@/lib/geo';
 import { loadRoadCache, saveRoadCache } from '@/lib/roadGeometry';
 import { buildMapStyle } from '@/lib/mapStyles';
-import { initials, formatCommentTime, type RouteComment } from '@/lib/routeComments';
+import { formatCommentTime, type RouteComment } from '@/lib/routeComments';
+import { fillAvatarEl } from '@/lib/avatar';
 import { t, useT } from '@/lib/i18n';
 
 function getDistance(p1: [number, number], p2: [number, number]) {
@@ -227,8 +228,7 @@ export default function GlobeMap({
       el.className = 'rc-comment';
       const avatar = document.createElement('div');
       avatar.className = 'rc-avatar';
-      avatar.style.background = c.color;
-      avatar.textContent = initials(c.author);
+      fillAvatarEl(avatar, c.author, c.picture, c.authorId);
       const bubble = document.createElement('div');
       bubble.className = 'rc-bubble';
       const head = document.createElement('div');
@@ -297,8 +297,7 @@ export default function GlobeMap({
       cs.slice(0, 2).forEach(c => {
         const a = document.createElement('div');
         a.className = 'rc-avatar';
-        a.style.background = c.color;
-        a.textContent = initials(c.author);
+        fillAvatarEl(a, c.author, c.picture, c.authorId);
         stack.append(a);
       });
       const count = document.createElement('span');

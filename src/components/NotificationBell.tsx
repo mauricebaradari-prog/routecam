@@ -6,7 +6,8 @@ import { Bell, Heart, MessageCircle, Star, Settings as SettingsIcon, CheckCheck,
 import { useNotifications, timeAgo, type AppNotification, type NotificationKind } from '@/lib/notifications';
 import { useAllRoutes } from '@/lib/userRoutes';
 import { useSettings } from '@/lib/settings';
-import { initials, formatCommentTime } from '@/lib/routeComments';
+import { formatCommentTime } from '@/lib/routeComments';
+import UserAvatar from '@/components/UserAvatar';
 import { t, rich, useT, k } from '@/lib/i18n';
 
 const FILTERS: { value: 'all' | NotificationKind; label: string }[] = [
@@ -117,7 +118,7 @@ export default function NotificationBell() {
                     <span className={`mt-4 w-1.5 h-1.5 rounded-full shrink-0 ${n.read ? 'bg-transparent' : 'bg-[#CCFF00]'}`} />
                     {/* avatar + kind badge */}
                     <span className="relative shrink-0">
-                      <span className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: n.color }}>{initials(n.actor)}</span>
+                      <UserAvatar name={n.actor} picture={n.picture} seed={n.actorId} size={40} />
                       <span className={`absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-[#212121] ${cls}`}>
                         <Icon size={9} fill={n.kind === 'comment' ? 'none' : 'currentColor'} strokeWidth={n.kind === 'comment' ? 3 : 2} />
                       </span>

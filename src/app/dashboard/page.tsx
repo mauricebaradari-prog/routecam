@@ -18,7 +18,8 @@ import AppHeader from '@/components/AppHeader';
 import CreateRideModal, { type NewRide } from '@/components/CreateRideModal';
 import { useRouteGroups, relativeTime, type RouteGroup } from '@/lib/routeGroups';
 import { useRouteInteractions, formatRating, REPORT_REASONS } from '@/lib/routeInteractions';
-import { useRouteComments, initials, formatCommentTime, type RouteComment } from '@/lib/routeComments';
+import UserAvatar from '@/components/UserAvatar';
+import { useRouteComments, formatCommentTime, type RouteComment } from '@/lib/routeComments';
 import { useRouteVisibility, VISIBILITY_OPTIONS, type Visibility } from '@/lib/routeVisibility';
 import { VisibilityBadge, VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { t, useT, locale, k } from '@/lib/i18n';
@@ -1041,9 +1042,9 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
                       className={`absolute top-0 -ml-[11px] w-[22px] h-[22px] rounded-full flex items-center justify-center text-[8px] font-bold text-[#0b0d10] border-2 transition-transform ${
                         hovered === c.id ? 'scale-125 border-[#CCFF00] z-10' : 'border-[#141619]'
                       }`}
-                      style={{ left: `${p * 100}%`, background: c.color }}
+                      style={{ left: `${p * 100}%` }}
                     >
-                      {initials(c.author)}
+                      <UserAvatar name={c.author} picture={c.picture} seed={c.authorId} size={18} />
                     </button>
                   </React.Fragment>
                 );
@@ -1066,9 +1067,7 @@ function CommentsDrawer({ route, comments, onClose }: { route: RouteConfig; comm
                 onMouseLeave={() => setHovered(null)}
                 className={`group flex gap-3 rounded-lg p-2 -mx-2 transition-colors ${hovered === c.id ? 'bg-white/[0.06]' : ''}`}
               >
-                <span className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold text-[#0b0d10]" style={{ background: c.color }}>
-                  {initials(c.author)}
-                </span>
+                <UserAvatar name={c.author} picture={c.picture} seed={c.authorId} size={32} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 text-xs">
                     <span className="font-semibold text-white">{c.author}</span>

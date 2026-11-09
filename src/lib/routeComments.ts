@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { db, dbError, setDb, useDb, type CommentRow, type Profile } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { t, k } from '@/lib/i18n';
+import { avatarColors, initials as avatarInitials } from '@/lib/avatar';
 
 // Timed comments (SoundCloud-style): each comment sits at a point in the video,
 // and therefore at a point on the route.
@@ -25,15 +26,13 @@ export interface RouteComment {
 function toComment(c: CommentRow, profiles: Record<string, Profile>): RouteComment {
   const p = profiles[c.author_id];
   return {
-    id: c.id, routeId: c.route_id, seconds: c.seconds, author: p?.name || t('RouteCam-Nutzer'), color: '#CCFF00',
+    id: c.id, routeId: c.route_id, seconds: c.seconds, author: p?.name || t('RouteCam-Nutzer'), color: avatarColors(c.author_id).bg,
     picture: p?.picture ?? undefined, text: c.text, createdAt: c.created_at, authorId: c.author_id,
     ...(c.parent_id ? { parentId: c.parent_id } : {}), ...(c.edited_at ? { editedAt: c.edited_at } : {}),
   };
 }
 
-export function initials(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]!.toUpperCase()).join('');
-}
+export const initials = avatarInitials;
 
 export function formatCommentTime(seconds: number) {
   const m = Math.floor(seconds / 60);

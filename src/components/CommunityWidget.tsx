@@ -5,7 +5,8 @@ import { Rnd } from 'react-rnd';
 import { ThumbsUp, Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
 import { shareUrl } from '@/lib/share';
 import { allowInteraction, requireAccount } from '@/lib/signupWall';
-import { formatCommentTime, initials, useCommentReports, useRouteComments, COMMENT_REPORT_REASONS, type RouteComment } from '@/lib/routeComments';
+import UserAvatar from '@/components/UserAvatar';
+import { formatCommentTime, useCommentReports, useRouteComments, COMMENT_REPORT_REASONS, type RouteComment } from '@/lib/routeComments';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import { useRouteInteractions, REPORT_REASONS, formatRating, type ReportReason } from '@/lib/routeInteractions';
 import { t, useT } from '@/lib/i18n';
@@ -315,9 +316,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                               active ? 'border-[#CCFF00]/60 bg-[#CCFF00]/10 shadow-[0_0_16px_rgba(204,255,0,0.15)]' : 'border-transparent hover:bg-white/5'
                             } ${passed ? 'opacity-50' : ''}`}
                           >
-                            <span className={`${reply ? 'w-5 h-5 text-[8px]' : 'w-6 h-6 text-[9px]'} shrink-0 rounded-full flex items-center justify-center font-bold text-[#0b0d10]`} style={{ background: c.color }}>
-                              {initials(c.author)}
-                            </span>
+                            <UserAvatar name={c.author} picture={c.picture} seed={c.authorId} size={reply ? 20 : 24} />
                             <span className="min-w-0 flex-1">
                               <span className="flex items-baseline gap-2 text-[11px]">
                                 <span className="font-semibold text-white">{c.author}</span>
