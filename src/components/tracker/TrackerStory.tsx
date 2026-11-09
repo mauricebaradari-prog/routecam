@@ -402,6 +402,10 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
   // Endbild: groß und leise hinter dem Handy, nur als Kontur (3 px)
   const titleIn = easeOut(seg(p, P.title));
   const titleSize = Math.min(vw * 0.155, vh * 0.3);
+  const bigTitle: React.CSSProperties = {
+    fontSize: titleSize, lineHeight: 0.92, fontWeight: 900, letterSpacing: '-0.02em', textTransform: 'uppercase', whiteSpace: 'pre-line',
+    color: 'transparent', WebkitTextStroke: '3px rgba(226, 229, 234, 0.16)', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
+  };
   // Anfang: dieselbe große Kontur-Schrift, sie scrollt mit dem ersten Scrollen nach oben weg
   const startVisible = scrollY < vh * DISSOLVE_VH;
 
@@ -409,16 +413,12 @@ function Stage({ p, scrollY, vw, vh, loc, onPlay }: { p: number; scrollY: number
     <>
       <h1 className="sr-only">{tx('Starte dein\nAbenteuer')}</h1>
       {startVisible && <ParticleTitle text={tx('Starte dein\nAbenteuer')} size={titleSize} scrollY={scrollY} vw={vw} vh={vh} cy={oy + START_Y * s} />}
-      {/* Endbild-Schriftzug: als Punktewolke – unter dem Mauszeiger lösen sich die Buchstaben auf
-          und setzen sich wieder zusammen, sobald der Zeiger weiterzieht */}
-      {titleIn > 0.001 && (
-        <div aria-hidden className="absolute inset-0 pointer-events-none" style={{
-          opacity: titleIn,
-          transform: `translate(calc(${-DEPTH.far}px * var(--mx, 0) * var(--pk, 0)), calc(${(1 - titleIn) * 40}px - ${DEPTH.far * 0.7}px * var(--my, 0) * var(--pk, 0)))`,
-        }}>
-          <HoverParticleTitle text={`${tx('Dein GPS')}\n${tx('Tracker')}`} size={titleSize} vw={vw} vh={vh} active={titleIn > 0.6} />
-        </div>
-      )}
+      <div aria-hidden className="absolute left-0 w-full text-center m-0 pointer-events-none select-none" style={{
+        ...bigTitle, top: '50%', opacity: titleIn,
+        transform: `translate(calc(${-DEPTH.far}px * var(--mx, 0) * var(--pk, 0)), calc(-50% + ${(1 - titleIn) * 40}px - ${DEPTH.far * 0.7}px * var(--my, 0) * var(--pk, 0)))`,
+      }}>
+        {tx('Dein GPS')}<br />{tx('Tracker')}
+      </div>
       <div className="absolute left-0 top-0" style={{
         transform: `translate(${ox}px, ${oy}px) scale(${s}) translate(${SCREEN_W / 2}px, ${SCREEN_H / 2}px) perspective(1600px) rotateY(calc(${DEPTH.tilt}deg * var(--mx, 0) * var(--pk, 0))) rotateX(calc(${-DEPTH.tilt * 0.8}deg * var(--my, 0) * var(--pk, 0))) translate(${-SCREEN_W / 2}px, ${-SCREEN_H / 2}px)`,
         transformOrigin: '0 0', width: SCREEN_W, height: SCREEN_H }}>
@@ -685,114 +685,4 @@ function ParticleTitle({ text, size, scrollY, vw, vh, cy }: { text: string; size
   }, [scrollY, vw, vh, size, text, particles, key, cy]);
 
   return <canvas ref={canvas} aria-hidden className="absolute left-0 top-0 pointer-events-none" style={{ width: vw, height: vh }} />;
-}
-
-// ── Endbild-Schriftzug, der unter dem Mauszeiger in Punkte zerfällt ─────────────
-// Jeder Punkt hat seinen festen Platz auf der Kontur. Kommt der Zeiger nahe, explodiert er nach
-// außen und glüht auf; eine (anfangs schwache) Feder holt ihn danach zurück. Ruht alles, wird wieder die saubere Kontur
-// gezeichnet und die Schleife schläft, bis sich der Zeiger erneut nähert.
-const HOVER_R = 110;   // Wirkradius um den Zeiger (px)
-const KICK = 13;       // Anfangsgeschwindigkeit der Explosion
-const SPRING = 0.03;   // Rückstellkraft (im Flug abgeschwächt)
-const DAMP = 0.9;      // Dämpfung
-
-function HoverParticleTitle({ text, size, vw, vh, active }: { text: string; size: number; vw: number; vh: number; active: boolean }) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const c = canvas.current;
-    if (!c) return;
-    const g = c.getContext('2d');
-    if (!g) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    c.width = Math.round(vw * dpr); c.height = Math.round(vh * dpr);
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const lines = text.toUpperCase().split('\n');
-    let cancelled = false, raf = 0;
-    let n = 0, hx = new Float32Array(0), hy = hx, x = hx, y = hx, vx = hx, vy = hx, heat = hx;
-    const pointer = { x: -1e4, y: -1e4, inside: false };
-
-    const drawCrisp = () => {
-      g.clearRect(0, 0, vw, vh);
-      const { px, capShift } = setTitleFont(g, lines, size, vw);
-      const lh = px * 0.92;
-      g.lineWidth = 3; g.strokeStyle = 'rgba(226, 229, 234, 0.16)';
-      lines.forEach((ln, i) => g.strokeText(ln, vw / 2, vh / 2 + capShift + (i - (lines.length - 1) / 2) * lh));
-    };
-
-    const step = () => {
-      raf = 0;
-      let moving = 0;
-      const R2 = HOVER_R * HOVER_R;
-      for (let i = 0; i < n; i++) {
-        const dx = x[i] - pointer.x, dy = y[i] - pointer.y, d2 = dx * dx + dy * dy;
-        // Explosion: ein ruhender Punkt in Zeigernähe bekommt einen einmaligen Stoß nach außen,
-        // mit Streuung – er fliegt weit, glüht und kommt erst danach zurück
-        if (pointer.inside && d2 < R2 && heat[i] < 0.25) {
-          const d = Math.sqrt(d2) || 1, f = 0.45 + 0.55 * (1 - d / HOVER_R);
-          const ang = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1.6;
-          const sp = KICK * f * (0.5 + Math.random());
-          vx[i] += Math.cos(ang) * sp; vy[i] += Math.sin(ang) * sp - Math.random() * 2;
-          heat[i] = 1;
-        }
-        const k = SPRING * (1 - 0.85 * heat[i]);
-        vx[i] = (vx[i] + (hx[i] - x[i]) * k) * DAMP;
-        vy[i] = (vy[i] + (hy[i] - y[i]) * k) * DAMP;
-        x[i] += vx[i]; y[i] += vy[i];
-        heat[i] *= 0.965;
-        const off = Math.abs(x[i] - hx[i]) + Math.abs(y[i] - hy[i]);
-        if (off > 0.25 || heat[i] > 0.02) moving++;
-      }
-      if (!moving && !pointer.inside) { drawCrisp(); return; }   // alles an seinem Platz → schlafen
-      g.clearRect(0, 0, vw, vh);
-      for (let i = 0; i < n; i++) {
-        const h = heat[i];
-        const a = 0.12 + 0.75 * h;
-        g.fillStyle = h > 0.2 && i % 5 === 0 ? `rgba(204,255,0,${a})` : `rgba(226,229,234,${a})`;
-        const r = 2 + h * 1.2;
-        g.fillRect(x[i] - r / 2, y[i] - r / 2, r, r);
-      }
-      raf = requestAnimationFrame(step);
-    };
-    const wake = () => { if (!raf && n) raf = requestAnimationFrame(step); };
-
-    const move = (e: PointerEvent) => {
-      const r = c.getBoundingClientRect();
-      pointer.x = e.clientX - r.left; pointer.y = e.clientY - r.top;
-      // nur aufwecken, wenn der Zeiger in der Nähe der Schrift ist
-      pointer.inside = pointer.x > -HOVER_R && pointer.x < vw + HOVER_R && Math.abs(pointer.y - vh / 2) < size * 1.1 + HOVER_R;
-      if (pointer.inside) wake();
-    };
-    const leave = () => { pointer.inside = false; pointer.x = pointer.y = -1e4; wake(); };
-
-    (async () => {
-      try { await document.fonts.ready; } catch { /* ältere Browser */ }
-      if (cancelled) return;
-      drawCrisp();
-      // Kontur abtasten: alle 2 px ein Punkt
-      const data = g.getImageData(0, 0, c.width, c.height).data;
-      const pts: number[] = [];
-      const stepPx = 2;
-      for (let yy = 0; yy < vh; yy += stepPx) for (let xx = 0; xx < vw; xx += stepPx) {
-        const ix = Math.round(xx * dpr), iy = Math.round(yy * dpr);
-        if (data[(iy * c.width + ix) * 4 + 3] > 12) pts.push(xx, yy);
-      }
-      n = pts.length / 2;
-      hx = new Float32Array(n); hy = new Float32Array(n);
-      for (let i = 0; i < n; i++) { hx[i] = pts[2 * i]; hy[i] = pts[2 * i + 1]; }
-      x = hx.slice(); y = hy.slice(); vx = new Float32Array(n); vy = new Float32Array(n); heat = new Float32Array(n);
-    })();
-
-    if (active && window.matchMedia('(pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      window.addEventListener('pointermove', move, { passive: true });
-      document.documentElement.addEventListener('pointerleave', leave);
-    }
-    return () => {
-      cancelled = true; cancelAnimationFrame(raf);
-      window.removeEventListener('pointermove', move);
-      document.documentElement.removeEventListener('pointerleave', leave);
-    };
-  }, [text, size, vw, vh, active]);
-
-  return <canvas ref={canvas} className="absolute left-0 top-0" style={{ width: vw, height: vh }} />;
 }
