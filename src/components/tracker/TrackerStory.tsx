@@ -238,7 +238,11 @@ export default function TrackerStory() {
         {/* auf schmalen Fenstern füllt das Handy am Ende den Bildschirm – dann tritt das Logo zurück */}
         <Link href="/" className="absolute left-4 top-4 md:left-6 md:top-5 z-20 hover:!opacity-100 transition-opacity" aria-label={tx('Zurück zu RouteCam')}
           style={{ opacity: 0.8 * (st && st.vw < 768 ? 1 - seg(st.p, [0.64, 0.7]) : 1), pointerEvents: st && st.vw < 768 && st.p > 0.7 ? 'none' : undefined }}>
-          <LogoLockup />
+          {/* wie in der App: hinter dem Wortzeichen „TRACKER“ in Neongrün */}
+          <span className="inline-flex items-center gap-2">
+            <LogoLockup />
+            <span style={{ color: '#CCFF00', fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, lineHeight: 1, fontFamily: 'var(--font-geist-sans), system-ui, sans-serif' }}>TRACKER</span>
+          </span>
         </Link>
 
         {/* Download oben rechts – immer erreichbar, nicht erst am Ende der Animation */}
