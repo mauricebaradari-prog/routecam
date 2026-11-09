@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { t, k } from '@/lib/i18n';
+import { hasMediaConsent, openConsent, whenMediaConsent } from '@/lib/consent';
 
 // Reads a video's length and title via the YouTube IFrame player (no API key needed).
 // A hidden player is created off-screen, asked for getDuration() and destroyed again.
@@ -10,7 +11,17 @@ type DurationState =
   | { status: 'ok'; seconds: number; title: string }
   | { status: 'error'; message: string };
 
-export function waitForYT(timeoutMs = 10000): Promise<YTNamespace> {
+/** Lädt die YouTube-API – aber erst, wenn YouTube erlaubt ist (Cookie-Banner).
+ *  ask: true (Standard) öffnet den Banner, falls noch keine Erlaubnis da ist. */
+export async function waitForYT(timeoutMs = 10000, { ask = true }: { ask?: boolean } = {}): Promise<YTNamespace> {
+  if (!hasMediaConsent()) {
+    if (ask) openConsent();
+    await whenMediaConsent();
+  }
+  return loadYT(timeoutMs);
+}
+
+function loadYT(timeoutMs: number): Promise<YTNamespace> {
   const w = window;
   if (w.YT?.Player) return Promise.resolve(w.YT);
   // Load the API script if nobody did yet – without touching window.onYouTubeIframeAPIReady,

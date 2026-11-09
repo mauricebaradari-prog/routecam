@@ -1,5 +1,6 @@
 import ErrorLogger from "@/components/ErrorLogger";
 import { I18nProvider } from "@/lib/i18n";
+import ConsentBanner from "@/components/ConsentBanner";
 import type { Metadata } from "next";
 import "./globals.css";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -51,7 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="h-full antialiased font-sans">
         <ErrorLogger />
-        <I18nProvider>{children}</I18nProvider>
+        <I18nProvider>{children}<ConsentBanner /></I18nProvider>
       </body>
     </html>
   );

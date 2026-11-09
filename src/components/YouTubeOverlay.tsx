@@ -10,6 +10,8 @@ import { loadAllRoutes } from '@/lib/userRoutes';
 import ChannelAvatar from '@/components/ChannelAvatar';
 import { leaveWhilePlaying } from '@/lib/nav';
 import { waitForYT } from '@/lib/youtubeDuration';
+import { useConsent, setConsent, openConsent } from '@/lib/consent';
+import { consentCopy } from '@/components/ConsentBanner';
 import { VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useAuth } from '@/lib/auth';
@@ -27,6 +29,7 @@ interface Props {
 
 export default function YouTubeOverlay({ state, startAnimation, stopAnimation, initialPos, setActiveWindow, visibility }: Props) {
   useT();
+  const consent = useConsent();
   const playerRef = useRef<YTPlayer | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isInternalChange = useRef(false);
@@ -163,7 +166,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
     // Loads the API script if needed and waits until YT.Player exists (also when another
     // component – e.g. the video-length check in "Anlegen" – started loading it first)
     let cancelled = false;
-    waitForYT(15000).then(() => { if (!cancelled) initPlayer(); }).catch(() => {});
+    waitForYT(15000, { ask: false }).then(() => { if (!cancelled) initPlayer(); }).catch(() => {});
 
     return () => {
       cancelled = true;
@@ -374,6 +377,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
     <div className="w-full relative bg-black" style={{ height: cssFullDesktop ? '100%' : isMobile ? `calc(100% - ${CHANNEL_BAR_H}px)` : `calc(100% - 38px - ${CHANNEL_BAR_H}px)` }}>
       <div ref={fsRef} className={`group/fs bg-black ${fullscreen === 'css' && isMobile ? 'fixed inset-0 z-[200]' : 'absolute inset-0'}`}>
         <div id="youtube-player" className="absolute inset-0 w-full h-full"></div>
+        {consent !== 'all' && <VideoConsentPlaceholder />}
 
         {/* phone: small enter-fullscreen button on the video */}
         {isMobile && !isFull && (
@@ -486,6 +490,21 @@ function ChannelBar({ data }: { data: { owner: RouteOwner; rides: number } | nul
           </span>
         </Link>
       )}
+    </div>
+  );
+}
+
+/** Statt des Videos, solange YouTube nicht erlaubt ist – ein Klick erlaubt es. */
+function VideoConsentPlaceholder() {
+  const c = consentCopy();
+  return (
+    <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 px-6 text-center bg-[#0c0d11]">
+      <p className="m-0 max-w-[320px] text-[13px] leading-relaxed text-white/60">{c.videoNote}</p>
+      <button type="button" onClick={() => setConsent('all')}
+        className="inline-flex items-center gap-2 h-10 px-5 rounded-full text-sm font-semibold text-black hover:brightness-110 transition" style={{ background: '#CCFF00' }}>
+        <Play size={15} fill="currentColor" /> {c.videoLoad}
+      </button>
+      <button type="button" onClick={openConsent} className="text-xs text-white/40 underline underline-offset-2 hover:text-white/70">{c.settings}</button>
     </div>
   );
 }

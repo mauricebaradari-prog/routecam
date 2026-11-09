@@ -74,11 +74,12 @@ export function LegalEn() {
             <p><strong>Your rides.</strong> A ride contains geodata with timestamps, the video link, title and visibility. Geodata can show where you have been, for example where a ride starts. You decide who can see a ride (public, unlisted, private). Legal basis: Art. 6(1)(b) GDPR.</p>
             <p><strong>Likes, ratings, comments, reports.</strong> We store them with your account to display them, generate notifications and handle reports. Legal basis: Art. 6(1)(b) and (f) GDPR.</p>
             <p><strong>Browser storage.</strong> RouteCam stores settings such as language and view in your browser&apos;s storage (localStorage). This is necessary for the service to work and is not used for tracking. You can delete this data under <Link href="/settings">Settings</Link>. We do not use analytics or advertising cookies.</p>
+            <p><strong>Cookie banner.</strong> Embedded YouTube videos and one-click Google sign-in (“One Tap”) are only loaded once you choose “Allow all” in the cookie banner (or “Load video from YouTube” on a video). Legal basis: your consent (Section 25(1) TDDDG, Art. 6(1)(a) GDPR). You can withdraw it at any time in the menu under “Cookie settings”. Signing in with the “Sign in” button also works without consent.</p>
 
             <H>Services loaded while you use RouteCam</H>
             <p>So that maps, videos and elevation profiles work, your browser loads content directly from these providers. They receive your IP address and technical browser data:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Google / YouTube</strong> (Google Ireland Ltd.): sign-in, embedded videos, thumbnails. If you are not signed in, the site also loads Google&apos;s sign-in service, which offers one-click sign-in (“One Tap”); Google may be able to tell whether you are signed in to Google in your browser. When you play a video, YouTube&apos;s privacy policy also applies.</li>
+              <li><strong>Google / YouTube</strong> (Google Ireland Ltd.): sign-in, embedded videos, thumbnails. If you are not signed in and have consented, the site also loads Google&apos;s sign-in service, which offers one-click sign-in (“One Tap”); Google may be able to tell whether you are signed in to Google in your browser. When you play a video, YouTube&apos;s privacy policy also applies.</li>
               <li><strong>Esri</strong> (USA): satellite maps.</li>
               <li><strong>OSRM / Project OSRM</strong>: calculating road paths from waypoints.</li>
               <li><strong>Open-Meteo</strong> (Switzerland): elevation data for the coordinates of a route.</li>

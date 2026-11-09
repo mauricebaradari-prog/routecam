@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Route as RouteIcon, MessageCircle, Heart, SquareUser, Bell, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useConsent } from '@/lib/consent';
 import { onSignupWall, openSignupWall, type WallReason } from '@/lib/signupWall';
 import { t, rich, useT, k } from '@/lib/i18n';
 
@@ -41,6 +42,7 @@ const ss = {
 export default function SignupWall() {
   useT();
   const { user, configured, renderSignInButton, promptOneTap } = useAuth();
+  const consent = useConsent();
   const [reason, setReason] = useState<WallReason | null>(null);
   const btnRef = useRef<HTMLDivElement>(null);
   const [btnError, setBtnError] = useState(false);
@@ -92,10 +94,11 @@ export default function SignupWall() {
 
   // Google One Tap for visitors: a few seconds after arriving, once per session
   useEffect(() => {
-    if (user || !configured || ss.get(ONETAP_KEY)) return;
+    // One Tap fragt bei Google an – nur mit Okay im Cookie-Banner
+    if (user || !configured || consent !== 'all' || ss.get(ONETAP_KEY)) return;
     const t = setTimeout(() => { ss.set(ONETAP_KEY, '1'); promptOneTap(); }, 6000);
     return () => clearTimeout(t);
-  }, [user, configured, promptOneTap]);
+  }, [user, configured, consent, promptOneTap]);
 
   // closed → the next opening starts hidden again
   if (!reason && btnReady) setBtnReady(false);

@@ -17,6 +17,8 @@ import SignupWall from '@/components/SignupWall';
 import { requireAccount } from '@/lib/signupWall';
 import { useAuth } from '@/lib/auth';
 import { t, rich, useT } from '@/lib/i18n';
+import { openConsent } from '@/lib/consent';
+import { consentCopy } from '@/components/ConsentBanner';
 import { useTrackerTeaserDismissed } from '@/lib/trackerTeaser';
 
 export const HEADER_HEIGHT = 56;
@@ -272,6 +274,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
               <Link href="/about#datenschutz" onClick={leaveWhilePlaying} className="hover:text-white/80">{t('Datenschutz')}</Link>
               <Link href="/about#agb" onClick={leaveWhilePlaying} className="hover:text-white/80">{t('Nutzungsbedingungen')}</Link>
               <Link href="/about#kontakt" onClick={leaveWhilePlaying} className="hover:text-white/80">{t('Kontakt')}</Link>
+              <button type="button" onClick={() => { setDrawerOpen(false); openConsent(); }} className="hover:text-white/80">{consentCopy().settings}</button>
             </div>
           </nav>
         </div>
