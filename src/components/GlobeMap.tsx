@@ -1535,14 +1535,9 @@ export default function GlobeMap({
         <span ref={distanceTimeRef} className="text-white/70 text-[10px] font-medium uppercase tracking-wider">0m 0s</span>
       </div>
 
-      {followDetached && cities.length >= 2 && (
-        <button
-          onClick={recenter}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 h-10 pl-3 pr-4 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-sm font-medium text-white shadow-xl hover:bg-black/90 hover:border-[#CCFF00]/50 transition-colors"
-        >
-          <LocateFixed size={18} className="text-[#CCFF00]" />
-          {animationProgress > 0 ? t('Zurück zum Video') : t('Zurück zur Route')}
-        </button>
+      {cities.length >= 2 && (
+        <RecenterButton detached={followDetached} onClick={recenter} containerRef={containerRef}
+          label={animationProgress > 0 ? t('Zurück zum Video') : t('Zurück zur Route')} />
       )}
 
       </div>
@@ -1850,4 +1845,59 @@ function headingOnPath(path: [number, number][], t: number) {
   const p1 = path[idx];
   const p2 = path[idx + 1];
   return Math.atan2(p2[0] - p1[0], p2[1] - p1[1]) * (180 / Math.PI);
+}
+
+/**
+ * „Zurück zur Position“ wie bei Google Maps: immer unten rechts auf der Karte.
+ * Grau, solange die Kamera der Fahrt folgt; neongrün, sobald man die Karte selbst verschoben hat.
+ * Weicht schwebenden Fenstern (Kommentare, Höhenprofil, Video …) nach links aus, auch wenn man sie verschiebt.
+ */
+function RecenterButton({ detached, onClick, label, containerRef }: {
+  detached: boolean; onClick: () => void; label: string; containerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const SIZE = 44, EDGE = 20, BOTTOM = 40 /* über dem Karten-Copyright */, GAP = 12;
+  const [right, setRight] = useState(EDGE);
+  useEffect(() => {
+    let raf = 0;
+    const place = () => {
+      const box = containerRef.current?.getBoundingClientRect();
+      if (!box) return;
+      const wins = Array.from(document.querySelectorAll<HTMLElement>('.react-draggable'))
+        .map(el => el.getBoundingClientRect())
+        .filter(r => r.width > 0 && r.height > 0);
+      const bottom = box.bottom - BOTTOM, top = bottom - SIZE;
+      let r = EDGE;
+      // so lange nach links rücken, bis kein Fenster mehr im Weg ist
+      for (let i = 0; i < 6; i++) {
+        const rightEdge = box.right - r, leftEdge = rightEdge - SIZE;
+        const hit = wins.find(w => w.left < rightEdge + GAP && w.right > leftEdge - GAP && w.top < bottom + GAP && w.bottom > top - GAP);
+        if (!hit) break;
+        r = Math.max(r, box.right - hit.left + GAP);
+      }
+      if (box.right - r - SIZE < box.left + EDGE) r = EDGE; // kein Platz – dann eben in der Ecke
+      setRight(prev => (prev === r ? prev : r));
+    };
+    const loop = () => { place(); raf = window.setTimeout(loop, 250) as unknown as number; };
+    loop();
+    window.addEventListener('resize', place);
+    return () => { window.clearTimeout(raf); window.removeEventListener('resize', place); };
+  }, [containerRef]);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      aria-pressed={!detached}
+      className={`absolute z-30 flex items-center justify-center rounded-full border shadow-xl backdrop-blur-md transition-[background-color,border-color,color,right,box-shadow] duration-300 ${
+        detached
+          ? 'bg-[#CCFF00] border-[#CCFF00] text-black shadow-[0_0_18px_rgba(204,255,0,0.45)] hover:brightness-110'
+          : 'bg-black/75 border-white/15 text-white/55 hover:text-white hover:bg-black/90'
+      }`}
+      style={{ width: SIZE, height: SIZE, right, bottom: BOTTOM }}
+    >
+      <LocateFixed size={20} />
+    </button>
+  );
 }
