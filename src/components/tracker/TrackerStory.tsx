@@ -24,8 +24,8 @@ import { FileBadge } from '@/components/GeoFilesHelp';
 import { useT, currentLang } from '@/lib/i18n';
 import { tx } from './copy';
 
-/** Ziel des Download-Knopfs – kommt später (Play Store oder APK). */
-export const APP_DOWNLOAD_HREF: string | null = null;
+/** Ziel des Download-Knopfs: die APK in public/downloads/ (neue Version: Datei ersetzen, gleicher Name). */
+export const APP_DOWNLOAD_HREF: string | null = `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/downloads/routecam-tracker.apk`;
 
 const LIME = '#CCFF00';
 const MONO = 'var(--font-geist-mono), ui-monospace, monospace';

@@ -200,7 +200,7 @@ export default function TrackerScreen({ parts = {}, ctaLabel, ctaHref, ctaClassN
           letterSpacing: 0.6, textTransform: 'uppercase', textDecoration: 'none', border: 'none', fontFamily: SANS, cursor: 'pointer', ...o('cta'),
         };
         return ctaHref
-          ? <a className={`absolute ${ctaClassName}`} href={ctaHref} style={style}>{inner}</a>
+          ? <a className={`absolute ${ctaClassName}`} href={ctaHref} download={ctaHref.endsWith('.apk') ? 'RouteCam-Tracker.apk' : undefined} style={style}>{inner}</a>
           : <button type="button" className={`absolute ${ctaClassName}`} style={style}>{inner}</button>;
       })()}
 
