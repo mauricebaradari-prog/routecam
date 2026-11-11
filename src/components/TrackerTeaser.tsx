@@ -10,7 +10,6 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Smartphone } from 'lucide-react';
 import { t, useT } from '@/lib/i18n';
 import { leaveWhilePlaying } from '@/lib/nav';
 import { isTrackerTeaserDismissed, dismissTrackerTeaser } from '@/lib/trackerTeaser';
@@ -141,15 +140,15 @@ export default function TrackerTeaser() {
     <aside
       aria-label={t('RouteCam Tracker')}
       aria-hidden={!shown}
-      className="fixed left-4 right-4 bottom-[calc(88px+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-[360px]"
+      className="fixed left-4 bottom-[calc(88px+env(safe-area-inset-bottom))] z-[70]"
       style={{ pointerEvents: shown ? 'auto' : 'none' }}
     >
       <div
-        className="relative overflow-hidden rounded-[18px] bg-[#CCFF00] pl-4 pr-3 pt-3.5 pb-3 shadow-[0_16px_44px_rgba(0,0,0,0.55)] font-sans"
+        className="relative overflow-hidden rounded-[18px] bg-[#CCFF00] pl-4 pr-11 pt-3.5 pb-3 shadow-[0_16px_44px_rgba(0,0,0,0.55)] font-sans"
         style={enter(0, 'translateY(24px) scale(0.96)', 520)}
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
+        <div className="flex items-stretch gap-5">
+          <div className="min-w-0">
             <div
               className="inline-flex h-[18px] items-center rounded-full border border-[#1f1f1f] px-2"
               style={enter(T_BADGE, 'translateY(6px) scale(0.85)', 420)}
@@ -170,12 +169,16 @@ export default function TrackerTeaser() {
                   {t('Mehr erfahren')}
                 </Link>
               )}
-              <span className="text-[10.5px] font-medium text-[#1f1f1f]/55 whitespace-nowrap">{t('Nur für Android')}</span>
             </div>
           </div>
-          {/* Handy-Symbol statt Bild */}
-          <div className="shrink-0 self-center pr-6" style={enter(T_PHONE, 'translate(40px, 20px) rotate(14deg)', 800)}>
-            <Smartphone size={58} strokeWidth={1.5} className="text-[#1f1f1f]" aria-hidden />
+          {/* Handy-Symbol statt Bild (schmal und hoch, damit es kein Tablet wird), darunter „Nur für Android“ */}
+          <div className="shrink-0 flex flex-col items-center justify-between pt-1">
+            <svg width="34" height="62" viewBox="0 0 34 62" fill="none" aria-hidden style={enter(T_PHONE, 'translate(30px, 16px) rotate(14deg)', 800)}>
+              <rect x="1.5" y="1.5" width="31" height="59" rx="7" stroke="#1f1f1f" strokeWidth="2.6" />
+              <line x1="13" y1="7" x2="21" y2="7" stroke="#1f1f1f" strokeWidth="2.4" strokeLinecap="round" />
+              <circle cx="17" cy="53" r="2" fill="#1f1f1f" />
+            </svg>
+            <span className="mt-1.5 text-[10px] font-medium leading-none text-[#1f1f1f]/60 whitespace-nowrap" style={enter(typeEnd + 120, 'translateY(6px)', 420)}>{t('Nur für Android')}</span>
           </div>
         </div>
         <button
