@@ -1041,18 +1041,19 @@ export default function GlobeMap({
             img.style.objectFit = 'cover';
             inner.appendChild(img);
 
-            const overlay = document.createElement('div');
-            overlay.className = IS_COARSE()
-              ? 'absolute inset-0 flex items-center justify-center'
-              : 'absolute inset-0 bg-black/40 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity';
-            overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
-            inner.appendChild(overlay);
-            
-            const title = document.createElement('div');
-            title.className = 'absolute bottom-0 w-full bg-black/70 text-white text-[9px] font-bold px-1 py-0.5 truncate text-center';
-            title.innerText = route.name || 'Route';
-            inner.appendChild(title);
-            
+            // Touch: nur das Vorschaubild – ohne Play-Symbol und Titel darin
+            if (!IS_COARSE()) {
+              const overlay = document.createElement('div');
+              overlay.className = 'absolute inset-0 bg-black/40 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity';
+              overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+              inner.appendChild(overlay);
+
+              const title = document.createElement('div');
+              title.className = 'absolute bottom-0 w-full bg-black/70 text-white text-[9px] font-bold px-1 py-0.5 truncate text-center';
+              title.innerText = route.name || 'Route';
+              inner.appendChild(title);
+            }
+
             ytEl.appendChild(inner);
             
             ytEl.onclick = (e) => {
