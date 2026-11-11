@@ -100,9 +100,11 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
           </div>
         ) : (
           <>
-            {/* Left: menu + logo */}
-            <div className="flex items-center gap-1 md:gap-3 shrink-0">
-              <IconButton label={t('Menü')} onClick={() => setDrawerOpen(true)}><Menu size={22} /></IconButton>
+            {/* Left: menu + logo – Smartphone: nur das Logo (Menü kommt woanders hin) */}
+            <div className="flex items-center gap-1 md:gap-3 shrink-0 pl-2 sm:pl-0">
+              <span className="hidden sm:inline-flex">
+                <IconButton label={t('Menü')} onClick={() => setDrawerOpen(true)}><Menu size={22} /></IconButton>
+              </span>
               <Link href="/" className="flex items-center gap-2 pr-2" title={t('RouteCam – Startseite')}>
                 <LogoLockup />
               </Link>
@@ -138,7 +140,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                     {t('GPS Tracker App')}
                   </Link>
                   <Link href="/tracker" onClick={leaveWhilePlaying} title={t('GPS Tracker App')} aria-label={t('GPS Tracker App')}
-                    className="sm:hidden w-9 h-9 rounded-full flex items-center justify-center text-[#CCFF00] border border-[#CCFF00]/45 hover:bg-[#CCFF00]/10 transition-colors">
+                    className="hidden w-9 h-9 rounded-full flex items-center justify-center text-[#CCFF00] border border-[#CCFF00]/45 hover:bg-[#CCFF00]/10 transition-colors">
                     <Smartphone size={18} />
                   </Link>
                 </>
@@ -153,7 +155,8 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                 <Plus size={20} />
                 {t('Anlegen')}
               </button>
-              <span className="sm:hidden">
+              {/* Smartphone: Anlegen kommt woanders hin */}
+              <span className="hidden">
                 {user ? (
                   <IconButton label={t('Anlegen')} onClick={onCreate}><Plus size={22} /></IconButton>
                 ) : (
@@ -168,7 +171,8 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                 )}
               </span>
               {user && <NotificationBell />}
-              <AccountMenu />
+              {/* Smartphone: Konto kommt woanders hin */}
+              <span className="hidden sm:contents"><AccountMenu /></span>
             </div>
           </>
         )}
