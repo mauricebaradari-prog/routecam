@@ -7,7 +7,8 @@ import { ownerOf } from '@/lib/channels';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutGrid, List, Search, Play, ExternalLink, Clock, ArrowUpDown, ChevronDown, Trash2, Heart, Star, Flag, MessageCircle, X, MapPin, FolderPlus, Folder, Plus, Check, ListVideo, EllipsisVertical, Pencil, ThumbsUp } from 'lucide-react';
+import { LayoutGrid, List, Search, Play, ExternalLink, Clock, ArrowUpDown, ChevronDown, Trash2, Heart, Star, Flag, MessageCircle, X, MapPin, FolderPlus, Folder, Plus, Check, ListVideo, EllipsisVertical, Pencil } from 'lucide-react';
+import PeaceHand from '@/components/icons/PeaceHand';
 import sparklinesData from '../../data/sparklines.json';
 import type { RouteConfig } from '@/hooks/useEditorState';
 import { haversineDistance } from '@/lib/geo';
@@ -519,7 +520,7 @@ function Dashboard() {
 
                     <StatCell
                       top={<span className="font-mono">{r.distanceKm.toFixed(1)} km</span>}
-                      bottom={<span className="inline-flex items-center gap-1.5 font-mono"><ThumbsUp size={12} className="text-white/40" />{st.likeCount}</span>}
+                      bottom={<span className="inline-flex items-center gap-1.5 font-mono"><PeaceHand size={13} className="text-white/40" />{st.likeCount}</span>}
                     />
                     <StatCell
                       top={<span className="font-mono">{formatDuration(r.route.durationSeconds)}</span>}

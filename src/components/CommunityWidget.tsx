@@ -3,7 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { SHEET_ELEV_H } from '@/lib/mobileSheet';
-import { ThumbsUp, Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
+import { Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
+import PeaceHand from '@/components/icons/PeaceHand';
 import { shareUrl } from '@/lib/share';
 import { allowInteraction, requireAccount } from '@/lib/signupWall';
 import UserAvatar from '@/components/UserAvatar';
@@ -143,7 +144,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
         stats.liked ? 'bg-[#CCFF00]/15 text-[#CCFF00]' : 'bg-white/10 text-white hover:bg-white/20'
       }`}
     >
-      <ThumbsUp size={compact ? 15 : 16} fill={stats.liked ? 'currentColor' : 'none'} />
+      <PeaceHand size={compact ? 16 : 17} />
       <span className="text-sm font-medium tabular-nums">{stats.likeCount}</span>
     </button>
   );

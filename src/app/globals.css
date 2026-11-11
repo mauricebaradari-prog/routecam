@@ -203,6 +203,7 @@ body.is-dragging iframe {
 
   /* keine Schatten auf Kartenelementen */
   .rc-bubble, .rc-overlap, .rc-cluster, .rc-route-hover-time { box-shadow: none !important; }
+  .bg-\[\#CCFF00\]\/15 { background-color: #28310e !important; }
   .bg-white\/5 { background-color: #17191c !important; }
   .bg-white\/10 { background-color: #232528 !important; }
   .bg-white\/15 { background-color: #2f3134 !important; }
