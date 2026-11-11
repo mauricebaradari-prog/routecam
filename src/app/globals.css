@@ -197,6 +197,8 @@ body.is-dragging iframe {
   .rc-cluster { background: #000; }
   .rc-overlap { background: #0f0f0f; }
 
+  /* keine Schatten auf Kartenelementen */
+  .rc-bubble, .rc-overlap, .rc-cluster, .rc-route-hover-time { box-shadow: none !important; }
   .bg-white\/5 { background-color: #17191c !important; }
   .bg-white\/10 { background-color: #232528 !important; }
   .bg-white\/15 { background-color: #2f3134 !important; }

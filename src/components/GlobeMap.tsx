@@ -1030,8 +1030,9 @@ export default function GlobeMap({
             inner.style.height = '60px';
             inner.style.borderRadius = '8px';
             inner.style.overflow = 'hidden';
-            inner.style.border = IS_COARSE() ? '2px solid #6d6e70' : '2px solid rgba(255, 255, 255, 0.4)';
-            inner.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.5)';
+            // Touch: dunkler Rahmen, kein Schatten
+            inner.style.border = IS_COARSE() ? '2px solid #1a1a1a' : '2px solid rgba(255, 255, 255, 0.4)';
+            if (!IS_COARSE()) inner.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.5)';
             
             const img = document.createElement('img');
             img.src = route.videoId ? `https://img.youtube.com/vi/${route.videoId}/mqdefault.jpg` : '';
@@ -1622,7 +1623,7 @@ export default function GlobeMap({
       
       <div 
         ref={distanceBadgeRef}
-        className="absolute pointer-events-none z-20 flex flex-col items-center justify-center bg-black/80 [@media(pointer:fine)]:backdrop-blur-md rounded-lg border border-white/10 shadow-xl"
+        className="absolute pointer-events-none z-20 flex flex-col items-center justify-center bg-black/80 [@media(pointer:fine)]:backdrop-blur-md rounded-lg border border-white/10 [@media(pointer:fine)]:shadow-xl"
         style={{
           top: 0, left: 0,
           marginLeft: '-35px', marginTop: '-50px',
@@ -1925,14 +1926,16 @@ function getCityMarkerHTML(label: string, name: string, isFirst: boolean, isLast
   }
   
   const cursorStyle = isFirst ? 'cursor:pointer;' : '';
+  // Touch: keine Schatten (Performance)
+  const sh = (v: string) => (IS_COARSE() ? '' : `box-shadow:${v};`);
   const dataAttr = isFirst && routeId ? `data-route-id="${routeId}" data-play-btn="true"` : '';
   
   return `
     <div style="display:flex; flex-direction:column; align-items:center; transform:translateY(-4px);">
-      <div ${dataAttr} style="background:${color}; color:#111; font-weight:bold; font-family:sans-serif; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:3px solid #1a1a1a; box-shadow:0 4px 6px rgba(0,0,0,0.3); z-index:10; ${cursorStyle} transition: transform 0.15s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+      <div ${dataAttr} style="background:${color}; color:#111; font-weight:bold; font-family:sans-serif; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:3px solid #1a1a1a; ${sh('0 4px 6px rgba(0,0,0,0.3)')} z-index:10; ${cursorStyle} transition: transform 0.15s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
         ${innerHtml}
       </div>
-      <div style="margin-top:4px; background:#1a1a1a; color:#f3f4f6; padding:2px 8px; border-radius:4px; font-size:12px; font-family:sans-serif; font-weight:600; border:1px solid #333; box-shadow:0 2px 4px rgba(0,0,0,0.3); white-space:nowrap;">
+      <div style="margin-top:4px; background:#1a1a1a; color:#f3f4f6; padding:2px 8px; border-radius:4px; font-size:12px; font-family:sans-serif; font-weight:600; border:1px solid #333; ${sh('0 2px 4px rgba(0,0,0,0.3)')} white-space:nowrap;">
         ${name}
       </div>
     </div>
