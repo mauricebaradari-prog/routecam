@@ -111,15 +111,6 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 /** Touch-Gerät (Handy/Tablet)? Dort verzichten wir auf Transparenz und Weichzeichner (Performance). */
 const IS_COARSE = () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
-/** Farbe mit Deckkraft a auf dunklem Grund – als deckende Farbe */
-function mixOnDark(hex: string, a: number, bg = [11, 13, 16]) {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return hex;
-  const n = parseInt(m[1], 16);
-  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v, k) => Math.round(v * a + bg[k] * (1 - a)));
-  return `#${c.map(v => v.toString(16).padStart(2, '0')).join('')}`;
-}
-
 export default function GlobeMap({
 
   cities,
@@ -1571,9 +1562,9 @@ export default function GlobeMap({
             <stop offset="100%" stopColor="#CCFF00" />
           </linearGradient>
         </defs>
-        {/* Touch: deckende Farben statt Transparenz (gleicher Look auf dunklem Grund, aber billiger zu zeichnen) */}
-        <path ref={fullSvgPathRef} fill="none" stroke={animationProgress === 0 ? routeColor : (coarsePointer ? '#55575a' : 'rgba(255, 255, 255, 0.3)')} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" />
-        <path ref={inactiveSvgPathRef} fill="none" stroke={coarsePointer ? mixOnDark(routeColor, 0.5) : routeColor} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" opacity={coarsePointer ? 1 : 0.5} />
+        {/* Touch: alle Routen deckend in der Routenfarbe (Neongrün) – auch während der Wiedergabe, ohne Transparenz */}
+        <path ref={fullSvgPathRef} fill="none" stroke={animationProgress === 0 || coarsePointer ? routeColor : 'rgba(255, 255, 255, 0.3)'} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" />
+        <path ref={inactiveSvgPathRef} fill="none" stroke={routeColor} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" opacity={coarsePointer ? 1 : 0.5} />
         <path ref={svgPathRef} fill="none" stroke="url(#routeGrad)" strokeWidth={routeWidth * 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ filter: coarsePointer ? undefined : 'drop-shadow(0 0 8px rgba(204,255,0,0.8))' }} />
       </svg>
       <div 
