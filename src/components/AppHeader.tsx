@@ -89,8 +89,9 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
         style={{ height: HEADER_HEIGHT }}
         className={`${sticky ? 'sticky' : 'absolute'} top-0 inset-x-0 z-[70] flex items-center gap-2 md:gap-4 px-2 md:px-4 transition-colors ${
           transparent
-            ? 'bg-[#0f0f0f]/85 backdrop-blur-md border-b border-white/5 md:bg-transparent md:backdrop-blur-none md:border-transparent'
-            : 'bg-[#0f0f0f]/85 backdrop-blur-md border-b border-white/5'
+            // Smartphone: deckend in der Kanal-Farbe statt Blur (spart Rechenleistung)
+            ? 'bg-[#0b0d10] border-b border-white/5 md:bg-transparent md:border-transparent'
+            : 'bg-[#0b0d10] border-b border-white/5 md:bg-[#0f0f0f]/85 md:backdrop-blur-md'
         }`}
       >
         {mobileSearch ? (
@@ -296,7 +297,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
 function AccountMenu({ variant = 'header' }: { variant?: 'header' | 'bottom' }) {
   useT();
   const bottom = variant === 'bottom';
-  // Unten: Panel per Portal, weil die schwebende Leiste (Blur) sonst den Bezugsrahmen für „fixed“ bildet
+  // Unten: Panel per Portal, damit „fixed“ sich auf den Bildschirm bezieht und nicht auf die Leiste
   const portal = (node: React.ReactNode) => (bottom && typeof document !== 'undefined' ? createPortal(node, document.body) : node);
   const { user, signOut, renderSignInButton, configured } = useAuth();
   const isFounder = !!useDb().me?.is_founder;
@@ -422,7 +423,7 @@ function BottomNav({ current, onCreate }: { current: Props['current']; onCreate:
   return (
     <nav
       aria-label={t('Navigation')}
-      className="sm:hidden fixed inset-x-0 mx-auto w-fit bottom-[calc(16px+env(safe-area-inset-bottom))] z-[75] flex items-center gap-1 p-1.5 rounded-full border border-white/10 bg-[#0f0f0f]/85 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.55)]"
+      className="sm:hidden fixed inset-x-0 mx-auto w-fit bottom-[calc(16px+env(safe-area-inset-bottom))] z-[75] flex items-center gap-1 p-1.5 rounded-full border border-white/10 bg-[#0b0d10] shadow-[0_10px_40px_rgba(0,0,0,0.55)]"
     >
       <Link
         href="/"
