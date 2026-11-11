@@ -172,7 +172,7 @@ export default function TrackerTeaser() {
             </div>
           </div>
           {/* Handy-Symbol statt Bild (schmal und hoch, damit es kein Tablet wird), darunter „Nur für Android“ */}
-          <div className="shrink-0 flex flex-col items-center justify-between pt-1">
+          <div className="shrink-0 flex flex-col items-center justify-end">
             <svg width="34" height="62" viewBox="0 0 34 62" fill="none" aria-hidden style={enter(T_PHONE, 'translate(30px, 16px) rotate(14deg)', 800)}>
               <rect x="1.5" y="1.5" width="31" height="59" rx="7" stroke="#1f1f1f" strokeWidth="2.6" />
               <line x1="13" y1="7" x2="21" y2="7" stroke="#1f1f1f" strokeWidth="2.4" strokeLinecap="round" />
