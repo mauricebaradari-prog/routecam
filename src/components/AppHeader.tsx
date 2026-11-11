@@ -87,7 +87,7 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
     <>
       <header
         style={{ height: HEADER_HEIGHT }}
-        className={`${sticky ? 'sticky' : 'absolute'} top-0 inset-x-0 z-[70] flex items-center gap-2 md:gap-4 px-2 md:px-4 transition-colors ${
+        className={`${sticky ? 'sticky' : 'absolute'} top-0 inset-x-0 z-[70] ${mobileSearch ? 'flex' : 'hidden sm:flex'} items-center gap-2 md:gap-4 px-2 md:px-4 transition-colors ${
           transparent
             // Smartphone: deckend in der Kanal-Farbe statt Blur (spart Rechenleistung)
             ? 'bg-[#0b0d10] border-b border-white/5 md:bg-transparent md:border-transparent'
@@ -185,7 +185,8 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
       <SignupWall />
 
       {/* Smartphone: schwebende Navigation unten – Karte · Anlegen · Profil */}
-      {!mobileSearch && <BottomNav current={current} onCreate={onCreate} />}
+      {/* Smartphone: keine Kopfzeile – Logo weg, Suche und Glocke sitzen hier unten. Die Suche öffnet oben ihre eigene Leiste. */}
+      {!mobileSearch && <BottomNav current={current} onCreate={onCreate} onSearch={showSearch ? () => setMobileSearch(true) : null} showBell={!!user} />}
 
       {/* Drawer (left side menu) */}
       {drawerOpen && (
@@ -417,7 +418,7 @@ function AccountMenu({ variant = 'header' }: { variant?: 'header' | 'bottom' }) 
 }
 
 /** Smartphone: schwebende Leiste unten mit Karte, Anlegen (Plus) und Profil. Ab 640 px gibt es sie nicht. */
-function BottomNav({ current, onCreate }: { current: Props['current']; onCreate: () => void }) {
+function BottomNav({ current, onCreate, onSearch, showBell }: { current: Props['current']; onCreate: () => void; onSearch: (() => void) | null; showBell: boolean }) {
   useT();
   const onMap = current === 'map';
   return (
@@ -434,6 +435,12 @@ function BottomNav({ current, onCreate }: { current: Props['current']; onCreate:
       >
         <MapIcon size={22} />
       </Link>
+      {onSearch && (
+        <button type="button" onClick={onSearch} aria-label={t('Suchen')}
+          className="w-12 h-12 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-colors">
+          <Search size={22} />
+        </button>
+      )}
       <button
         type="button"
         onClick={onCreate}
@@ -442,6 +449,7 @@ function BottomNav({ current, onCreate }: { current: Props['current']; onCreate:
       >
         <Plus size={24} strokeWidth={2.4} />
       </button>
+      {showBell && <NotificationBell variant="bottom" />}
       <AccountMenu variant="bottom" />
     </nav>
   );

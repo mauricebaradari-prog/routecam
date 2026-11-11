@@ -14,6 +14,7 @@ import { loadRoadCache, saveRoadCache } from '@/lib/roadGeometry';
 import { buildMapStyle } from '@/lib/mapStyles';
 import { formatCommentTime, type RouteComment } from '@/lib/routeComments';
 import { fillAvatarEl } from '@/lib/avatar';
+import { mapCamera } from '@/lib/mapCamera';
 import { createPortal } from 'react-dom';
 import { SHEET_ELEV_H, SHEET_H, sheetPx } from '@/lib/mobileSheet';
 import { t, useT } from '@/lib/i18n';
@@ -457,7 +458,11 @@ export default function GlobeMap({
   function applySheetPadding(map: MaplibreMap, open: boolean) {
     const bottom = open ? sheetPx() : 0;
     const cur = map.getPadding();
-    if (cur.bottom !== bottom) map.setPadding({ top: 0, left: 0, right: 0, bottom });
+    if (cur.bottom === bottom) return;
+    // Fenster geht zu: Polster bleibt erst einmal – sonst würde das Bild verrutschen. Es fällt weg, sobald die Karte
+    // die Kamera selbst wieder bewegt (Übersicht anfliegen, nächste Fahrt).
+    if (!open) return;
+    map.setPadding({ top: 0, left: 0, right: 0, bottom });
   }
   useEffect(() => {
     const map = mapRef.current;
@@ -1214,7 +1219,7 @@ export default function GlobeMap({
       rebuildOverlapMarkers();
       if (distanceBadgeRef.current) distanceBadgeRef.current.style.display = 'none';
       if (vehicleDotRef.current) vehicleDotRef.current.style.display = 'none';
-      if (keepCameraRef.current) keepCameraRef.current = false;
+      if (keepCameraRef.current || mapCamera.keepOnNextDeselect) { keepCameraRef.current = false; mapCamera.keepOnNextDeselect = false; }
       else fitAllRoutes(map, 1200);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on purpose only when these values change; the map functions it calls are recreated on every render
@@ -1222,7 +1227,8 @@ export default function GlobeMap({
 
   // Overview without a selected route (first load): Cyprus, Paphos region
   function fitAllRoutes(map: MaplibreMap, duration: number) {
-    map.flyTo({ ...OVERVIEW_VIEW, duration });
+    // ein vom Fahrt-Fenster übrig gebliebenes Polster unten mit abbauen
+    map.flyTo({ ...OVERVIEW_VIEW, padding: { top: 0, left: 0, right: 0, bottom: 0 }, duration });
   }
 
   async function updateRouteData(map: MaplibreMap, passId: number) {

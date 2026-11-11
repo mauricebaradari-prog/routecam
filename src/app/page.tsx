@@ -18,6 +18,7 @@ import { syncMapper } from '@/lib/trackSync';
 import AnimationsPanel from '@/components/panels/AnimationsPanel';
 import CameraPanel, { CAMERA_MODES } from '@/components/panels/CameraPanel';
 import { t, useT } from '@/lib/i18n';
+import { mapCamera } from '@/lib/mapCamera';
 
 const YouTubeOverlay = dynamic(() => import('@/components/YouTubeOverlay'), { ssr: false });
 const GlobeMap = dynamic(() => import('@/components/GlobeMap'), { ssr: false });
@@ -299,7 +300,7 @@ export default function Home() {
           initialPos={initialVideoPos} 
           setActiveWindow={setActiveWindow}
           visibility={visibilityOf(state.activeRouteId, state.routes.find(r => r.id === state.activeRouteId)?.visibility)}
-          onClose={() => closeRideAnimated(() => { if (state.isAnimating) stopAnimation(); setActiveRoute(NO_ROUTE); })}
+          onClose={() => closeRideAnimated(() => { if (state.isAnimating) stopAnimation(); mapCamera.keepOnNextDeselect = true; setActiveRoute(NO_ROUTE); })}
         />
         )}
         

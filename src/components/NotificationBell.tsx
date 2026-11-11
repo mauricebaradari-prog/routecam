@@ -24,7 +24,8 @@ const KIND_ICON = {
 } as const;
 
 // Bell in the top bar: unread badge + YouTube-style panel with the latest activity on own rides
-export default function NotificationBell() {
+export default function NotificationBell({ variant = 'header' }: { variant?: 'header' | 'bottom' }) {
+  const bottom = variant === 'bottom';
   useT();
   const { items, markRead, markAllRead } = useNotifications();
   const { settings } = useSettings();
@@ -64,19 +65,22 @@ export default function NotificationBell() {
         onClick={() => setOpen(o => !o)}
         aria-label={unread ? t('Benachrichtigungen, {n} ungelesen', { n: unread }) : t('Benachrichtigungen')}
         title={t('Benachrichtigungen')}
-        className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-colors ${open ? 'bg-white/15' : 'hover:bg-white/10'}`}
+        className={`relative ${bottom ? 'w-12 h-12' : 'w-10 h-10'} rounded-full flex items-center justify-center transition-colors ${open ? 'bg-white/15' : 'hover:bg-white/10'} ${bottom && !open ? 'text-white/60' : ''}`}
       >
-        <Bell size={20} />
+        <Bell size={bottom ? 22 : 20} />
         {unread > 0 && (
           // Flex statt line-height: so steht die Zahl mittig, auch mit Rand. Ab 100 „99+“, die Pille wächst nach links über die Glocke.
-          <span className={`absolute top-0.5 -right-1 min-w-[20px] h-[20px] box-border rounded-full bg-[#CCFF00] text-black font-bold ${unread > 99 ? 'px-[4px] text-[9.5px]' : 'px-[5px] text-[10.5px]'} leading-none tabular-nums tracking-[-0.3px] flex items-center justify-center border-2 border-[#0f0f0f]`}>
+          <span className={`absolute ${bottom ? 'top-1 right-0' : 'top-0.5 -right-1'} min-w-[20px] h-[20px] box-border rounded-full bg-[#CCFF00] text-black font-bold ${unread > 99 ? 'px-[4px] text-[9.5px]' : 'px-[5px] text-[10.5px]'} leading-none tabular-nums tracking-[-0.3px] flex items-center justify-center border-2 border-[#0f0f0f]`}>
             {unread > 99 ? '99+' : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="fixed md:absolute inset-x-2 md:inset-x-auto md:right-0 top-14 md:top-full md:mt-2 z-[95] md:w-[440px] rounded-xl border border-white/10 bg-[#212121] shadow-2xl overflow-hidden">
+        <div className={bottom
+          // Smartphone: über der Navigation unten
+          ? 'fixed left-3 right-3 bottom-[calc(84px+env(safe-area-inset-bottom))] z-[95] max-h-[calc(100dvh-110px)] flex flex-col rounded-2xl border border-white/10 bg-[#212121] shadow-2xl overflow-hidden'
+          : 'fixed md:absolute inset-x-2 md:inset-x-auto md:right-0 top-14 md:top-full md:mt-2 z-[95] md:w-[440px] rounded-xl border border-white/10 bg-[#212121] shadow-2xl overflow-hidden'}>
           <div className="flex items-center gap-2 px-4 h-14 border-b border-white/10">
             <h2 className="text-base font-semibold flex-1">{t('Benachrichtigungen')}</h2>
             <button
@@ -101,7 +105,7 @@ export default function NotificationBell() {
             ))}
           </div>
 
-          <ul className="max-h-[min(70vh,560px)] overflow-y-auto no-scrollbar py-1">
+          <ul className={`${bottom ? 'flex-1 min-h-0' : 'max-h-[min(70vh,560px)]'} overflow-y-auto no-scrollbar py-1`}>
             {shown.length === 0 && (
               <li className="px-6 py-12 text-center text-sm text-white/50">
                 <Bell size={28} className="mx-auto mb-3 text-white/20" />
