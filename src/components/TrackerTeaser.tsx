@@ -135,7 +135,7 @@ export default function TrackerTeaser() {
           : `opacity ${ms}ms ${EASE} ${delay}ms, transform ${ms}ms ${EASE} ${delay}ms`,
       };
 
-  // Smartphone: nur die neongrüne Fläche, rechts ein Handy-Symbol – über der Navigation unten
+  // Smartphone: nur die neongrüne Fläche, quadratisch – über der Navigation unten
   if (compact) return (
     <aside
       aria-label={t('RouteCam Tracker')}
@@ -144,43 +144,29 @@ export default function TrackerTeaser() {
       style={{ pointerEvents: shown ? 'auto' : 'none' }}
     >
       <div
-        className="relative overflow-hidden rounded-[18px] bg-[#CCFF00] pl-4 pr-11 pt-3.5 pb-3 shadow-[0_16px_44px_rgba(0,0,0,0.55)] font-sans"
+        className="relative overflow-hidden rounded-[18px] bg-[#CCFF00] w-[172px] h-[172px] p-4 flex flex-col shadow-[0_16px_44px_rgba(0,0,0,0.55)] font-sans"
         style={enter(0, 'translateY(24px) scale(0.96)', 520)}
       >
-        <div className="flex items-stretch gap-5">
-          <div className="min-w-0">
-            <div
-              className="inline-flex h-[18px] items-center rounded-full border border-[#1f1f1f] px-2"
-              style={enter(T_BADGE, 'translateY(6px) scale(0.85)', 420)}
-            >
-              <span className="text-[9px] font-bold uppercase leading-none tracking-[0.5px] text-[#1f1f1f] whitespace-nowrap">{t('Neu · Kostenlos')}</span>
-            </div>
-            <h2
-              className="mt-2 m-0 text-[22px] font-bold leading-[23px] tracking-[-0.6px] text-[#1f1f1f] whitespace-nowrap normal-case"
-              style={{ fontFeatureSettings: 'normal', fontVariant: 'normal' }}
-              aria-label={`${line1} ${line2}`}
-            >
-              {headline}
-            </h2>
-            <div className="mt-2.5 flex items-baseline gap-3" style={enter(typeEnd + 80, 'translateY(8px)', 420)}>
-              {TRACKER_PAGE_READY && (
-                <Link href={TRACKER_PAGE_HREF} onClick={e => { markDismissed(); leaveWhilePlaying(e); }}
-                  className="text-[13px] font-semibold text-[#1f1f1f] underline underline-offset-2 whitespace-nowrap">
-                  {t('Mehr erfahren')}
-                </Link>
-              )}
-            </div>
-          </div>
-          {/* Handy-Symbol statt Bild (schmal und hoch, damit es kein Tablet wird), darunter „Nur für Android“ */}
-          <div className="shrink-0 flex flex-col items-center justify-end">
-            <svg width="34" height="62" viewBox="0 0 34 62" fill="none" aria-hidden style={enter(T_PHONE, 'translate(30px, 16px) rotate(14deg)', 800)}>
-              <rect x="1.5" y="1.5" width="31" height="59" rx="7" stroke="#1f1f1f" strokeWidth="2.6" />
-              <line x1="13" y1="7" x2="21" y2="7" stroke="#1f1f1f" strokeWidth="2.4" strokeLinecap="round" />
-              <circle cx="17" cy="53" r="2" fill="#1f1f1f" />
-            </svg>
-            <span className="mt-1.5 text-[10px] font-medium leading-none text-[#1f1f1f]/60 whitespace-nowrap" style={enter(typeEnd + 120, 'translateY(6px)', 420)}>{t('Nur für Android')}</span>
-          </div>
+        <div
+          className="self-start inline-flex h-[18px] items-center rounded-full border border-[#1f1f1f] px-2"
+          style={enter(T_BADGE, 'translateY(6px) scale(0.85)', 420)}
+        >
+          <span className="text-[9px] font-bold uppercase leading-none tracking-[0.5px] text-[#1f1f1f] whitespace-nowrap">{t('Neu · Kostenlos')}</span>
         </div>
+        <h2
+          className="mt-2.5 m-0 text-[24px] font-bold leading-[25px] tracking-[-0.6px] text-[#1f1f1f] whitespace-nowrap normal-case"
+          style={{ fontFeatureSettings: 'normal', fontVariant: 'normal' }}
+          aria-label={`${line1} ${line2}`}
+        >
+          {headline}
+        </h2>
+        {TRACKER_PAGE_READY && (
+          <Link href={TRACKER_PAGE_HREF} onClick={e => { markDismissed(); leaveWhilePlaying(e); }}
+            className="mt-auto self-start text-[13px] font-semibold text-[#1f1f1f] underline underline-offset-2 whitespace-nowrap"
+            style={enter(typeEnd + 80, 'translateY(8px)', 420)}>
+            {t('Mehr erfahren')}
+          </Link>
+        )}
         <button
           type="button"
           onClick={dismiss}
