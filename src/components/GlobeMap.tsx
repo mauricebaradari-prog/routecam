@@ -111,6 +111,20 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 /** Touch-Gerät (Handy/Tablet)? Dort verzichten wir auf Transparenz und Weichzeichner (Performance). */
 const IS_COARSE = () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+/** Sichtbarer Kartenausschnitt plus Sicherheitsrand (je eine halbe Breite/Höhe ringsum) als [minLng, minLat, maxLng, maxLat] */
+function viewWithMargin(map: MaplibreMap): [number, number, number, number] {
+  const b = map.getBounds();
+  const w = b.getEast() - b.getWest(), h = b.getNorth() - b.getSouth();
+  return [b.getWest() - w * 0.5, b.getSouth() - h * 0.5, b.getEast() + w * 0.5, b.getNorth() + h * 0.5];
+}
+function bboxOf(pts: [number, number][]): [number, number, number, number] {
+  let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+  for (const [x, y] of pts) { if (x < a) a = x; if (y < b) b = y; if (x > c) c = x; if (y > d) d = y; }
+  return [a, b, c, d];
+}
+const bboxHits = (bb: [number, number, number, number], v: [number, number, number, number]) =>
+  bb[0] <= v[2] && bb[2] >= v[0] && bb[1] <= v[3] && bb[3] >= v[1];
+
 export default function GlobeMap({
 
   cities,
@@ -154,6 +168,19 @@ export default function GlobeMap({
   const prevStyleRef = useRef<string | null>(null);
   const routeInitializedRef = useRef(false);
   const markersRef = useRef<maplibregl.Marker[]>([]);
+  const cullMarkersRef = useRef<() => void>(() => {});
+  cullMarkersRef.current = () => {
+    const map = mapRef.current;
+    if (!map || !IS_COARSE()) return;
+    const view = viewWithMargin(map);
+    for (const m of [...markersRef.current, ...inactiveMarkersRef.current]) {
+      const { lng, lat } = m.getLngLat();
+      const inside = lng >= view[0] && lng <= view[2] && lat >= view[1] && lat <= view[3];
+      const attached = !!(m as unknown as { _map?: unknown })._map;
+      if (inside && !attached) m.addTo(map);
+      else if (!inside && attached) m.remove();
+    }
+  };
   const inactiveMarkersRef = useRef<maplibregl.Marker[]>([]);
   // per inactive ride: id, centre and bounds – used for the zoomed-out count bubbles
   const inactiveInfoRef = useRef<{ id: string; center: [number, number]; bbox: [[number, number], [number, number]] }[]>([]);
@@ -170,6 +197,8 @@ export default function GlobeMap({
   const renderPassRef = useRef<number>(0);
   const [elevationProfile, setElevationProfile] = React.useState<number[] | null>(null);
   const inactiveRouteCoordsRef = useRef<[number, number][][]>([]);
+  /** Rahmen (minLng, minLat, maxLng, maxLat) je Linie – um Linien außerhalb des Sichtfelds zu überspringen */
+  const inactiveBBoxRef = useRef<[number, number, number, number][]>([]);
   const animProgressRef = useRef(animationProgress);
 
   // "Detached" = the user moved the map themselves. While detached, the camera stops
@@ -655,7 +684,13 @@ export default function GlobeMap({
           }
 
           const inactiveSegments: string[] = [];
-          for (const seg of (clusteredRef.current ? [] : inactiveRouteCoordsRef.current)) {
+          // Touch: nur Linien im Sichtfeld (plus Rand) umrechnen
+          const view = IS_COARSE() ? viewWithMargin(mapRef.current) : null;
+          const segs = clusteredRef.current ? [] : inactiveRouteCoordsRef.current;
+          for (let si = 0; si < segs.length; si++) {
+            const seg = segs[si];
+            const bb = inactiveBBoxRef.current[si];
+            if (view && bb && !bboxHits(bb, view)) continue;
             const segPts: string[] = [];
             let lastP: { x: number; y: number } | null = null;
             for (const c of seg) {
@@ -804,6 +839,10 @@ export default function GlobeMap({
       updateSvgOverlayRef.current = updateSvgOverlay;
 
       map.on('move', updateSvgOverlay);
+      // Touch: Marker (Ortsnamen, Symbole, Vorschaubilder) außerhalb des Sichtfelds samt Rand abhängen
+      let cullAt = 0;
+      map.on('move', () => { const now = performance.now(); if (now - cullAt > 200) { cullAt = now; cullMarkersRef.current(); } });
+      map.on('moveend', () => cullMarkersRef.current());
       map.on('zoom', updateSvgOverlay);
       map.on('pitch', updateSvgOverlay);
       // map.on('render', updateSvgOverlay); removed to prevent infinite loops
@@ -817,7 +856,7 @@ export default function GlobeMap({
         const cs = L.cities;
         L.updateRouteData(map, ++renderPassRef.current);
         L.rebuildMarkers(map, cs);
-        L.updateInactiveRoutes(map);
+        L.updateInactiveRoutes(map).then(() => cullMarkersRef.current());
         if (cs.length >= 2) {
           const lats = cs.map((c) => c.lat);
           const lngs = cs.map((c) => c.lng);
@@ -953,6 +992,7 @@ export default function GlobeMap({
     }
     // Store for SVG rendering
     inactiveRouteCoordsRef.current = allCoordSegments;
+    inactiveBBoxRef.current = allCoordSegments.map(bboxOf);
     inactiveInfoRef.current = info;
     // Also update MapLibre source (as backup)
     if (map.getSource('inactive-routes')) {
@@ -1059,7 +1099,7 @@ export default function GlobeMap({
 
   useEffect(() => {
     if (mapRef.current && routeInitializedRef.current) {
-      updateInactiveRoutes(mapRef.current);
+      updateInactiveRoutes(mapRef.current).then(() => cullMarkersRef.current());
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- runs on purpose only when these values change; the map functions it calls are recreated on every render
   }, [routes, cities, mapStyle]);
@@ -1506,6 +1546,7 @@ export default function GlobeMap({
         markersRef.current.push(marker);
       });
     });
+    cullMarkersRef.current();
   }
 
   useEffect(() => {
