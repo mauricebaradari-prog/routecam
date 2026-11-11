@@ -183,7 +183,7 @@ export function refresh(): Promise<void> {
   return refreshing;
 }
 
-async function applySession(user: { id: string; email?: string } | null) {
+async function applySession(user: { id: string; email?: string; picture?: string } | null) {
   if (!user) {
     setDb({ me: null, email: '', authReady: true, myRouteReports: [], reportsOnMine: [], myCommentReports: [], notifications: [] });
     await refresh(); // private rides of the previous account disappear
@@ -191,6 +191,8 @@ async function applySession(user: { id: string; email?: string } | null) {
   }
   const { data } = await supabase().from('profiles').select('id,name,picture,slug,is_founder').eq('id', user.id).maybeSingle();
   const me: Profile = (data as Profile | null) ?? { id: user.id, name: user.email?.split('@')[0] ?? '', picture: null, slug: null, is_founder: false };
+  // Profilbild fehlt im Profil (z. B. ältere Konten) → das Bild aus dem Google-Konto nehmen
+  if (!me.picture && user.picture) me.picture = user.picture;
   setDb({ me, email: user.email ?? '', authReady: true, authError: '' });
   await refresh();
   // rides, comments … saved in this browser before the database existed
@@ -208,7 +210,7 @@ function start() {
     if ((u?.id ?? null) === lastUser) return; // token refresh – same account
     lastUser = u?.id ?? null;
     // (callbacks must not await Supabase calls directly – run them after the event)
-    setTimeout(() => { applySession(u ? { id: u.id, email: u.email } : null); }, 0);
+    setTimeout(() => { applySession(u ? { id: u.id, email: u.email, picture: (u.user_metadata?.avatar_url || u.user_metadata?.picture) as string | undefined } : null); }, 0);
   });
   window.addEventListener('focus', () => { if (state.loaded) refresh(); });
   setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 60_000);
