@@ -15,7 +15,7 @@ import { buildMapStyle } from '@/lib/mapStyles';
 import { formatCommentTime, type RouteComment } from '@/lib/routeComments';
 import { fillAvatarEl } from '@/lib/avatar';
 import { createPortal } from 'react-dom';
-import { SHEET_ELEV_H, SHEET_MAP_H } from '@/lib/mobileSheet';
+import { SHEET_ELEV_H, SHEET_MAP_H, SHEET_OVERLAP } from '@/lib/mobileSheet';
 import { t, useT } from '@/lib/i18n';
 
 function getDistance(p1: [number, number], p2: [number, number]) {
@@ -220,7 +220,8 @@ export default function GlobeMap({
     commentMarkersRef.current.forEach(m => m.marker.remove());
     commentMarkersRef.current = [];
     const duration = durationRef.current;
-    if (!map || !duration) return;
+    // keine Fahrt (mehr) → auch die gestapelten Kommentar-Punkte weg, sonst bleiben sie auf der Karte stehen
+    if (!map || !duration || fullRouteCoordsRef.current.length < 2) { clusterComments(); return; }
     for (const c of commentsRef.current) {
       const progress = timeToRouteRef.current(Math.min(1, c.seconds / duration));
       const at = pointOnRoute(progress);
@@ -1128,6 +1129,8 @@ export default function GlobeMap({
       // Fahrt geschlossen → Position und km-Anzeige der alten Fahrt ausblenden
       fullRouteCoordsRef.current = [];
       vehicleLngLatRef.current = null;
+      rebuildCommentMarkers();
+      rebuildOverlapMarkers();
       if (distanceBadgeRef.current) distanceBadgeRef.current.style.display = 'none';
       if (vehicleDotRef.current) vehicleDotRef.current.style.display = 'none';
       if (keepCameraRef.current) keepCameraRef.current = false;
@@ -1511,7 +1514,7 @@ export default function GlobeMap({
   return (
     <div className="w-full h-full absolute inset-0 pointer-events-none z-0">
       {/* Smartphone: ohne gewählte Fahrt füllt die Karte den ganzen Bildschirm, mit Fahrt die obere Hälfte über dem Video */}
-      <div className="w-full relative pointer-events-auto" style={{ height: isMobile && cities.length >= 2 ? SHEET_MAP_H : "100%" }} ref={containerRef}>
+      <div className={`w-full relative pointer-events-auto ${isMobile && cities.length >= 2 ? 'rc-under-sheet' : ''}`} style={{ height: isMobile && cities.length >= 2 ? SHEET_MAP_H : "100%" }} ref={containerRef}>
             
       <svg xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
         <defs>
@@ -1552,7 +1555,7 @@ export default function GlobeMap({
       </div>
 
       {cities.length >= 2 && (
-        <RecenterButton detached={followDetached} onClick={recenter} containerRef={containerRef}
+        <RecenterButton detached={followDetached} onClick={recenter} containerRef={containerRef} extraBottom={isMobile ? SHEET_OVERLAP : 0}
           label={animationProgress > 0 ? t('Zurück zum Video') : t('Zurück zur Route')} />
       )}
 
@@ -1870,10 +1873,11 @@ function headingOnPath(path: [number, number][], t: number) {
  * Grau, solange die Kamera der Fahrt folgt; neongrün, sobald man die Karte selbst verschoben hat.
  * Weicht schwebenden Fenstern (Kommentare, Höhenprofil, Video …) nach links aus, auch wenn man sie verschiebt.
  */
-function RecenterButton({ detached, onClick, label, containerRef }: {
-  detached: boolean; onClick: () => void; label: string; containerRef: React.RefObject<HTMLDivElement | null>;
+function RecenterButton({ detached, onClick, label, containerRef, extraBottom = 0 }: {
+  detached: boolean; onClick: () => void; label: string; containerRef: React.RefObject<HTMLDivElement | null>; extraBottom?: number;
 }) {
-  const SIZE = 44, EDGE = 20, BOTTOM = 40 /* über dem Karten-Copyright */, GAP = 12;
+  const SIZE = 44, EDGE = 20, GAP = 12;
+  const BOTTOM = 40 + extraBottom; // über dem Karten-Copyright (und auf dem Handy über dem Rand des Fahrt-Fensters)
   const [right, setRight] = useState(EDGE);
   useEffect(() => {
     let raf = 0;
@@ -1899,7 +1903,7 @@ function RecenterButton({ detached, onClick, label, containerRef }: {
     loop();
     window.addEventListener('resize', place);
     return () => { window.clearTimeout(raf); window.removeEventListener('resize', place); };
-  }, [containerRef]);
+  }, [containerRef, BOTTOM]);
 
   return (
     <button

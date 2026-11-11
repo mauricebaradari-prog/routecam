@@ -12,5 +12,7 @@ export const SHEET_VIDEO_BOTTOM = SHEET_ELEV_H;
 export const SHEET_HEAD_BOTTOM = `calc(${SHEET_ELEV}px + ${SAFE} + 100vw * 9 / 16)`;
 /** Gesamthöhe des Fensters */
 export const SHEET_H = `calc(${SHEET_HEAD}px + 100vw * 9 / 16 + ${SHEET_ELEV}px + ${SAFE})`;
+/** So weit reicht die Karte unter das Fenster – damit sie hinter den runden Ecken durchscheint */
+export const SHEET_OVERLAP = 24;
 /** Höhe der Karte darüber */
-export const SHEET_MAP_H = `calc(100dvh - ${SHEET_H})`;
+export const SHEET_MAP_H = `calc(100dvh - ${SHEET_H} + ${SHEET_OVERLAP}px)`;
