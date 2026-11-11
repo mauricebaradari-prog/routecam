@@ -15,7 +15,7 @@ import { buildMapStyle } from '@/lib/mapStyles';
 import { formatCommentTime, type RouteComment } from '@/lib/routeComments';
 import { fillAvatarEl } from '@/lib/avatar';
 import { createPortal } from 'react-dom';
-import { SHEET_ELEV_H, SHEET_MAP_H, SHEET_OVERLAP } from '@/lib/mobileSheet';
+import { SHEET_ELEV_H, SHEET_H, sheetPx } from '@/lib/mobileSheet';
 import { t, useT } from '@/lib/i18n';
 
 function getDistance(p1: [number, number], p2: [number, number]) {
@@ -416,6 +416,20 @@ export default function GlobeMap({
   }, [activeKey]);
   
   const [isMobile, setIsMobile] = React.useState(false);
+  const sheetOpen = isMobile && cities.length >= 2;
+  function applySheetPadding(map: MaplibreMap, open: boolean) {
+    const bottom = open ? sheetPx() : 0;
+    const cur = map.getPadding();
+    if (cur.bottom !== bottom) map.setPadding({ top: 0, left: 0, right: 0, bottom });
+  }
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    applySheetPadding(map, sheetOpen);
+    const onResize = () => applySheetPadding(map, sheetOpen);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [sheetOpen]);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -1108,6 +1122,8 @@ export default function GlobeMap({
     updateRouteData(map, renderPassRef.current);
     rebuildMarkers(map, cities);
 
+    // Smartphone: das Fahrt-Fenster deckt unten einen Teil der Karte ab → Kamera auf den sichtbaren Teil ausrichten
+    applySheetPadding(map, isMobile && cities.length >= 2);
     if (cities.length >= 2) {
       const lats = cities.map((c) => c.lat);
       const lngs = cities.map((c) => c.lng);
@@ -1514,7 +1530,7 @@ export default function GlobeMap({
   return (
     <div className="w-full h-full absolute inset-0 pointer-events-none z-0">
       {/* Smartphone: ohne gewählte Fahrt füllt die Karte den ganzen Bildschirm, mit Fahrt die obere Hälfte über dem Video */}
-      <div className={`w-full relative pointer-events-auto ${isMobile && cities.length >= 2 ? 'rc-under-sheet' : ''}`} style={{ height: isMobile && cities.length >= 2 ? SHEET_MAP_H : "100%" }} ref={containerRef}>
+      <div className={`w-full relative pointer-events-auto ${sheetOpen ? 'rc-under-sheet' : ''}`} style={{ height: "100%", ['--rc-sheet-h' as string]: SHEET_H }} ref={containerRef}>
             
       <svg xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
         <defs>
@@ -1555,7 +1571,7 @@ export default function GlobeMap({
       </div>
 
       {cities.length >= 2 && (
-        <RecenterButton detached={followDetached} onClick={recenter} containerRef={containerRef} extraBottom={isMobile ? SHEET_OVERLAP : 0}
+        <RecenterButton detached={followDetached} onClick={recenter} containerRef={containerRef} extraBottom={sheetOpen ? sheetPx() : 0}
           label={animationProgress > 0 ? t('Zurück zum Video') : t('Zurück zur Route')} />
       )}
 

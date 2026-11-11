@@ -12,7 +12,16 @@ export const SHEET_VIDEO_BOTTOM = SHEET_ELEV_H;
 export const SHEET_HEAD_BOTTOM = `calc(${SHEET_ELEV}px + ${SAFE} + 100vw * 9 / 16)`;
 /** Gesamthöhe des Fensters */
 export const SHEET_H = `calc(${SHEET_HEAD}px + 100vw * 9 / 16 + ${SHEET_ELEV}px + ${SAFE})`;
-/** So weit reicht die Karte unter das Fenster – damit sie hinter den runden Ecken durchscheint */
-export const SHEET_OVERLAP = 24;
-/** Höhe der Karte darüber */
-export const SHEET_MAP_H = `calc(100dvh - ${SHEET_H} + ${SHEET_OVERLAP}px)`;
+/** Höhe des Fensters in Pixeln (für die Kamera der Karte) */
+export function sheetPx(): number {
+  if (typeof window === 'undefined') return 0;
+  let safe = 0;
+  try {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;visibility:hidden;height:env(safe-area-inset-bottom)';
+    document.body.appendChild(probe);
+    safe = probe.getBoundingClientRect().height;
+    probe.remove();
+  } catch { /* ignore */ }
+  return Math.round(SHEET_HEAD + window.innerWidth * 9 / 16 + SHEET_ELEV + safe);
+}

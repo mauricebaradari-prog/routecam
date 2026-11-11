@@ -386,7 +386,8 @@ export default function Home() {
 
 
       {/* ── Floating Minimalist UI (Top Left) ── */}
-      <div className="absolute top-[72px] left-4 md:top-[80px] md:left-6 z-50 flex flex-col items-center gap-3 md:gap-4">
+      {/* Smartphone: ausgeblendet – abgespielt wird über das Video im Fahrt-Fenster */}
+      <div className="absolute top-[72px] left-4 md:top-[80px] md:left-6 z-50 hidden md:flex flex-col items-center gap-3 md:gap-4">
 
         {/* Play Button */}
         {hasRoute && (
