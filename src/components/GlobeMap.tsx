@@ -1895,6 +1895,8 @@ function RecenterButton({ detached, onClick, label, containerRef, extraBottom = 
   const SIZE = 44, EDGE = 20, GAP = 12;
   const BOTTOM = 40 + extraBottom; // über dem Karten-Copyright (und auf dem Handy über dem Rand des Fahrt-Fensters)
   const [right, setRight] = useState(EDGE);
+  // ragt die Karte unter den sichtbaren Rand (Handy-Adressleiste), um so viel höher setzen
+  const [below, setBelow] = useState(0);
   useEffect(() => {
     let raf = 0;
     const place = () => {
@@ -1903,7 +1905,9 @@ function RecenterButton({ detached, onClick, label, containerRef, extraBottom = 
       const wins = Array.from(document.querySelectorAll<HTMLElement>('.react-draggable'))
         .map(el => el.getBoundingClientRect())
         .filter(r => r.width > 0 && r.height > 0);
-      const bottom = box.bottom - BOTTOM, top = bottom - SIZE;
+      const hidden = Math.max(0, Math.round(box.bottom - window.innerHeight));
+      setBelow(prev => (prev === hidden ? prev : hidden));
+      const bottom = box.bottom - hidden - BOTTOM, top = bottom - SIZE;
       let r = EDGE;
       // so lange nach links rücken, bis kein Fenster mehr im Weg ist
       for (let i = 0; i < 6; i++) {
@@ -1933,7 +1937,7 @@ function RecenterButton({ detached, onClick, label, containerRef, extraBottom = 
           ? 'bg-[#CCFF00] border-[#CCFF00] text-black shadow-[0_0_18px_rgba(204,255,0,0.45)] hover:brightness-110'
           : 'bg-black/75 border-white/15 text-white/55 hover:text-white hover:bg-black/90'
       }`}
-      style={{ width: SIZE, height: SIZE, right, bottom: BOTTOM }}
+      style={{ width: SIZE, height: SIZE, right, bottom: BOTTOM + below }}
     >
       <LocateFixed size={20} />
     </button>

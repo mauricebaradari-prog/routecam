@@ -268,8 +268,9 @@ export default function Home() {
     }
   }
 
+  // dvh statt vh: auf dem Handy zählt die Adressleiste nicht mit – sonst reicht die Karte unter den sichtbaren Rand
   return (
-    <div className="h-screen w-full relative overflow-hidden bg-black text-white font-sans">
+    <div className="h-dvh w-full relative overflow-hidden bg-black text-white font-sans">
 
       {/* ── Top bar (YouTube-style) ── */}
       <AppHeader routes={listedRoutes} activeRouteId={state.activeRouteId} onSelectRoute={setActiveRoute} onCreate={() => setCreateOpen(true)} trackerCta />
