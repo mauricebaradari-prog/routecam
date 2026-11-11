@@ -416,6 +416,12 @@ export default function GlobeMap({
   }, [activeKey]);
   
   const [isMobile, setIsMobile] = React.useState(false);
+  // Touch-Gerät: teure Effekte (Leuchtfilter auf der Routenlinie) weglassen – der Filter wird bei jedem Bild neu gerechnet
+  const [coarsePointer, setCoarsePointer] = React.useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- erst im Browser bekannt
+    setCoarsePointer(window.matchMedia('(pointer: coarse)').matches);
+  }, []);
   const sheetOpen = isMobile && cities.length >= 2;
   function applySheetPadding(map: MaplibreMap, open: boolean) {
     const bottom = open ? sheetPx() : 0;
@@ -496,6 +502,9 @@ export default function GlobeMap({
         zoom: cities[0] ? 4 : OVERVIEW_VIEW.zoom,
         pitch: cities[0] ? 45 : OVERVIEW_VIEW.pitch,
         interactive: true,
+        // Touch-Geräte (Handy/Tablet) haben oft Pixeldichte 3 – die Satellitenkarte dann nur mit 2 zeichnen:
+        // kaum sichtbar, aber gut die Hälfte weniger Pixel pro Bild
+        pixelRatio: Math.min(window.devicePixelRatio || 1, window.matchMedia('(pointer: coarse)').matches ? 2 : 4),
       });
 
       // Zoom/compass control removed (not needed – zoom via scroll/pinch, compass lives in the Heading window)
@@ -1548,7 +1557,7 @@ export default function GlobeMap({
         </defs>
         <path ref={fullSvgPathRef} fill="none" stroke={animationProgress === 0 ? routeColor : 'rgba(255, 255, 255, 0.3)'} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" />
         <path ref={inactiveSvgPathRef} fill="none" stroke={routeColor} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" opacity={0.5} />
-        <path ref={svgPathRef} fill="none" stroke="url(#routeGrad)" strokeWidth={routeWidth * 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 8px rgba(204,255,0,0.8))' }} />
+        <path ref={svgPathRef} fill="none" stroke="url(#routeGrad)" strokeWidth={routeWidth * 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ filter: coarsePointer ? undefined : 'drop-shadow(0 0 8px rgba(204,255,0,0.8))' }} />
       </svg>
       <div 
         ref={vehicleDotRef}
@@ -1564,7 +1573,7 @@ export default function GlobeMap({
       
       <div 
         ref={distanceBadgeRef}
-        className="absolute pointer-events-none z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md rounded-lg border border-white/10 shadow-xl"
+        className="absolute pointer-events-none z-20 flex flex-col items-center justify-center bg-black/80 [@media(pointer:fine)]:backdrop-blur-md rounded-lg border border-white/10 shadow-xl"
         style={{
           top: 0, left: 0,
           marginLeft: '-35px', marginTop: '-50px',
@@ -1939,7 +1948,7 @@ function RecenterButton({ detached, onClick, label, containerRef, extraBottom = 
       title={label}
       aria-label={label}
       aria-pressed={!detached}
-      className={`absolute z-30 flex items-center justify-center rounded-full border shadow-xl backdrop-blur-md transition-[background-color,border-color,color,right,box-shadow] duration-300 ${
+      className={`absolute z-30 flex items-center justify-center rounded-full border shadow-xl [@media(pointer:fine)]:backdrop-blur-md transition-[background-color,border-color,color,right,box-shadow] duration-300 ${
         detached
           ? 'bg-[#CCFF00] border-[#CCFF00] text-black shadow-[0_0_18px_rgba(204,255,0,0.45)] hover:brightness-110'
           : 'bg-black/75 border-white/15 text-white/55 hover:text-white hover:bg-black/90'

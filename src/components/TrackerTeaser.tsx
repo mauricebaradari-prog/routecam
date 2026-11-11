@@ -209,7 +209,7 @@ export default function TrackerTeaser() {
         {/* grüne Fläche */}
         <div
           aria-hidden
-          className="absolute left-[10px] top-[11px] w-[230px] h-[158px] rounded-[10px] bg-[#CCFF00] backdrop-blur-[15px] origin-top-left"
+          className="absolute left-[10px] top-[11px] w-[230px] h-[158px] rounded-[10px] bg-[#CCFF00] origin-top-left"
           style={enter(T_GREEN, 'scale(0.9)', 480)}
         />
 

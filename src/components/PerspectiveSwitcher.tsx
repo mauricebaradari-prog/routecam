@@ -30,7 +30,7 @@ export default function PerspectiveSwitcher({ overlaps, onSwitch }: {
 
   return (
     <div ref={ref} className="absolute top-[68px] left-1/2 -translate-x-1/2 z-[55] pointer-events-auto">
-      <div className="flex items-center gap-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 shadow-2xl pl-3 pr-1.5 py-1.5">
+      <div className="flex items-center gap-2 rounded-full bg-black/80 [@media(pointer:fine)]:backdrop-blur-md border border-white/15 shadow-2xl pl-3 pr-1.5 py-1.5">
         <Layers size={16} className="text-[#CCFF00] shrink-0" />
         <span className="text-sm text-white/80 whitespace-nowrap">
           {many

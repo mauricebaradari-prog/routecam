@@ -184,3 +184,11 @@ body.is-dragging iframe {
 @media (prefers-reduced-motion: reduce) { .rc-sheet-up { animation: none; } }
 /* Smartphone: die Karte läuft unter dem Fahrt-Fenster weiter – Copyright darüber halten */
 .rc-under-sheet .maplibregl-ctrl-bottom-right, .rc-under-sheet .maplibregl-ctrl-bottom-left { bottom: var(--rc-sheet-h); }
+
+/* Touch-Geräte: kein Weichzeichner hinter Elementen auf der Karte – er wird beim Verschieben bei jedem Bild neu
+   gerechnet und lässt die Karte auf dem Handy ruckeln. Dafür etwas deckendere Hintergründe. */
+@media (pointer: coarse) {
+  .maplibregl-ctrl-group { backdrop-filter: none !important; background: rgba(17, 24, 39, 0.95) !important; }
+  .rc-bubble { backdrop-filter: none; background: rgba(15,15,15,0.97); }
+  .rc-cluster { backdrop-filter: none; background: rgba(0,0,0,0.88); }
+}
