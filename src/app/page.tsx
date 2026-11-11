@@ -259,6 +259,19 @@ export default function Home() {
     }
   }
 
+  // Smartphone: das Fahrt-Fenster fährt erst nach unten, dann wird die Fahrt geschlossen
+  function closeRideAnimated(close: () => void) {
+    const root = document.documentElement;
+    const phone = window.matchMedia('(max-width: 767px)').matches;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!phone || reduced) { close(); return; }
+    root.dataset.sheetClosing = '1';
+    window.setTimeout(() => {
+      close();
+      window.setTimeout(() => { delete root.dataset.sheetClosing; }, 60);
+    }, 270);
+  }
+
   function handleSeek(progress: number) {
     set('animationProgress', progress);
     if (window.__YT_PLAYER) {
@@ -286,7 +299,7 @@ export default function Home() {
           initialPos={initialVideoPos} 
           setActiveWindow={setActiveWindow}
           visibility={visibilityOf(state.activeRouteId, state.routes.find(r => r.id === state.activeRouteId)?.visibility)}
-          onClose={() => { if (state.isAnimating) stopAnimation(); setActiveRoute(NO_ROUTE); }}
+          onClose={() => closeRideAnimated(() => { if (state.isAnimating) stopAnimation(); setActiveRoute(NO_ROUTE); })}
         />
         )}
         
@@ -320,7 +333,7 @@ export default function Home() {
           onBackgroundClick={() => {
             // click somewhere on the map → deselect the current ride (not while it is playing)
             if (!state.activeRouteId || state.isAnimating) return;
-            setActiveRoute(NO_ROUTE);
+            closeRideAnimated(() => setActiveRoute(NO_ROUTE));
           }}
           onPoint1Projected={(x: number, y: number, dirX: number, dirY: number, key: string) => {
             if (typeof window === 'undefined') return;

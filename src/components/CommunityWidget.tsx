@@ -384,7 +384,14 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
           </form>
     </>
   );
-  const [mobileComments, setMobileComments] = useState(false);
+  const [mobileComments, setMobileCommentsRaw] = useState(false);
+  const [commentsClosing, setCommentsClosing] = useState(false);
+  // Schließen mit Animation nach unten
+  const setMobileComments = (open: boolean) => {
+    if (open) { setCommentsClosing(false); setMobileCommentsRaw(true); return; }
+    setCommentsClosing(true);
+    window.setTimeout(() => { setMobileCommentsRaw(false); setCommentsClosing(false); }, 270);
+  };
 
   // ── Mobile: compact pill on the top edge of the elevation pane ──
   if (isMobile) {
@@ -411,7 +418,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
         {mobileComments && (
           <div className="fixed inset-0 z-[95]" role="dialog" aria-modal="true" aria-label={t('Kommentare')}>
             <div className="absolute inset-0" onClick={() => setMobileComments(false)} />
-            <div className="rc-sheet-up absolute inset-x-0 bottom-0 flex flex-col rounded-t-[20px] border-t border-white/10 bg-[#0b0d10] px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]" style={{ height: '72dvh' }}>
+            <div className={`${commentsClosing ? 'rc-sheet-down' : 'rc-sheet-up'} absolute inset-x-0 bottom-0 flex flex-col rounded-t-[20px] border-t border-white/10 bg-[#0b0d10] px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]`} style={{ height: '72dvh' }}>
               <div className="flex items-center justify-between pb-2">
                 <div className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-white/70">
                   <MessageCircle size={14} /> {t('Kommentare')} <span className="font-mono text-white/40">· {commentCount}</span>

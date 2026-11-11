@@ -181,7 +181,10 @@ body.is-dragging iframe {
    Nur „backwards“: nach der Animation bleibt kein transform stehen (sonst wäre das Video-Vollbild darin gefangen). */
 .rc-sheet-up { animation: rcSheetUp 420ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
 @keyframes rcSheetUp { from { transform: translateY(100vh); } }
-@media (prefers-reduced-motion: reduce) { .rc-sheet-up { animation: none; } }
+/* Schließen: dieselben Teile fahren wieder nach unten (page.tsx setzt data-sheet-closing kurz vor dem Schließen) */
+:root[data-sheet-closing] .rc-sheet-up, .rc-sheet-down { animation: rcSheetDown 280ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+@keyframes rcSheetDown { to { transform: translateY(100vh); } }
+@media (prefers-reduced-motion: reduce) { .rc-sheet-up, :root[data-sheet-closing] .rc-sheet-up, .rc-sheet-down { animation: none; } }
 /* Smartphone: die Karte läuft unter dem Fahrt-Fenster weiter – Copyright darüber halten */
 .rc-under-sheet .maplibregl-ctrl-bottom-right, .rc-under-sheet .maplibregl-ctrl-bottom-left { bottom: var(--rc-sheet-h); }
 
@@ -193,6 +196,7 @@ body.is-dragging iframe {
 
   .maplibregl-ctrl-group { background: #1a1f2a !important; }
   .maplibregl-ctrl-attrib { background: #0b0d10 !important; }
+  .maplibregl-ctrl-attrib.maplibregl-compact { border-radius: 12px !important; } /* sonst schwarze Ecken um das „i“ */
   .rc-bubble, .rc-route-hover-time { background: #0f0f0f; }
   .rc-cluster { background: #000; }
   .rc-overlap { background: #0f0f0f; }
