@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
 import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Layers, ShieldCheck, Info, SquareUser as UserSquare, Smartphone } from 'lucide-react';
 import { useDb } from '@/lib/db';
 import { channelHref, ownerOf } from '@/lib/channels';
@@ -182,6 +183,9 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
       <Onboarding onCreate={onCreate} />
       <SignupWall />
 
+      {/* Smartphone: schwebende Navigation unten – Karte · Anlegen · Profil */}
+      {!mobileSearch && <BottomNav current={current} onCreate={onCreate} />}
+
       {/* Drawer (left side menu) */}
       {drawerOpen && (
         <div className="fixed inset-0 z-[80]">
@@ -289,18 +293,25 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
 }
 
 // Avatar top right: "Sign in with Google" when signed out, profile + sign-out when signed in
-function AccountMenu() {
+function AccountMenu({ variant = 'header' }: { variant?: 'header' | 'bottom' }) {
   useT();
+  const bottom = variant === 'bottom';
+  // Unten: Panel per Portal, weil die schwebende Leiste (Blur) sonst den Bezugsrahmen für „fixed“ bildet
+  const portal = (node: React.ReactNode) => (bottom && typeof document !== 'undefined' ? createPortal(node, document.body) : node);
   const { user, signOut, renderSignInButton, configured } = useAuth();
   const isFounder = !!useDb().me?.is_founder;
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const close = (e: MouseEvent) => {
+      const el = e.target as Node;
+      if (!ref.current?.contains(el) && !panelRef.current?.contains(el)) setOpen(false);
+    };
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', close);
     document.addEventListener('keydown', esc);
@@ -322,20 +333,25 @@ function AccountMenu() {
   }
 
   return (
-    <div ref={ref} className="relative ml-1">
+    <div ref={ref} className={bottom ? 'contents' : 'relative ml-1'}>
       <button
         onClick={() => setOpen(o => !o)}
         title={user ? user.name : t('Anmelden')}
         aria-label={user ? t('Konto: {name}', { name: user.name }) : t('Anmelden')}
-        className="w-8 h-8 rounded-full overflow-hidden bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 transition-colors"
+        aria-expanded={open}
+        className={bottom
+          ? `w-14 h-12 rounded-full flex items-center justify-center transition-colors ${open ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white'}`
+          : 'w-8 h-8 rounded-full overflow-hidden bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 transition-colors'}
       >
         {user
-          ? <UserAvatar name={user.name} picture={user.picture} seed={user.id} size={32} />
-          : <User size={18} />}
+          ? <UserAvatar name={user.name} picture={user.picture} seed={user.id} size={bottom ? 28 : 32} className={bottom && open ? 'ring-2 ring-[#CCFF00]' : ''} />
+          : <User size={bottom ? 22 : 18} />}
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-white/10 bg-[#212121] shadow-2xl overflow-hidden">
+      {open && portal(
+        <div ref={panelRef} className={bottom
+          ? 'fixed left-3 right-3 bottom-[calc(84px+env(safe-area-inset-bottom))] z-[90] max-h-[calc(100dvh-160px)] overflow-y-auto no-scrollbar rounded-2xl border border-white/10 bg-[#212121] shadow-2xl'
+          : 'absolute right-0 top-full mt-2 w-72 rounded-xl border border-white/10 bg-[#212121] shadow-2xl overflow-hidden'}>
           {user ? (
             <>
               <div className="flex items-center gap-3 p-4 border-b border-white/10">
@@ -351,6 +367,8 @@ function AccountMenu() {
                 <MenuLink href="/settings" icon={<Settings size={16} />} onClick={() => setOpen(false)}>{t('Einstellungen')}</MenuLink>
                 <MenuLink href="/about#support" icon={<LifeBuoy size={16} />} onClick={() => setOpen(false)}>Support</MenuLink>
                 {isFounder && <MenuLink href="/admin" icon={<ShieldCheck size={16} />} onClick={() => setOpen(false)}>Admin</MenuLink>}
+                {bottom && <MenuLink href="/tracker" icon={<Smartphone size={16} />} onClick={() => setOpen(false)}>{t('GPS Tracker App')}</MenuLink>}
+                {bottom && <MenuLink href="/about" icon={<Info size={16} />} onClick={() => setOpen(false)}>About</MenuLink>}
               </div>
               <div className="border-t border-white/10 py-1.5">
                 <button onClick={() => { signOut(); setOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/10">
@@ -368,6 +386,12 @@ function AccountMenu() {
                 <p className="text-xs text-amber-300">Google-Login ist noch nicht eingerichtet: <code className="text-white/80">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> fehlt in <code className="text-white/80">.env.local</code>.</p>
               )}
               {error && <p className="text-xs text-red-300 mt-2">{error}</p>}
+              {bottom && (
+                <div className="mt-4 -mx-4 border-y border-white/10 py-1.5">
+                  <MenuLink href="/tracker" icon={<Smartphone size={16} />} onClick={() => setOpen(false)}>{t('GPS Tracker App')}</MenuLink>
+                  <MenuLink href="/about" icon={<Info size={16} />} onClick={() => setOpen(false)}>About</MenuLink>
+                </div>
+              )}
               <p className="text-[11px] leading-snug text-white/40 mt-4">
                 {rich('Mit der Anmeldung akzeptierst du die <0>Nutzungsbedingungen</0> und hast die <1>Datenschutzerklärung</1> gelesen.', [
                   s => <Link href="/about#agb" onClick={() => setOpen(false)} className="text-white/70 underline underline-offset-2 hover:text-white">{s}</Link>,
@@ -376,9 +400,49 @@ function AccountMenu() {
               </p>
             </div>
           )}
-        </div>
+          {bottom && (
+            <div className="border-t border-white/10 px-4 py-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/40">
+              <Link href="/about#impressum" onClick={e => { setOpen(false); leaveWhilePlaying(e); }} className="hover:text-white/80">{t('Impressum')}</Link>
+              <Link href="/about#datenschutz" onClick={e => { setOpen(false); leaveWhilePlaying(e); }} className="hover:text-white/80">{t('Datenschutz')}</Link>
+              <Link href="/about#agb" onClick={e => { setOpen(false); leaveWhilePlaying(e); }} className="hover:text-white/80">{t('Nutzungsbedingungen')}</Link>
+              <Link href="/about#kontakt" onClick={e => { setOpen(false); leaveWhilePlaying(e); }} className="hover:text-white/80">{t('Kontakt')}</Link>
+              <button type="button" onClick={() => { setOpen(false); openConsent(); }} className="hover:text-white/80">{consentCopy().settings}</button>
+            </div>
+          )}
+        </div>,
       )}
     </div>
+  );
+}
+
+/** Smartphone: schwebende Leiste unten mit Karte, Anlegen (Plus) und Profil. Ab 640 px gibt es sie nicht. */
+function BottomNav({ current, onCreate }: { current: Props['current']; onCreate: () => void }) {
+  useT();
+  const onMap = current === 'map';
+  return (
+    <nav
+      aria-label={t('Navigation')}
+      className="sm:hidden fixed inset-x-0 mx-auto w-fit bottom-[calc(16px+env(safe-area-inset-bottom))] z-[75] flex items-center gap-1 p-1.5 rounded-full border border-white/10 bg-[#0f0f0f]/85 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.55)]"
+    >
+      <Link
+        href="/"
+        onClick={leaveWhilePlaying}
+        aria-label={t('Karte')}
+        aria-current={onMap ? 'page' : undefined}
+        className={`w-14 h-12 rounded-full flex items-center justify-center transition-colors ${onMap ? 'text-[#CCFF00]' : 'text-white/60 hover:text-white'}`}
+      >
+        <MapIcon size={22} />
+      </Link>
+      <button
+        type="button"
+        onClick={onCreate}
+        aria-label={t('Anlegen')}
+        className="w-14 h-12 rounded-full flex items-center justify-center bg-[#CCFF00] text-black hover:brightness-110 active:scale-95 transition"
+      >
+        <Plus size={24} strokeWidth={2.4} />
+      </button>
+      <AccountMenu variant="bottom" />
+    </nav>
   );
 }
 

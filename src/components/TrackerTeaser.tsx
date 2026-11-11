@@ -118,7 +118,7 @@ export default function TrackerTeaser() {
     <aside
       aria-label={t('RouteCam Tracker')}
       aria-hidden={!shown}
-      className="fixed left-5 bottom-5 md:left-8 md:bottom-8 z-[70]"
+      className="fixed left-5 bottom-[calc(92px+env(safe-area-inset-bottom))] sm:bottom-5 md:left-8 md:bottom-8 z-[70]"
       style={{ pointerEvents: shown ? 'auto' : 'none' }}
     >
       <div
