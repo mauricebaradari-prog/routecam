@@ -1490,11 +1490,21 @@ export default function GlobeMap({
     }
   }
 
+  // Kartenfläche ändert die Größe (z. B. Smartphone: Übersicht ↔ Fahrt) → MapLibre neu ausmessen
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => mapRef.current?.resize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   latestRef.current = { cities, updateRouteData, rebuildMarkers, updateInactiveRoutes, fitAllRoutes };
 
   return (
     <div className="w-full h-full absolute inset-0 pointer-events-none z-0">
-      <div className="w-full relative pointer-events-auto" style={{ height: isMobile ? "40vh" : "100%" }} ref={containerRef}>
+      {/* Smartphone: ohne gewählte Fahrt füllt die Karte den ganzen Bildschirm, mit Fahrt die obere Hälfte über dem Video */}
+      <div className="w-full relative pointer-events-auto" style={{ height: isMobile && cities.length >= 2 ? "40vh" : "100%" }} ref={containerRef}>
             
       <svg xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
         <defs>
