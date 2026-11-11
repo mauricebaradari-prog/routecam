@@ -203,77 +203,15 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
     />
   ));
 
-  // ── Mobile: compact pill on the top edge of the elevation pane ──
-  if (isMobile) {
-    return (
-      <>
-        {/* oben rechts im Höhenprofil des Fahrt-Fensters */}
-        <div className="rc-sheet-up fixed right-2 z-[82] flex items-center gap-1.5 pointer-events-auto" style={{ bottom: `calc(${SHEET_ELEV_H} - 40px)` }}>
-          {toastEl}
-          {likeBtn(true)}
-          <div className="relative">
-            <button type="button" onClick={() => setMobileStars(s => !s)} className="inline-flex items-center gap-1 h-8 px-2.5 rounded-full bg-white/10 text-white">
-              <Star size={15} className={stats.myRating ? 'text-[#CCFF00]' : ''} fill={stats.myRating ? 'currentColor' : 'none'} />
-              <span className="text-sm tabular-nums">{formatRating(stats.avgRating)}</span>
-            </button>
-            {mobileStars && <div className="absolute right-0 top-full mt-2 rounded-full bg-[#212121] border border-white/10 px-2 py-1 shadow-2xl">{stars(22)}</div>}
-          </div>
-          <button type="button" onClick={share} title={t('Teilen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 text-white"><Share2 size={15} /></button>
-          {moreMenu}
-        </div>
-        {dialog}
-      </>
-    );
-  }
-
-  // ── Desktop: draggable window like Elevation / Heading ──
-  return (
+  // Kommentarliste + Eingabe: am Desktop im Fenster, auf dem Smartphone im Kommentar-Panel
+  const commentsSection = (
     <>
-      <Rnd
-        default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: defaultY, width: 320, height: 'auto' }}
-        bounds="parent"
-        enableResizing={false}
-        dragHandleClassName="community-drag"
-        style={{ zIndex: activeWindow === 'community' ? 60 : 50 }}
-        onDragStart={() => { lockIframes(); setActiveWindow?.('community'); }}
-        onDragStop={() => { unlockIframes(); setTimeout(fitList, 0); }}
-        onMouseDown={() => setActiveWindow?.('community')}
-      >
-        <div className="relative w-full rounded-xl border border-white/[0.08] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl" style={{ background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)' }}>
-          {toastEl}
-          <div className="community-drag flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing select-none">
-            <div className="flex items-center gap-2">
-              <Users size={14} className="text-[#CCFF00]" />
-              <h3 className="text-[11px] font-bold tracking-[0.05em] uppercase text-white">Community</h3>
-            </div>
-            <GripHorizontal size={14} className="text-gray-400" />
-          </div>
-
-          <div className="flex items-center gap-2">
-            {likeBtn(false)}
-            <button type="button" onClick={share} title={t('Teilen')} aria-label={t('Teilen')} className="w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white transition-colors">
-              <Share2 size={16} />
-            </button>
-            <div className="ml-auto">{moreMenu}</div>
-          </div>
-
-          {/* Rating – always visible */}
-          <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-              {stars(20)}
-              <div className="text-right leading-tight">
-                <div className="text-sm font-semibold font-mono text-white">Ø {formatRating(stats.avgRating)}</div>
-                <div className="text-[10px] text-white/40">
-                  {stats.ratingCount === 0 ? t('noch keine Bewertung') : stats.ratingCount === 1 ? t('1 Bewertung') : t('{n} Bewertungen', { n: stats.ratingCount })}
-                </div>
-              </div>
-          </div>
-
           {/* Comments */}
           <div className="mt-3 pt-3 border-t border-white/10">
             <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/50">
               <MessageCircle size={12} /> {t('Kommentare')} <span className="font-mono text-white/35">· {commentCount}</span>
             </div>
-            <ol ref={listRef} className="no-scrollbar relative overflow-y-auto flex flex-col gap-1" style={{ maxHeight: listMax }}>
+            <ol ref={listRef} className="no-scrollbar relative overflow-y-auto flex flex-col gap-1" style={{ maxHeight: isMobile ? undefined : listMax }}>
               {comments.length === 0 && <li className="text-xs text-white/40 py-4 text-center">{t('Noch keine Kommentare auf dieser Route.')}</li>}
               {comments.filter(c => !c.parentId).map(top => {
                 const thread = [top, ...comments.filter(c => c.parentId === top.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt))];
@@ -444,6 +382,98 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
               </button>
             </div>
           </form>
+    </>
+  );
+  const [mobileComments, setMobileComments] = useState(false);
+
+  // ── Mobile: compact pill on the top edge of the elevation pane ──
+  if (isMobile) {
+    return (
+      <>
+        {/* oben rechts im Höhenprofil des Fahrt-Fensters */}
+        <div className="rc-sheet-up fixed right-2 z-[82] flex items-center gap-1.5 pointer-events-auto" style={{ bottom: `calc(${SHEET_ELEV_H} - 40px)` }}>
+          {toastEl}
+          <button type="button" onClick={() => setMobileComments(true)} aria-label={t('Kommentare')} className="inline-flex items-center gap-1 h-8 px-2.5 rounded-full bg-white/10 text-white">
+            <MessageCircle size={15} />
+            <span className="text-sm tabular-nums">{commentCount}</span>
+          </button>
+          {likeBtn(true)}
+          <div className="relative">
+            <button type="button" onClick={() => setMobileStars(s => !s)} className="inline-flex items-center gap-1 h-8 px-2.5 rounded-full bg-white/10 text-white">
+              <Star size={15} className={stats.myRating ? 'text-[#CCFF00]' : ''} fill={stats.myRating ? 'currentColor' : 'none'} />
+              <span className="text-sm tabular-nums">{formatRating(stats.avgRating)}</span>
+            </button>
+            {mobileStars && <div className="absolute right-0 top-full mt-2 rounded-full bg-[#212121] border border-white/10 px-2 py-1 shadow-2xl">{stars(22)}</div>}
+          </div>
+          <button type="button" onClick={share} title={t('Teilen')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 text-white"><Share2 size={15} /></button>
+          {moreMenu}
+        </div>
+        {mobileComments && (
+          <div className="fixed inset-0 z-[95]" role="dialog" aria-modal="true" aria-label={t('Kommentare')}>
+            <div className="absolute inset-0" onClick={() => setMobileComments(false)} />
+            <div className="rc-sheet-up absolute inset-x-0 bottom-0 flex flex-col rounded-t-[20px] border-t border-white/10 bg-[#0b0d10] px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]" style={{ height: '72dvh' }}>
+              <div className="flex items-center justify-between pb-2">
+                <div className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.05em] text-white/70">
+                  <MessageCircle size={14} /> {t('Kommentare')} <span className="font-mono text-white/40">· {commentCount}</span>
+                </div>
+                <button type="button" onClick={() => setMobileComments(false)} aria-label={t('Schließen')} className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-white/70">
+                  <X size={22} />
+                </button>
+              </div>
+              <div className="rc-mobile-comments flex-1 min-h-0 flex flex-col [&>div:first-child]:mt-0 [&>div:first-child]:pt-0 [&>div:first-child]:border-t-0 [&>div:first-child]:flex-1 [&>div:first-child]:min-h-0 [&>div:first-child]:flex [&>div:first-child]:flex-col [&>div:first-child>div]:hidden [&_ol]:flex-1 [&_ol]:min-h-0">
+                {commentsSection}
+              </div>
+            </div>
+          </div>
+        )}
+        {dialog}
+      </>
+    );
+  }
+
+  // ── Desktop: draggable window like Elevation / Heading ──
+  return (
+    <>
+      <Rnd
+        default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: defaultY, width: 320, height: 'auto' }}
+        bounds="parent"
+        enableResizing={false}
+        dragHandleClassName="community-drag"
+        style={{ zIndex: activeWindow === 'community' ? 60 : 50 }}
+        onDragStart={() => { lockIframes(); setActiveWindow?.('community'); }}
+        onDragStop={() => { unlockIframes(); setTimeout(fitList, 0); }}
+        onMouseDown={() => setActiveWindow?.('community')}
+      >
+        <div className="relative w-full rounded-xl border border-white/[0.08] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl" style={{ background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)' }}>
+          {toastEl}
+          <div className="community-drag flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing select-none">
+            <div className="flex items-center gap-2">
+              <Users size={14} className="text-[#CCFF00]" />
+              <h3 className="text-[11px] font-bold tracking-[0.05em] uppercase text-white">Community</h3>
+            </div>
+            <GripHorizontal size={14} className="text-gray-400" />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {likeBtn(false)}
+            <button type="button" onClick={share} title={t('Teilen')} aria-label={t('Teilen')} className="w-9 h-9 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 text-white transition-colors">
+              <Share2 size={16} />
+            </button>
+            <div className="ml-auto">{moreMenu}</div>
+          </div>
+
+          {/* Rating – always visible */}
+          <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+              {stars(20)}
+              <div className="text-right leading-tight">
+                <div className="text-sm font-semibold font-mono text-white">Ø {formatRating(stats.avgRating)}</div>
+                <div className="text-[10px] text-white/40">
+                  {stats.ratingCount === 0 ? t('noch keine Bewertung') : stats.ratingCount === 1 ? t('1 Bewertung') : t('{n} Bewertungen', { n: stats.ratingCount })}
+                </div>
+              </div>
+          </div>
+
+          {commentsSection}
         </div>
       </Rnd>
       {dialog}
