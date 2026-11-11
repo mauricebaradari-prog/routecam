@@ -51,7 +51,7 @@ export default function TrackerTeaser() {
     if (isDismissed()) return;
     /* eslint-disable react-hooks/set-state-in-effect -- Sichtbarkeit hängt an localStorage und matchMedia */
     setReduced(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    setCompact(window.matchMedia('(max-width: 639px)').matches);
+    setCompact(window.matchMedia('(max-width: 639px), (pointer: coarse) and (max-height: 500px)').matches);
     setPhase('waiting');
     /* eslint-enable react-hooks/set-state-in-effect */
     let raf = 0;

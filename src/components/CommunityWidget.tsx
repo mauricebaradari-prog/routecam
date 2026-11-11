@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
-import { SHEET_ELEV_H } from '@/lib/mobileSheet';
+import { SHEET_ELEV_H, phoneLayout } from '@/lib/mobileSheet';
 import { Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
 import PeaceHand from '@/components/icons/PeaceHand';
 import { shareUrl } from '@/lib/share';
@@ -34,6 +34,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const { statsOf, toggleLike, rate, report } = useRouteInteractions();
   const stats = statsOf(routeId);
   const [isMobile, setIsMobile] = useState(false);
+  const [landscape, setLandscape] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportComment, setReportComment] = useState<RouteComment | null>(null);
@@ -80,7 +81,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   }, [isMobile, comments.length]);
 
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768);
+    const onResize = () => { const l = phoneLayout(); setIsMobile(l.phone); setLandscape(l.landscape); };
     onResize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -399,7 +400,8 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
     return (
       <>
         {/* oben rechts im Höhenprofil des Fahrt-Fensters */}
-        <div className="rc-sheet-up fixed right-2 z-[82] flex items-center gap-1.5 pointer-events-auto" style={{ bottom: `calc(${SHEET_ELEV_H} - 40px)` }}>
+        <div className={`${landscape ? 'rc-sheet-left left-3' : 'rc-sheet-up right-2'} fixed z-[82] flex items-center gap-1.5 pointer-events-auto`}
+          style={{ bottom: landscape ? 'calc(12px + env(safe-area-inset-bottom))' : `calc(${SHEET_ELEV_H} - 40px)` }}>
           {toastEl}
           <button type="button" onClick={() => setMobileComments(true)} aria-label={t('Kommentare')} className="inline-flex items-center gap-1 h-8 px-2.5 rounded-full bg-white/10 text-white">
             <MessageCircle size={15} />

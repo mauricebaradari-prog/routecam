@@ -19,6 +19,7 @@ import AnimationsPanel from '@/components/panels/AnimationsPanel';
 import CameraPanel, { CAMERA_MODES } from '@/components/panels/CameraPanel';
 import { t, useT } from '@/lib/i18n';
 import { mapCamera } from '@/lib/mapCamera';
+import { phoneLayout } from '@/lib/mobileSheet';
 
 const YouTubeOverlay = dynamic(() => import('@/components/YouTubeOverlay'), { ssr: false });
 const GlobeMap = dynamic(() => import('@/components/GlobeMap'), { ssr: false });
@@ -263,7 +264,7 @@ export default function Home() {
   // Smartphone: das Fahrt-Fenster fährt erst nach unten, dann wird die Fahrt geschlossen
   function closeRideAnimated(close: () => void) {
     const root = document.documentElement;
-    const phone = window.matchMedia('(max-width: 767px)').matches;
+    const phone = phoneLayout().phone;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!phone || reduced) { close(); return; }
     root.dataset.sheetClosing = '1';

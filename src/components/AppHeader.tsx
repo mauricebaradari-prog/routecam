@@ -424,7 +424,7 @@ function BottomNav({ current, onCreate, onSearch, showBell }: { current: Props['
   return (
     <nav
       aria-label={t('Navigation')}
-      className="sm:hidden fixed inset-x-0 mx-auto w-fit bottom-[calc(16px+env(safe-area-inset-bottom))] z-[75] flex items-center gap-1 p-1.5 rounded-full border border-white/10 bg-[#0b0d10] shadow-[0_10px_40px_rgba(0,0,0,0.55)]"
+      className="rc-bottom-nav sm:hidden fixed inset-x-0 mx-auto w-fit bottom-[calc(16px+env(safe-area-inset-bottom))] z-[75] flex items-center gap-1 p-1.5 rounded-full border border-white/10 bg-[#0b0d10] shadow-[0_10px_40px_rgba(0,0,0,0.55)]"
     >
       <Link
         href="/"

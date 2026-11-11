@@ -25,3 +25,23 @@ export function sheetPx(): number {
   } catch { /* ignore */ }
   return Math.round(SHEET_HEAD + window.innerWidth * 9 / 16 + SHEET_ELEV + safe);
 }
+
+/** Smartphone-Oberfläche? Hochformat (schmal) oder Handy quer (Touch, wenig Höhe – passt zu sm:/md: in globals.css). */
+export function phoneLayout(): { phone: boolean; landscape: boolean } {
+  if (typeof window === 'undefined') return { phone: false, landscape: false };
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const phone = window.innerWidth < 768 || (coarse && window.innerHeight <= 500);
+  return { phone, landscape: phone && window.innerWidth > window.innerHeight };
+}
+
+// Handy quer: das Fahrt-Fenster nimmt die linke Hälfte ein – Kopfzeile (Kanal + X), darunter das Video,
+// unten die Leiste mit Kommentaren, Likes usw. Kein Höhenprofil.
+export const SIDE_W = '50vw';
+export const SIDE_VIDEO_H = `min(calc(50vw * 9 / 16), calc(100dvh - ${SHEET_HEAD}px - 56px))`;
+/** Kamera-Polster der Karte: unten (hoch) bzw. links (quer) so groß wie das Fenster */
+export function sheetPadding(): { top: number; left: number; right: number; bottom: number } {
+  const { landscape } = phoneLayout();
+  return landscape
+    ? { top: 0, left: Math.round(window.innerWidth / 2), right: 0, bottom: 0 }
+    : { top: 0, left: 0, right: 0, bottom: sheetPx() };
+}

@@ -16,7 +16,7 @@ import { formatCommentTime, type RouteComment } from '@/lib/routeComments';
 import { fillAvatarEl } from '@/lib/avatar';
 import { mapCamera } from '@/lib/mapCamera';
 import { createPortal } from 'react-dom';
-import { SHEET_ELEV_H, SHEET_H, sheetPx } from '@/lib/mobileSheet';
+import { SHEET_ELEV_H, SHEET_H, sheetPx, phoneLayout, sheetPadding } from '@/lib/mobileSheet';
 import { t, useT } from '@/lib/i18n';
 
 function getDistance(p1: [number, number], p2: [number, number]) {
@@ -448,6 +448,8 @@ export default function GlobeMap({
   }, [activeKey]);
   
   const [isMobile, setIsMobile] = React.useState(false);
+  /** Handy quer: Fahrt-Fenster links statt unten, kein Höhenprofil */
+  const [landscape, setLandscape] = React.useState(false);
   // Touch-Gerät: teure Effekte (Leuchtfilter auf der Routenlinie) weglassen – der Filter wird bei jedem Bild neu gerechnet
   const [coarsePointer, setCoarsePointer] = React.useState(false);
   useEffect(() => {
@@ -456,13 +458,13 @@ export default function GlobeMap({
   }, []);
   const sheetOpen = isMobile && cities.length >= 2;
   function applySheetPadding(map: MaplibreMap, open: boolean) {
-    const bottom = open ? sheetPx() : 0;
+    const pad = open ? sheetPadding() : { top: 0, left: 0, right: 0, bottom: 0 };
     const cur = map.getPadding();
-    if (cur.bottom === bottom) return;
+    if (cur.bottom === pad.bottom && cur.left === pad.left) return;
     // Fenster geht zu: Polster bleibt erst einmal – sonst würde das Bild verrutschen. Es fällt weg, sobald die Karte
     // die Kamera selbst wieder bewegt (Übersicht anfliegen, nächste Fahrt).
     if (!open) return;
-    map.setPadding({ top: 0, left: 0, right: 0, bottom });
+    map.setPadding(pad);
   }
   useEffect(() => {
     const map = mapRef.current;
@@ -471,9 +473,9 @@ export default function GlobeMap({
     const onResize = () => applySheetPadding(map, sheetOpen);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [sheetOpen]);
+  }, [sheetOpen, landscape]);
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => { const l = phoneLayout(); setIsMobile(l.phone); setLandscape(l.landscape); };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -1602,7 +1604,7 @@ export default function GlobeMap({
   return (
     <div className="w-full h-full absolute inset-0 pointer-events-none z-0">
       {/* Smartphone: ohne gewählte Fahrt füllt die Karte den ganzen Bildschirm, mit Fahrt die obere Hälfte über dem Video */}
-      <div className={`w-full relative pointer-events-auto ${sheetOpen ? 'rc-under-sheet' : ''}`} style={{ height: "100%", ['--rc-sheet-h' as string]: SHEET_H }} ref={containerRef}>
+      <div className={`w-full relative pointer-events-auto ${sheetOpen ? 'rc-under-sheet' : ''}`} style={{ height: "100%", ['--rc-sheet-h' as string]: landscape ? '0px' : SHEET_H }} ref={containerRef}>
             
       <svg xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
         <defs>
@@ -1644,7 +1646,7 @@ export default function GlobeMap({
       </div>
 
       {cities.length >= 2 && (
-        <RecenterButton detached={followDetached} onClick={recenter} containerRef={containerRef} extraBottom={sheetOpen ? sheetPx() : 0}
+        <RecenterButton detached={followDetached} onClick={recenter} containerRef={containerRef} extraBottom={sheetOpen && !landscape ? sheetPx() : 0}
           label={animationProgress > 0 ? t('Zurück zum Video') : t('Zurück zur Route')} />
       )}
 
@@ -1656,9 +1658,11 @@ export default function GlobeMap({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <Mountain size={14} className="text-[#CCFF00]" />
-                <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Elevation Profile')}</h3>
+                {/* Smartphone: keine Überschrift – rechts daneben sitzt die Leiste mit Kommentaren, Likes … */}
+                {!isMobile && <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Elevation Profile')}</h3>}
+                {isMobile && <span style={{ color: '#9ca3af', fontSize: '11px', fontWeight: 600, fontFamily: 'sans-serif' }}>{(totalDistRef.current / 1000).toFixed(0)} KM · {Math.floor(durationSeconds / 60)}M {durationSeconds % 60}S</span>}
               </div>
-              <div style={{ color: '#9ca3af', fontSize: '10px', fontWeight: 500, fontFamily: 'sans-serif', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ color: '#9ca3af', fontSize: '10px', fontWeight: 500, fontFamily: 'sans-serif', display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>{(totalDistRef.current / 1000).toFixed(0)} KM</span>
                 <span style={{ color: '#4b5563' }}>•</span>
                 <span>{Math.floor(durationSeconds / 60)}M {durationSeconds % 60}S</span>
@@ -1802,6 +1806,8 @@ export default function GlobeMap({
         </div>
         );
         if (isMobile) {
+          // Handy quer: kein Höhenprofil
+          if (landscape) return null;
           // per Portal: die Karte liegt in einer eigenen Ebene (z-0) – sonst wäre das Profil unter dem Fahrt-Fenster
           return createPortal(
             <div className="rc-sheet-up fixed inset-x-0 bottom-0 pointer-events-auto z-[81] border-t border-white/10" style={{ height: SHEET_ELEV_H, paddingBottom: 'env(safe-area-inset-bottom)' }}>

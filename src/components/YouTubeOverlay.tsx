@@ -12,7 +12,7 @@ import { leaveWhilePlaying } from '@/lib/nav';
 import { waitForYT } from '@/lib/youtubeDuration';
 import { useConsent, setConsent, openConsent } from '@/lib/consent';
 import { consentCopy } from '@/components/ConsentBanner';
-import { SHEET_H, SHEET_HEAD, SHEET_HEAD_BOTTOM, SHEET_VIDEO, SHEET_VIDEO_BOTTOM } from '@/lib/mobileSheet';
+import { SHEET_H, SHEET_HEAD, SHEET_HEAD_BOTTOM, SHEET_VIDEO, SHEET_VIDEO_BOTTOM, SIDE_W, SIDE_VIDEO_H, phoneLayout } from '@/lib/mobileSheet';
 import { VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useAuth } from '@/lib/auth';
@@ -83,7 +83,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
 
   useEffect(() => {
     // read at creation time (the isMobile state below is still false on the first render)
-    const mobile = () => window.innerWidth < 768;
+    const mobile = () => phoneLayout().phone;
     // The chosen tempo (0.25×–2×) must also apply to a freshly created or switched video –
     // YouTube starts every player at 1×, while the ride would keep running at the chosen tempo.
     const applyRate = () => {
@@ -278,8 +278,15 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   }, [state.animSpeed]);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [landscape, setLandscape] = useState(false);
+  // Handy quer mit offener Fahrt: Navigation unten rückt in die rechte Hälfte (siehe globals.css)
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const root = document.documentElement;
+    root.classList.toggle('rc-ride-side', isMobile && landscape);
+    return () => root.classList.remove('rc-ride-side');
+  }, [isMobile, landscape]);
+  useEffect(() => {
+    const handleResize = () => { const l = phoneLayout(); setIsMobile(l.phone); setLandscape(l.landscape); };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -421,11 +428,16 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   );
 
   // Smartphone: Fenster von unten – Kopfzeile (Kanal + X), Video, darunter das Höhenprofil (GlobeMap)
+  // Handy quer: dieselben drei Teile, nur links statt unten (gleiche Elemente – das Video läuft beim Drehen weiter)
   if (isMobile) {
+    const anim = landscape ? 'rc-sheet-left' : 'rc-sheet-up';
     return (
       <>
-        <div aria-hidden className="rc-sheet-up fixed inset-x-0 bottom-0 z-[80] rounded-t-[20px] border-t border-white/10 bg-[#0b0d10] shadow-[0_-12px_40px_rgba(0,0,0,0.5)]" style={{ height: SHEET_H }} />
-        <div className="rc-sheet-up fixed inset-x-0 z-[81] flex items-center gap-1 pl-1.5 pr-2" style={{ bottom: SHEET_HEAD_BOTTOM, height: SHEET_HEAD }}>
+        <div aria-hidden
+          className={`${anim} fixed z-[80] bg-[#0b0d10] ${landscape ? 'left-0 top-0 bottom-0 rounded-r-[20px] border-r' : 'inset-x-0 bottom-0 rounded-t-[20px] border-t'} border-white/10`}
+          style={landscape ? { width: SIDE_W } : { height: SHEET_H }} />
+        <div className={`${anim} fixed z-[81] flex items-center gap-1 pl-1.5 pr-2 ${landscape ? 'left-0 top-0' : 'inset-x-0'}`}
+          style={landscape ? { width: SIDE_W, height: SHEET_HEAD } : { bottom: SHEET_HEAD_BOTTOM, height: SHEET_HEAD }}>
           <div className="flex-1 min-w-0"><ChannelBar data={owner} bare /></div>
           {onClose && (
             <button type="button" onClick={onClose} aria-label={t('Schließen')} title={t('Schließen')}
@@ -434,7 +446,8 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
             </button>
           )}
         </div>
-        <div className={`rc-sheet-up fixed inset-x-0 bg-black ${fullscreen === 'css' ? 'z-[200]' : 'z-[81]'}`} style={{ bottom: SHEET_VIDEO_BOTTOM, height: SHEET_VIDEO }}>
+        <div className={`${anim} fixed bg-black ${landscape ? 'left-0' : 'inset-x-0'} ${fullscreen === 'css' ? 'z-[200]' : 'z-[81]'}`}
+          style={landscape ? { top: SHEET_HEAD, width: SIDE_W, height: SIDE_VIDEO_H } : { bottom: SHEET_VIDEO_BOTTOM, height: SHEET_VIDEO }}>
           {videoContent}
         </div>
       </>
