@@ -550,7 +550,13 @@ export default function GlobeMap({
       };
 
       let hoverFrame = 0;
+      // Touch (Handy): ein Tipp löst auch „mousemove“ aus, aber nie „mouseout“ – die Vorschau bliebe als
+      // zweiter Punkt stehen. Darum gibt es sie nur mit echter Maus.
+      const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      const hideHover = () => { cancelAnimationFrame(hoverFrame); hoverEl.style.display = 'none'; map.getCanvas().style.cursor = ''; };
+      map.on('movestart', () => { if (!canHover) hideHover(); }); // Touch: Karte bewegt sich → Punkt weg
       map.on('mousemove', e => {
+        if (!canHover || (e.originalEvent as PointerEvent | undefined)?.pointerType === 'touch') return;
         cancelAnimationFrame(hoverFrame);
         hoverFrame = requestAnimationFrame(() => {
           const hit = nearestOnRoute(e.point);
@@ -565,8 +571,9 @@ export default function GlobeMap({
           }
         });
       });
-      map.on('mouseout', () => { hoverEl.style.display = 'none'; map.getCanvas().style.cursor = ''; });
+      map.on('mouseout', hideHover);
       map.on('click', e => {
+        if (!canHover) hideHover();
         const hit = nearestOnRoute(e.point, (e.originalEvent as PointerEvent | undefined)?.pointerType === 'touch' ? 24 : 14);
         if (!hit) {
           // only real clicks on the map canvas – marker / badge clicks bubble up here too
