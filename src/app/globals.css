@@ -185,10 +185,23 @@ body.is-dragging iframe {
 /* Smartphone: die Karte läuft unter dem Fahrt-Fenster weiter – Copyright darüber halten */
 .rc-under-sheet .maplibregl-ctrl-bottom-right, .rc-under-sheet .maplibregl-ctrl-bottom-left { bottom: var(--rc-sheet-h); }
 
-/* Touch-Geräte: kein Weichzeichner hinter Elementen auf der Karte – er wird beim Verschieben bei jedem Bild neu
-   gerechnet und lässt die Karte auf dem Handy ruckeln. Dafür etwas deckendere Hintergründe. */
+/* Touch-Geräte (Handy/Tablet): nichts Weichgezeichnetes und nichts Halbtransparentes – beides muss der Browser
+   bei jedem Bild der Karte neu mischen und lässt das Verschieben ruckeln. Halbtransparente Flächen werden zu den
+   deckenden Farben, die sie auf unserem dunklen Hintergrund ohnehin ergeben. */
 @media (pointer: coarse) {
-  .maplibregl-ctrl-group { backdrop-filter: none !important; background: rgba(17, 24, 39, 0.95) !important; }
-  .rc-bubble { backdrop-filter: none; background: rgba(15,15,15,0.97); }
-  .rc-cluster { backdrop-filter: none; background: rgba(0,0,0,0.88); }
+  *, *::before, *::after { backdrop-filter: none !important; }
+
+  .maplibregl-ctrl-group { background: #1a1f2a !important; }
+  .maplibregl-ctrl-attrib { background: #0b0d10 !important; }
+  .rc-bubble, .rc-route-hover-time { background: #0f0f0f; }
+  .rc-cluster { background: #000; }
+  .rc-overlap { background: #0f0f0f; }
+
+  .bg-white\/5 { background-color: #17191c !important; }
+  .bg-white\/10 { background-color: #232528 !important; }
+  .bg-white\/15 { background-color: #2f3134 !important; }
+  .bg-white\/20 { background-color: #3b3d40 !important; }
+  .bg-black\/40, .bg-black\/50, .bg-black\/55, .bg-black\/60, .bg-black\/70,
+  .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/90 { background-color: #0b0d10 !important; }
+  .bg-\[\#0f0f0f\]\/85 { background-color: #0f0f0f !important; }
 }

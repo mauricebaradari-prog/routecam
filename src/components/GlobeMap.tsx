@@ -109,6 +109,17 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * c;
 }
 
+/** Touch-Gerät (Handy/Tablet)? Dort verzichten wir auf Transparenz und Weichzeichner (Performance). */
+const IS_COARSE = () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+/** Farbe mit Deckkraft a auf dunklem Grund – als deckende Farbe */
+function mixOnDark(hex: string, a: number, bg = [11, 13, 16]) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v, k) => Math.round(v * a + bg[k] * (1 - a)));
+  return `#${c.map(v => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
 export default function GlobeMap({
 
   cities,
@@ -988,7 +999,7 @@ export default function GlobeMap({
             inner.style.height = '60px';
             inner.style.borderRadius = '8px';
             inner.style.overflow = 'hidden';
-            inner.style.border = '2px solid rgba(255, 255, 255, 0.4)';
+            inner.style.border = IS_COARSE() ? '2px solid #6d6e70' : '2px solid rgba(255, 255, 255, 0.4)';
             inner.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.5)';
             
             const img = document.createElement('img');
@@ -999,7 +1010,9 @@ export default function GlobeMap({
             inner.appendChild(img);
 
             const overlay = document.createElement('div');
-            overlay.className = 'absolute inset-0 bg-black/40 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity';
+            overlay.className = IS_COARSE()
+              ? 'absolute inset-0 flex items-center justify-center'
+              : 'absolute inset-0 bg-black/40 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity';
             overlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
             inner.appendChild(overlay);
             
@@ -1026,10 +1039,13 @@ export default function GlobeMap({
         [startCity, endCity].forEach((city, idx) => {
           const el = document.createElement('div');
           el.innerHTML = getCityMarkerHTML(idx === 0 ? 'A' : 'B', city.name, idx === 0, idx === 1, route.id, false);
-          el.style.opacity = '0.5';
-          el.style.transition = 'opacity 0.2s';
-          el.addEventListener('mouseenter', () => el.style.opacity = '1');
-          el.addEventListener('mouseleave', () => el.style.opacity = '0.5');
+          // Touch: keine Halbtransparenz (siehe globals.css)
+          if (!IS_COARSE()) {
+            el.style.opacity = '0.5';
+            el.style.transition = 'opacity 0.2s';
+            el.addEventListener('mouseenter', () => el.style.opacity = '1');
+            el.addEventListener('mouseleave', () => el.style.opacity = '0.5');
+          }
           if (idx === 0) {
             el.style.cursor = 'pointer';
             el.addEventListener('click', () => {
@@ -1555,8 +1571,9 @@ export default function GlobeMap({
             <stop offset="100%" stopColor="#CCFF00" />
           </linearGradient>
         </defs>
-        <path ref={fullSvgPathRef} fill="none" stroke={animationProgress === 0 ? routeColor : 'rgba(255, 255, 255, 0.3)'} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" />
-        <path ref={inactiveSvgPathRef} fill="none" stroke={routeColor} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" opacity={0.5} />
+        {/* Touch: deckende Farben statt Transparenz (gleicher Look auf dunklem Grund, aber billiger zu zeichnen) */}
+        <path ref={fullSvgPathRef} fill="none" stroke={animationProgress === 0 ? routeColor : (coarsePointer ? '#55575a' : 'rgba(255, 255, 255, 0.3)')} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" />
+        <path ref={inactiveSvgPathRef} fill="none" stroke={coarsePointer ? mixOnDark(routeColor, 0.5) : routeColor} strokeWidth={routeWidth * 1.5 + 2} strokeLinecap="round" strokeLinejoin="round" opacity={coarsePointer ? 1 : 0.5} />
         <path ref={svgPathRef} fill="none" stroke="url(#routeGrad)" strokeWidth={routeWidth * 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ filter: coarsePointer ? undefined : 'drop-shadow(0 0 8px rgba(204,255,0,0.8))' }} />
       </svg>
       <div 
