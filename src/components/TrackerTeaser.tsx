@@ -10,6 +10,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Smartphone } from 'lucide-react';
 import { t, useT } from '@/lib/i18n';
 import { leaveWhilePlaying } from '@/lib/nav';
 import { isTrackerTeaserDismissed, dismissTrackerTeaser } from '@/lib/trackerTeaser';
@@ -43,12 +44,15 @@ export default function TrackerTeaser() {
   useT();
   const [phase, setPhase] = useState<Phase>('gone');
   const [reduced, setReduced] = useState(false);
+  // Smartphone: kompakte Variante ohne Handy-Bild
+  const [compact, setCompact] = useState(false);
   const [typed, setTyped] = useState(0);
 
   useEffect(() => {
     if (isDismissed()) return;
     /* eslint-disable react-hooks/set-state-in-effect -- Sichtbarkeit hängt an localStorage und matchMedia */
     setReduced(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    setCompact(window.matchMedia('(max-width: 639px)').matches);
     setPhase('waiting');
     /* eslint-enable react-hooks/set-state-in-effect */
     let raf = 0;
@@ -92,8 +96,6 @@ export default function TrackerTeaser() {
   const shown = phase === 'in';
   const shownChars = reduced ? total : typed;
   const doneTyping = shownChars >= total;
-  // ein Zeichen der Headline; unsichtbare Zeichen halten den Platz frei, damit nichts springt
-  const ch = (c: string, i: number) => <span style={{ opacity: i < shownChars ? 1 : 0 }}>{c}</span>;
   const caretAt = Math.min(shownChars, total);
   const caret = (
     <span aria-hidden className="relative inline-block w-0 align-baseline">
@@ -103,6 +105,26 @@ export default function TrackerTeaser() {
       />
     </span>
   );
+  // Getippte Headline: pro Zeile ein sichtbarer und ein unsichtbarer Textblock (hält den Platz frei).
+  // Bewusst keine Spans pro Buchstabe – das zerlegte bei manchen Browsern die Schrift.
+  const typedLine = (chars: string[], offset: number, hasCaret: boolean) => {
+    const n = Math.max(0, Math.min(chars.length, shownChars - offset));
+    return (
+      <>
+        {chars.slice(0, n).join('')}
+        {hasCaret && caret}
+        <span style={{ opacity: 0 }}>{chars.slice(n).join('')}</span>
+      </>
+    );
+  };
+  const headline = (
+    <span aria-hidden>
+      {typedLine(chars1, 0, caretAt <= chars1.length)}
+      <br />
+      {typedLine(chars2, chars1.length, caretAt > chars1.length)}
+    </span>
+  );
+
   // Elemente kommen gestaffelt: Karte, dann Handy, dann Texte
   const enter = (delay: number, from: string, ms = 520): React.CSSProperties => reduced
     ? { opacity: shown ? 1 : 0, transition: `opacity 200ms linear ${shown ? delay : 0}ms` }
@@ -114,11 +136,67 @@ export default function TrackerTeaser() {
           : `opacity ${ms}ms ${EASE} ${delay}ms, transform ${ms}ms ${EASE} ${delay}ms`,
       };
 
+  // Smartphone: nur die neongrüne Fläche, rechts ein Handy-Symbol – über der Navigation unten
+  if (compact) return (
+    <aside
+      aria-label={t('RouteCam Tracker')}
+      aria-hidden={!shown}
+      className="fixed left-4 right-4 bottom-[calc(88px+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-[360px]"
+      style={{ pointerEvents: shown ? 'auto' : 'none' }}
+    >
+      <div
+        className="relative overflow-hidden rounded-[18px] bg-[#CCFF00] pl-4 pr-3 pt-3.5 pb-3 shadow-[0_16px_44px_rgba(0,0,0,0.55)] font-sans"
+        style={enter(0, 'translateY(24px) scale(0.96)', 520)}
+      >
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <div
+              className="inline-flex h-[18px] items-center rounded-full border border-[#1f1f1f] px-2"
+              style={enter(T_BADGE, 'translateY(6px) scale(0.85)', 420)}
+            >
+              <span className="text-[9px] font-bold uppercase leading-none tracking-[0.5px] text-[#1f1f1f] whitespace-nowrap">{t('Neu · Kostenlos')}</span>
+            </div>
+            <h2
+              className="mt-2 m-0 text-[22px] font-bold leading-[23px] tracking-[-0.6px] text-[#1f1f1f] whitespace-nowrap normal-case"
+              style={{ fontFeatureSettings: 'normal', fontVariant: 'normal' }}
+              aria-label={`${line1} ${line2}`}
+            >
+              {headline}
+            </h2>
+            <div className="mt-2.5 flex items-baseline gap-3" style={enter(typeEnd + 80, 'translateY(8px)', 420)}>
+              {TRACKER_PAGE_READY && (
+                <Link href={TRACKER_PAGE_HREF} onClick={e => { markDismissed(); leaveWhilePlaying(e); }}
+                  className="text-[13px] font-semibold text-[#1f1f1f] underline underline-offset-2 whitespace-nowrap">
+                  {t('Mehr erfahren')}
+                </Link>
+              )}
+              <span className="text-[10.5px] font-medium text-[#1f1f1f]/55 whitespace-nowrap">{t('Nur für Android')}</span>
+            </div>
+          </div>
+          {/* Handy-Symbol statt Bild */}
+          <div className="shrink-0 self-center pr-6" style={enter(T_PHONE, 'translate(40px, 20px) rotate(14deg)', 800)}>
+            <Smartphone size={58} strokeWidth={1.5} className="text-[#1f1f1f]" aria-hidden />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label={t('Schließen')}
+          className="absolute right-0.5 top-0.5 w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/10 transition-colors"
+          style={enter(typeEnd + 160, 'scale(0.6)', 360)}
+        >
+          <img src={`${BASE}/teaser/close.svg`} alt="" width={12} height={12} className="block" />
+        </button>
+      </div>
+    </aside>
+  );
+
+
   return (
     <aside
       aria-label={t('RouteCam Tracker')}
       aria-hidden={!shown}
-      className="fixed left-5 bottom-[calc(92px+env(safe-area-inset-bottom))] sm:bottom-5 md:left-8 md:bottom-8 z-[70]"
+      className="fixed left-5 bottom-5 md:left-8 md:bottom-8 z-[70]"
       style={{ pointerEvents: shown ? 'auto' : 'none' }}
     >
       <div
@@ -172,19 +250,11 @@ export default function TrackerTeaser() {
 
         {/* Headline */}
         <h2
-          className="absolute left-[26px] top-[56px] m-0 font-sans text-[28px] font-bold leading-[28px] tracking-[-0.8px] text-[#1f1f1f] whitespace-nowrap"
-          style={{ opacity: shown ? 1 : 0, transition: 'opacity 220ms ease-in' }}
+          className="absolute left-[26px] top-[56px] m-0 font-sans text-[28px] font-bold leading-[28px] tracking-[-0.8px] text-[#1f1f1f] whitespace-nowrap normal-case"
+          style={{ opacity: shown ? 1 : 0, transition: 'opacity 220ms ease-in', fontFeatureSettings: 'normal', fontVariant: 'normal' }}
           aria-label={`${line1} ${line2}`}
         >
-          <span aria-hidden>
-            {caretAt === 0 && caret}
-            {chars1.map((c, i) => <React.Fragment key={i}>{ch(c, i)}{caretAt === i + 1 && caret}</React.Fragment>)}
-            <br />
-            {chars2.map((c, i) => {
-              const g = chars1.length + i;
-              return <React.Fragment key={g}>{ch(c, g)}{caretAt === g + 1 && caret}</React.Fragment>;
-            })}
-          </span>
+          {headline}
         </h2>
         <style>{'@keyframes rcTeaserCaret { 0% { opacity: 1 } 50% { opacity: 0 } 100% { opacity: 0 } }'}</style>
 
