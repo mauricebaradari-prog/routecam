@@ -285,6 +285,7 @@ export default function Home() {
           initialPos={initialVideoPos} 
           setActiveWindow={setActiveWindow}
           visibility={visibilityOf(state.activeRouteId, state.routes.find(r => r.id === state.activeRouteId)?.visibility)}
+          onClose={() => { if (state.isAnimating) stopAnimation(); setActiveRoute(NO_ROUTE); }}
         />
         )}
         

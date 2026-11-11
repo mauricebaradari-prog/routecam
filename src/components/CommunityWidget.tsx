@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
+import { SHEET_ELEV_H } from '@/lib/mobileSheet';
 import { ThumbsUp, Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
 import { shareUrl } from '@/lib/share';
 import { allowInteraction, requireAccount } from '@/lib/signupWall';
@@ -206,7 +207,8 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   if (isMobile) {
     return (
       <>
-        <div className="absolute right-2 z-[55] flex items-center gap-1.5 pointer-events-auto" style={{ top: 'calc(75vh + 8px)' }}>
+        {/* oben rechts im Höhenprofil des Fahrt-Fensters */}
+        <div className="rc-sheet-up fixed right-2 z-[82] flex items-center gap-1.5 pointer-events-auto" style={{ bottom: `calc(${SHEET_ELEV_H} - 40px)` }}>
           {toastEl}
           {likeBtn(true)}
           <div className="relative">

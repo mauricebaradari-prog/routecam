@@ -4,7 +4,7 @@ import type { EditorState } from '@/hooks/useEditorState';
 import type { Visibility } from '@/lib/routeVisibility';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import Link from 'next/link';
-import { GripHorizontal, ChevronRight, Maximize2, Minimize2, Play, Pause } from 'lucide-react';
+import { GripHorizontal, ChevronRight, Maximize2, Minimize2, Play, Pause, X } from 'lucide-react';
 import { ownerOf, channelHref, type RouteOwner } from '@/lib/channels';
 import { loadAllRoutes } from '@/lib/userRoutes';
 import ChannelAvatar from '@/components/ChannelAvatar';
@@ -12,6 +12,7 @@ import { leaveWhilePlaying } from '@/lib/nav';
 import { waitForYT } from '@/lib/youtubeDuration';
 import { useConsent, setConsent, openConsent } from '@/lib/consent';
 import { consentCopy } from '@/components/ConsentBanner';
+import { SHEET_H, SHEET_HEAD, SHEET_HEAD_BOTTOM, SHEET_VIDEO, SHEET_VIDEO_BOTTOM } from '@/lib/mobileSheet';
 import { VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useAuth } from '@/lib/auth';
@@ -19,6 +20,8 @@ import { t, useT } from '@/lib/i18n';
 
 type WindowId = 'video' | 'elevation' | 'velocity' | 'compass' | 'community';
 interface Props {
+  /** Smartphone: X im Fahrt-Fenster – schließt die Fahrt */
+  onClose?: () => void;
   state: EditorState;
   startAnimation: () => void;
   stopAnimation: () => void;
@@ -27,7 +30,7 @@ interface Props {
   visibility?: Visibility;
 }
 
-export default function YouTubeOverlay({ state, startAnimation, stopAnimation, initialPos, setActiveWindow, visibility }: Props) {
+export default function YouTubeOverlay({ state, startAnimation, stopAnimation, initialPos, setActiveWindow, visibility, onClose }: Props) {
   useT();
   const consent = useConsent();
   const playerRef = useRef<YTPlayer | null>(null);
@@ -374,7 +377,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   const channelBar = <ChannelBar data={owner} />;
 
   const videoContent = (
-    <div className="w-full relative bg-black" style={{ height: cssFullDesktop ? '100%' : isMobile ? `calc(100% - ${CHANNEL_BAR_H}px)` : `calc(100% - 38px - ${CHANNEL_BAR_H}px)` }}>
+    <div className="w-full relative bg-black" style={{ height: cssFullDesktop ? '100%' : isMobile ? '100%' : `calc(100% - 38px - ${CHANNEL_BAR_H}px)` }}>
       <div ref={fsRef} className={`group/fs bg-black ${fullscreen === 'css' && isMobile ? 'fixed inset-0 z-[200]' : 'absolute inset-0'}`}>
         <div id="youtube-player" className="absolute inset-0 w-full h-full"></div>
         {consent !== 'all' && <VideoConsentPlaceholder />}
@@ -417,15 +420,24 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
     </div>
   );
 
+  // Smartphone: Fenster von unten – Kopfzeile (Kanal + X), Video, darunter das Höhenprofil (GlobeMap)
   if (isMobile) {
     return (
-      <div 
-        className={`absolute left-0 w-full bg-black ${fullscreen === 'css' ? 'z-[200]' : 'z-50'} border-t border-b border-white/10`} 
-        style={{ top: '40vh', height: '35vh' }}
-      >
-        {videoContent}
-        {channelBar}
-      </div>
+      <>
+        <div aria-hidden className="rc-sheet-up fixed inset-x-0 bottom-0 z-[80] rounded-t-[20px] border-t border-white/10 bg-[#0b0d10] shadow-[0_-12px_40px_rgba(0,0,0,0.5)]" style={{ height: SHEET_H }} />
+        <div className="rc-sheet-up fixed inset-x-0 z-[81] flex items-center gap-1 pl-1.5 pr-2" style={{ bottom: SHEET_HEAD_BOTTOM, height: SHEET_HEAD }}>
+          <div className="flex-1 min-w-0"><ChannelBar data={owner} bare /></div>
+          {onClose && (
+            <button type="button" onClick={onClose} aria-label={t('Schließen')} title={t('Schließen')}
+              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+              <X size={22} />
+            </button>
+          )}
+        </div>
+        <div className={`rc-sheet-up fixed inset-x-0 bg-black ${fullscreen === 'css' ? 'z-[200]' : 'z-[81]'}`} style={{ bottom: SHEET_VIDEO_BOTTOM, height: SHEET_VIDEO }}>
+          {videoContent}
+        </div>
+      </>
     );
   }
 
@@ -465,9 +477,9 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
 const CHANNEL_BAR_H = 44;
 
 // Whose ride this is – links to their RouteCam channel. Only exists while a ride's video is open.
-function ChannelBar({ data }: { data: { owner: RouteOwner; rides: number } | null }) {
+function ChannelBar({ data, bare = false }: { data: { owner: RouteOwner; rides: number } | null; bare?: boolean }) {
   return (
-    <div className="w-full flex items-center gap-2.5 px-3 border-t border-white/10 bg-black/40" style={{ height: CHANNEL_BAR_H, minHeight: CHANNEL_BAR_H, flexShrink: 0 }}>
+    <div className={`w-full flex items-center gap-2.5 px-3 ${bare ? '' : 'border-t border-white/10 bg-black/40'}`} style={{ height: CHANNEL_BAR_H, minHeight: CHANNEL_BAR_H, flexShrink: 0 }}>
       {!data ? (
         <>
           <span className="w-7 h-7 rounded-full bg-white/10 animate-pulse shrink-0" />

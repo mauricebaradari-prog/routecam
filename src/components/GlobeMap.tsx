@@ -14,6 +14,8 @@ import { loadRoadCache, saveRoadCache } from '@/lib/roadGeometry';
 import { buildMapStyle } from '@/lib/mapStyles';
 import { formatCommentTime, type RouteComment } from '@/lib/routeComments';
 import { fillAvatarEl } from '@/lib/avatar';
+import { createPortal } from 'react-dom';
+import { SHEET_ELEV_H, SHEET_MAP_H } from '@/lib/mobileSheet';
 import { t, useT } from '@/lib/i18n';
 
 function getDistance(p1: [number, number], p2: [number, number]) {
@@ -1123,6 +1125,11 @@ export default function GlobeMap({
       // no route selected → overview of all rides
       // eslint-disable-next-line react-hooks/set-state-in-effect -- clears the old profile when another ride is shown
       setElevationProfile(null);
+      // Fahrt geschlossen → Position und km-Anzeige der alten Fahrt ausblenden
+      fullRouteCoordsRef.current = [];
+      vehicleLngLatRef.current = null;
+      if (distanceBadgeRef.current) distanceBadgeRef.current.style.display = 'none';
+      if (vehicleDotRef.current) vehicleDotRef.current.style.display = 'none';
       if (keepCameraRef.current) keepCameraRef.current = false;
       else fitAllRoutes(map, 1200);
     }
@@ -1504,7 +1511,7 @@ export default function GlobeMap({
   return (
     <div className="w-full h-full absolute inset-0 pointer-events-none z-0">
       {/* Smartphone: ohne gewählte Fahrt füllt die Karte den ganzen Bildschirm, mit Fahrt die obere Hälfte über dem Video */}
-      <div className="w-full relative pointer-events-auto" style={{ height: isMobile && cities.length >= 2 ? "40vh" : "100%" }} ref={containerRef}>
+      <div className="w-full relative pointer-events-auto" style={{ height: isMobile && cities.length >= 2 ? SHEET_MAP_H : "100%" }} ref={containerRef}>
             
       <svg xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
         <defs>
@@ -1552,7 +1559,7 @@ export default function GlobeMap({
       </div>
       {showElevation && elevationProfile && (() => {
         const content = (
-          <div style={{ width: '100%', height: '100%', background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: isMobile ? 'default' : 'grab' }} className={isMobile ? "" : "active:cursor-grabbing"}>
+          <div style={{ width: '100%', height: '100%', background: isMobile ? 'transparent' : 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: isMobile ? 'none' : 'blur(12px)', boxShadow: isMobile ? 'none' : '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: isMobile ? 'default' : 'grab' }} className={isMobile ? "" : "active:cursor-grabbing"}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }} className="pointer-events-none">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -1703,10 +1710,12 @@ export default function GlobeMap({
         </div>
         );
         if (isMobile) {
-          return (
-            <div className="absolute left-0 w-full pointer-events-auto bg-black/90 z-50 border-t border-white/10" style={{ top: '75vh', height: '25vh' }}>
+          // per Portal: die Karte liegt in einer eigenen Ebene (z-0) – sonst wäre das Profil unter dem Fahrt-Fenster
+          return createPortal(
+            <div className="rc-sheet-up fixed inset-x-0 bottom-0 pointer-events-auto z-[81] border-t border-white/10" style={{ height: SHEET_ELEV_H, paddingBottom: 'env(safe-area-inset-bottom)' }}>
               {content}
-            </div>
+            </div>,
+            document.body,
           );
         }
         return (
