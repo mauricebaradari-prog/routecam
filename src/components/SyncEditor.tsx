@@ -228,25 +228,28 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     return () => { ro.disconnect(); map.remove(); mapRef.current = null; setMapReady(false); };
   }, [route, line, videoWindowDefault]);
 
-  // covered stretch + vehicle follow the offset and the video time
+  // covered stretch + kept/cut parts of the track. Beim Ziehen kommen viele Werte pro Sekunde –
+  // die Karte wird höchstens alle ~70 ms neu befüllt, sonst bremst sie den Balken aus (er springt dann in Schritten).
+  const mapDataRef = useRef({ coverFrom, coverTo, trimFrom, trimTo });
+  const mapTimer = useRef<number | null>(null);
   useEffect(() => {
+    mapDataRef.current = { coverFrom, coverTo, trimFrom, trimTo };
     const map = mapRef.current;
-    if (!map || !mapReady) return;
-    const src = map.getSource('covered') as maplibregl.GeoJSONSource | undefined;
-    // only what stays in the ride – a part cut away shows as dashed red even where the video covers it
-    src?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.slice(Math.max(coverFrom, trimFrom), Math.min(coverTo, trimTo)) } });
+    if (!map || !mapReady || mapTimer.current !== null) return;
+    mapTimer.current = window.setTimeout(() => {
+      mapTimer.current = null;
+      const { coverFrom, coverTo, trimFrom, trimTo } = mapDataRef.current;
+      // only what stays in the ride – a part cut away shows as dashed red even where the video covers it
+      (map.getSource('covered') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.slice(Math.max(coverFrom, trimFrom), Math.min(coverTo, trimTo)) } });
+      (map.getSource('track') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.slice(trimFrom, trimTo) } });
+      const parts = [line.slice(0, trimFrom), line.slice(trimTo, 1)].filter(c => c.length > 1);
+      (map.getSource('cut') as maplibregl.GeoJSONSource | undefined)?.setData({
+        type: 'FeatureCollection',
+        features: parts.map(c => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: c } })),
+      });
+    }, 70);
   }, [mapReady, coverFrom, coverTo, trimFrom, trimTo, line]);
-  // kept part of the track vs. the parts the trim cuts away
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-    (map.getSource('track') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.slice(trimFrom, trimTo) } });
-    const parts = [line.slice(0, trimFrom), line.slice(trimTo, 1)].filter(c => c.length > 1);
-    (map.getSource('cut') as maplibregl.GeoJSONSource | undefined)?.setData({
-      type: 'FeatureCollection',
-      features: parts.map(c => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: c } })),
-    });
-  }, [mapReady, trimFrom, trimTo, line]);
+  useEffect(() => () => { if (mapTimer.current !== null) clearTimeout(mapTimer.current); }, []);
   useEffect(() => {
     const p = line.pointAt(posFrac);
     if (p) markerRef.current?.setLngLat(p);
@@ -590,7 +593,7 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
         </>}
       </div>
       <div ref={wrap} className="px-2 select-none">
-        <svg width={width} height={H} onClick={onLaneClick} style={{ display: 'block', cursor: 'pointer' }}>
+        <svg width={width} height={H} onClick={onLaneClick} style={{ display: 'block', cursor: 'pointer', touchAction: 'none' }}>
           <defs>
             <clipPath id="sync-plot"><rect x={LABEL_W} y={0} width={plotW} height={H} /></clipPath>
             <pattern id="sync-cut" width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -650,7 +653,7 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
           </g>
         </svg>
         {/* overview / scrollbar while zoomed: drag the window to pan */}
-        <div className="h-3 relative mb-1" style={{ marginLeft: LABEL_W, width: plotW }}>
+        <div className="h-3 relative mb-1 touch-none" style={{ marginLeft: LABEL_W, width: plotW }}>
           {view && (
             <div
               className="absolute top-0.5 h-2 rounded-full bg-white/25 hover:bg-white/40 cursor-grab"
