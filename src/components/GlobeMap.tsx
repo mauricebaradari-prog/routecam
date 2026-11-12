@@ -204,6 +204,14 @@ export default function GlobeMap({
   
   const renderPassRef = useRef<number>(0);
   const [elevationProfile, setElevationProfile] = React.useState<number[] | null>(null);
+  // Tempo über die Strecke (nur Fahrten mit GPS-Zeitachse) – gepunktete Linie im Höhenprofil
+  const speedProfile = React.useMemo(() => {
+    if (!speedAt) return null;
+    const raw = Array.from({ length: 161 }, (_, i) => Math.max(0, speedAt(i / 160)));
+    const sm = raw.map((_, i) => { const a = raw.slice(Math.max(0, i - 2), i + 3); return a.reduce((x, y) => x + y, 0) / a.length; });
+    const top = Math.max(...sm);
+    return top > 1 ? sm.map(v => v / top) : null;
+  }, [speedAt]);
   const gpxElevationRef = useRef<number[] | null>(null);
   gpxElevationRef.current = gpxElevation ?? null;
   const inactiveRouteCoordsRef = useRef<[number, number][][]>([]);
@@ -1802,12 +1810,13 @@ export default function GlobeMap({
                   }} />
                   <div style={{ 
                     position: 'absolute', left: `${leftPct}%`, bottom: `${bottomPct}%`, 
-                    transform: 'translate(-50%, -12px)',
+                    transform: 'translate(-50%, -12px)', whiteSpace: 'nowrap',
                     color: '#fff', fontSize: '9px', fontWeight: 700, fontFamily: 'sans-serif', 
                     background: 'rgba(0,0,0,0.8)', padding: '2px 4px', borderRadius: '4px',
                     zIndex: 20, pointerEvents: 'none', transition: 'none'
                   }}>
                     {Math.round(currentElev)}m
+                    {speedNow !== null && isFinite(speedNow) && <span style={{ color: '#CCFF00', marginLeft: '5px' }}>{Math.max(0, Math.round(speedNow))} km/h</span>}
                   </div>
                 </>
               );
@@ -1860,6 +1869,14 @@ export default function GlobeMap({
                       </defs>
                       <path d={path} fill="url(#elevGrad)" opacity={0.5} />
                       <path d={path.replace(' L 100,100 Z', '').replace('M 0,100 L ', 'M ')} fill="none" stroke="url(#elevLineGrad)" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+                      {/* Tempo als gepunktete Linie – ohne eigene Skala, 0 unten bis Höchsttempo oben */}
+                      {speedProfile && (
+                        <path
+                          d={'M ' + speedProfile.map((v, i) => `${(i / (speedProfile.length - 1)) * 100},${100 - v * 100}`).join(' L ')}
+                          fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeDasharray="0 5" strokeLinecap="round" strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke" style={{ pointerEvents: 'none' }}
+                        />
+                      )}
                     </svg>
                   );
                 })()}
