@@ -3,7 +3,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, RotateCcw, Video } from 'lucide-react';
+import { Play, Pause, Video } from 'lucide-react';
 import { useEditorState, NO_ROUTE, type RouteConfig } from '@/hooks/useEditorState';
 import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useRouteComments } from '@/lib/routeComments';
@@ -461,15 +461,6 @@ export default function Home() {
               {(() => { const M = CAMERA_MODES.find(m => m.value === state.cameraMode)?.Icon ?? Video; return <M size={18} />; })()}
             </button>
             </>)}
-            {(state.isAnimating || state.animationProgress > 0) && (
-              <button
-                onClick={resetAnimation}
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-black/50 text-gray-400 border border-white/10 hover:bg-black/70 hover:text-white transition-all mt-2"
-                title={t('Zurück zum Anfang')}
-              >
-                <RotateCcw size={16} />
-              </button>
-            )}
           </div>
 
           {/* Floating Panels */}
