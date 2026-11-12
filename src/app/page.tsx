@@ -13,7 +13,7 @@ import { useRouteOverlaps, type RouteOverlap } from '@/lib/routeOverlap';
 import PerspectiveSwitcher from '@/components/PerspectiveSwitcher';
 import AppHeader, { HEADER_HEIGHT } from '@/components/AppHeader';
 import CreateRideModal, { type NewRide } from '@/components/CreateRideModal';
-import { routeFromTrack, saveUserRoute, loadAllRoutes, loadUserRoutes } from '@/lib/userRoutes';
+import { routeFromTrack, saveUserRoute, loadAllRoutes } from '@/lib/userRoutes';
 import { syncMapper } from '@/lib/trackSync';
 // import GlobeMap from '@/components/GlobeMap';
 import AnimationsPanel from '@/components/panels/AnimationsPanel';
@@ -420,7 +420,6 @@ export default function Home() {
           comments={allRouteComments}
           activeCommentIds={activeCommentIds}
           onSeekToSeconds={sec => handleSeek(Math.min(1, sec / (state.durationSeconds || 1)))}
-          syncHref={activeRoute?.timeline && loadUserRoutes().some(r => r.id === activeRoute.id) ? `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/sync?route=${activeRoute.id}` : null}
         />
         )}
 

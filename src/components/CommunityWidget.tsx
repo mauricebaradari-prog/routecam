@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { stackRef, stackDragged } from '@/lib/windowStack';
 import { SHEET_ELEV_H, phoneLayout } from '@/lib/mobileSheet';
-import { Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
+import { Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
 import PeaceHand from '@/components/icons/PeaceHand';
 import { shareUrl } from '@/lib/share';
 import { allowInteraction, requireAccount } from '@/lib/signupWall';
@@ -27,11 +27,10 @@ interface Props {
   comments: RouteComment[];
   activeCommentIds: string[]; // comments the vehicle is currently passing – highlighted
   onSeekToSeconds: (seconds: number) => void;
-  syncHref?: string | null; // own ride with GPS timestamps → "Video ausrichten" in the ⋯ menu
 }
 
 // Floating "Community" window on the map: like, share, rate (1–5 stars), report (behind ⋯).
-export default function CommunityWidget({ routeId, routeName, activeWindow, setActiveWindow, defaultY, currentSeconds, commentCount, onAddComment, comments, activeCommentIds, onSeekToSeconds, syncHref }: Props) {
+export default function CommunityWidget({ routeId, routeName, activeWindow, setActiveWindow, defaultY, currentSeconds, commentCount, onAddComment, comments, activeCommentIds, onSeekToSeconds }: Props) {
   useT();
   const { statsOf, toggleLike, rate, report } = useRouteInteractions();
   const stats = statsOf(routeId);
@@ -159,11 +158,6 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
       </button>
       {menuOpen && (
         <div className="absolute right-0 top-full mt-2 z-20 w-48 rounded-lg border border-white/10 bg-[#212121] shadow-2xl py-1.5">
-          {syncHref && (
-            <a href={syncHref} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white hover:bg-white/10">
-              <Clock size={16} /> {t('Video ausrichten')}
-            </a>
-          )}
           <button
             type="button"
             onClick={() => { setMenuOpen(false); setReportOpen(true); }}
