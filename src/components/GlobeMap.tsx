@@ -47,6 +47,8 @@ interface GlobeMapProps {
   /** start of the active route on screen + a point a little further along it (for the video window), key = route geometry */
   onPoint1Projected?: (x: number, y: number, dirX: number, dirY: number, key: string) => void;
   showElevation?: boolean;
+  /** Höhenprofil aus der GPX-Datei (über die Strecke); fehlt es, kommt es von Open-Meteo */
+  gpxElevation?: number[] | null;
   showVelocity?: boolean;
   useGpsTrace?: boolean;
   onSeek?: (progress: number) => void;
@@ -129,6 +131,7 @@ const bboxHits = (bb: [number, number, number, number], v: [number, number, numb
 export default function GlobeMap({
 
   cities,
+  gpxElevation,
   routes,
   mapStyle,
   animationProgress,
@@ -197,6 +200,8 @@ export default function GlobeMap({
   
   const renderPassRef = useRef<number>(0);
   const [elevationProfile, setElevationProfile] = React.useState<number[] | null>(null);
+  const gpxElevationRef = useRef<number[] | null>(null);
+  gpxElevationRef.current = gpxElevation ?? null;
   const inactiveRouteCoordsRef = useRef<[number, number][][]>([]);
   /** Rahmen (minLng, minLat, maxLng, maxLat) je Linie – um Linien außerhalb des Sichtfelds zu überspringen */
   const inactiveBBoxRef = useRef<[number, number, number, number][]>([]);
@@ -1352,7 +1357,10 @@ export default function GlobeMap({
       }
       const lats = sampledPts.map(p => p[1].toFixed(5)).join(',');
       const lngs = sampledPts.map(p => p[0].toFixed(5)).join(',');
-      fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`)
+      // Höhen aus der GPX-Datei, wenn die Fahrt welche hat – sonst aus dem Geländemodell (Open-Meteo)
+      const gpx = gpxElevationRef.current;
+      if (gpx && gpx.length > 1) setElevationProfile(gpx);
+      else fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`)
         .then(r => r.json())
         .then(d => {
           if (d.elevation) setElevationProfile(d.elevation);

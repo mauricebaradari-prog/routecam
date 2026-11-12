@@ -19,6 +19,7 @@ import AnimationsPanel from '@/components/panels/AnimationsPanel';
 import CameraPanel, { CAMERA_MODES } from '@/components/panels/CameraPanel';
 import { t, useT } from '@/lib/i18n';
 import { mapCamera } from '@/lib/mapCamera';
+import { elevationByDistance } from '@/lib/elevation';
 import { phoneLayout } from '@/lib/mobileSheet';
 
 const YouTubeOverlay = dynamic(() => import('@/components/YouTubeOverlay'), { ssr: false });
@@ -130,6 +131,8 @@ export default function Home() {
   // animationProgress = video time; the map needs the position along the route.
   // Synced rides map via GPS timestamps, others linearly (see src/lib/trackSync.ts).
   const sync = useMemo(() => syncMapper(activeRoute), [activeRoute]);
+  // Höhenprofil aus der GPX-Datei (falls die Fahrt Höhenwerte hat)
+  const gpxElevation = useMemo(() => elevationByDistance(activeRoute?.elevationSample, activeRoute?.timeline), [activeRoute?.elevationSample, activeRoute?.timeline]);
   // 0 keeps meaning "not started" for the map (full-route view), even if the video starts mid-track
   const routeProgress = state.animationProgress > 0 ? Math.max(1e-4, sync.toRoute(state.animationProgress)) : 0;
   const overlaps = useRouteOverlaps(activeRoute, listedRoutes);
@@ -320,6 +323,7 @@ export default function Home() {
           routeColor={state.routeColor}
           routeWidth={state.routeWidth}
           showElevation={showElevation && hasRoute}
+          gpxElevation={gpxElevation}
           showVelocity={showVelocity && hasRoute}
           durationSeconds={state.durationSeconds}
           onSeek={p => handleSeek(sync.toVideo(p))}

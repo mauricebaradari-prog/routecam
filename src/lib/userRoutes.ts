@@ -139,7 +139,7 @@ export function routeFromTrack(opts: {
     routeColor: '#CCFF00',
     forceStraight: true,
     source: 'track',
-    elevationSample: sampleElevation(opts.points),
+    elevationSample: sampleElevation(opts.points, 100), // 100 Werte: reicht fürs große Höhenprofil
     createdAt: new Date().toISOString(),
     timeline: buildTimeline(opts.points), // undefined when the file has no timestamps
     syncOffset: opts.syncOffset ?? 0,
