@@ -17,7 +17,7 @@ import { fillAvatarEl } from '@/lib/avatar';
 import { mapCamera } from '@/lib/mapCamera';
 import PeaceHand from '@/components/icons/PeaceHand';
 import { createPortal } from 'react-dom';
-import { SHEET_ELEV_H, SHEET_H, sheetPx, phoneLayout, sheetPadding } from '@/lib/mobileSheet';
+import { SHEET_ELEV_H, SHEET_H, sheetPx, phoneLayout, sheetPadding, SPEEDO_H } from '@/lib/mobileSheet';
 import { t, useT } from '@/lib/i18n';
 
 function getDistance(p1: [number, number], p2: [number, number]) {
@@ -73,6 +73,8 @@ interface GlobeMapProps {
   speedAt?: ((routeFraction: number) => number) | null; // real GPS speed, km/h
   /** Tempo an der aktuellen Videostelle (km/h) – null ohne GPS-Zeitachse oder vor dem Start */
   speedNow?: number | null;
+  /** Ø (ohne Standzeiten) und Höchsttempo der ganzen Fahrt – fürs Tacho-Fenster */
+  rideSpeedStats?: { avgKmh: number; maxKmh: number } | null;
 }
 
 
@@ -104,18 +106,6 @@ function smoothCoords(coords: [number, number][], iterations = 2): [number, numb
   return current;
 }
 
-
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // Radius of the earth in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;  
-  const dLon = (lon2 - lon1) * Math.PI / 180; 
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2); 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-  return R * c;
-}
 
 /** Touch-Gerät (Handy/Tablet)? Dort verzichten wir auf Transparenz und Weichzeichner (Performance). */
 const IS_COARSE = () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
@@ -169,6 +159,7 @@ export default function GlobeMap({
   routeToTime = (p: number) => p,
   speedAt = null,
   speedNow = null,
+  rideSpeedStats = null,
 }: GlobeMapProps) {
   useT();
   const timeToRouteRef = useRef(timeToRoute);
@@ -232,7 +223,6 @@ export default function GlobeMap({
 
   // per-map state that used to live on window (only this component uses it)
   const updateSvgOverlayRef = useRef<(() => void) | null>(null);
-  const smoothSpeedRef = useRef<number | undefined>(undefined);
   const smoothHeadingRef = useRef<number | undefined>(undefined);
   const lastP1Ref = useRef<{ x: number; y: number; key: string } | undefined>(undefined);
 
@@ -532,8 +522,9 @@ export default function GlobeMap({
     durationRef.current = durationSeconds;
   }, [animationProgress, durationSeconds]);
 
-    const velocityTextRef = React.useRef<HTMLSpanElement>(null);
-  const velocityNeedleRef = React.useRef<SVGGElement>(null);
+  const velocityTextRef = React.useRef<HTMLSpanElement>(null);
+  const velocityArcRef = React.useRef<SVGPathElement>(null);
+  const gaugeSpeedRef = React.useRef<number | null>(null);
   const headingTextRef = React.useRef<HTMLSpanElement>(null);
   const compassNeedleRef = React.useRef<SVGGElement>(null);
   const vehicleDotRef = React.useRef<HTMLDivElement>(null);
@@ -817,32 +808,14 @@ export default function GlobeMap({
              const s = Math.floor(displaySecs % 60);
 
              if (velocityTextRef.current) {
-                const exactIdx = currentProgress * (fullPts.length - 1);
-                const pIdx = Math.min(Math.floor(exactIdx), fullPts.length - 2);
-                const wp1 = fullPts[pIdx];
-                const wp2 = fullPts[pIdx + 1];
-                let segDistKm = 0;
-                if (wp1 && wp2) {
-                   segDistKm = getDistanceKm(wp1[1], wp1[0], wp2[1], wp2[0]);
-                }
-                const timeSecs = currentDuration / Math.max(1, fullPts.length - 1);
-                const speedKmh = speedAtRef.current ? speedAtRef.current(currentProgress) : (segDistKm / timeSecs) * 3600;
-                
-                 // Extremely simple low-pass filter for smooth velocity numbers
-                 if (!smoothSpeedRef.current || Math.abs(smoothSpeedRef.current - speedKmh) > 50) {
-                     smoothSpeedRef.current = speedKmh;
-                 } else {
-                     smoothSpeedRef.current = smoothSpeedRef.current * 0.95 + speedKmh * 0.05;
-                 }
-                 
-                 const currentSpeed = smoothSpeedRef.current;
-                 velocityTextRef.current.textContent = `${Math.round(currentSpeed)}`;
-                 if (velocityNeedleRef.current) {
-                     // Map 0 - 150 km/h to -90 to +90 degrees
-                     const clampedSpeed = Math.max(0, Math.min(150, currentSpeed));
-                     const angle = -90 + (clampedSpeed / 150) * 180;
-                     velocityNeedleRef.current.style.transform = `rotate(${angle}deg)`;
-                 }
+                 // Tacho: Tempo aus der GPS-Zeitachse an der Videostelle, sanft nachgeführt (bei Sprüngen sofort)
+                 const live = speedNowRef.current;
+                 const target = live === null || !isFinite(live) ? 0 : Math.max(0, live);
+                 const prev = gaugeSpeedRef.current;
+                 const v = prev === null || Math.abs(prev - target) > 40 ? target : prev * 0.9 + target * 0.1;
+                 gaugeSpeedRef.current = v;
+                 velocityTextRef.current.textContent = `${Math.round(v)}`;
+                 if (velocityArcRef.current) velocityArcRef.current.style.strokeDasharray = `${(Math.min(GAUGE_MAX_KMH, v) / GAUGE_MAX_KMH) * 100} 100`;
              }
 
              if (headingTextRef.current || compassNeedleRef.current) {
@@ -905,7 +878,8 @@ export default function GlobeMap({
              }
           } else {
              if (velocityTextRef.current) velocityTextRef.current.textContent = "0";
-             if (velocityNeedleRef.current) velocityNeedleRef.current.style.transform = 'rotate(-90deg)';
+             if (velocityArcRef.current) velocityArcRef.current.style.strokeDasharray = '0 100';
+             gaugeSpeedRef.current = null;
              if (vehicleDotRef.current) vehicleDotRef.current.style.display = 'none';
              if (distanceBadgeRef.current) distanceBadgeRef.current.style.display = 'none';
           }
@@ -1906,7 +1880,8 @@ export default function GlobeMap({
         }
         return (
           <Rnd
-            default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 80, width: 320, height: 'auto' }}
+            key={showVelocity ? 'with-speed' : 'no-speed'}
+            default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: showVelocity ? 80 + SPEEDO_H + 12 : 80, width: 320, height: 'auto' }}
             bounds="parent"
             enableResizing={false}
             className="z-50"
@@ -1919,53 +1894,43 @@ export default function GlobeMap({
           </Rnd>
         );
       })()}
-      {showVelocity && (
+      {showVelocity && !isMobile && (
         <Rnd
-          default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 248, width: 320, height: 'auto' }}
+          default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 80, width: 320, height: 'auto' }}
           bounds="parent"
           enableResizing={false}
           className="z-50"
           style={{ zIndex: activeWindow === 'velocity' ? 60 : 50 }}
           onDragStart={() => { lockIframes(); setActiveWindow?.('velocity'); }}
-            onDragStop={unlockIframes}
+          onDragStop={unlockIframes}
           onMouseDown={() => setActiveWindow && setActiveWindow('velocity')}
         >
-        <div style={{ width: '100%', height: '100%', background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: 'grab' }} className="active:cursor-grabbing">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }} className="pointer-events-none">
+        <div style={{ width: '100%', background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: 'grab' }} className="active:cursor-grabbing">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }} className="pointer-events-none">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Gauge size={14} className="text-[#CCFF00]" />
-              <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Velocity')}</h3>
+              <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Tempo')}</h3>
             </div>
             <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}>
               <GripHorizontal size={14} />
             </button>
           </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: '170px' }} className="pointer-events-none">
-            <svg width="220" height="115" viewBox="0 0 220 115" style={{ overflow: 'visible' }}>
-              <defs>
-                <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#ef4444" />
-                  <stop offset="50%" stopColor="#eab308" />
-                  <stop offset="100%" stopColor="#22c55e" />
-                </linearGradient>
-              </defs>
-              <path d="M 30 90 A 80 80 0 0 1 190 90" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="12" strokeLinecap="round" />
-              <path d="M 30 90 A 80 80 0 0 1 190 90" fill="none" stroke="url(#gaugeGrad)" strokeWidth="12" strokeLinecap="round" />
-              
-              <g ref={velocityNeedleRef} style={{ transformOrigin: '110px 90px', transform: 'rotate(-90deg)', willChange: 'transform', transition: 'transform 0.1s linear' }}>
-                <polygon points="107,90 113,90 110,25" fill="#ffffff" />
-                <circle cx="110" cy="90" r="5" fill="#111" stroke="#ffffff" strokeWidth="2" />
-              </g>
-              
-              <text x="30" y="112" fill="#6b7280" fontSize="11" fontFamily="sans-serif" fontWeight="700" textAnchor="middle">0</text>
-              <text x="110" y="32" fill="#6b7280" fontSize="11" fontFamily="sans-serif" fontWeight="700" textAnchor="middle">75</text>
-              <text x="190" y="112" fill="#6b7280" fontSize="11" fontFamily="sans-serif" fontWeight="700" textAnchor="middle">150</text>
-            </svg>
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginTop: '4px' }}>
-              <span ref={velocityTextRef} style={{ color: '#fff', fontSize: '36px', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.05em', lineHeight: '36px' }}>0</span>
-              <span style={{ color: '#9ca3af', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>km/h</span>
+          {/* Tacho 0–150 km/h: Dreiviertelkreis, gefüllter Teil in der Routenfarbe, Rest als Skalenstriche */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 112px 1fr', alignItems: 'center' }} className="pointer-events-none">
+            <GaugeStat label={t('Ø Tempo')} value={rideSpeedStats?.avgKmh} align="left" />
+            <div style={{ position: 'relative', width: 112, height: 100 }}>
+              <svg width="112" height="100" viewBox="0 0 100 90" style={{ overflow: 'visible', display: 'block' }}>
+                <path d={GAUGE_ARC} pathLength={100} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="6" strokeDasharray="0.55 1.95" />
+                <path ref={velocityArcRef} d={GAUGE_ARC} pathLength={100} fill="none" stroke={routeColor} strokeWidth="6" strokeLinecap="round"
+                  style={{ strokeDasharray: '0 100', filter: `drop-shadow(0 0 4px ${routeColor}99)`, transition: 'stroke-dasharray 0.12s linear' }} />
+                <circle cx={GAUGE_START[0]} cy={GAUGE_START[1]} r="1.6" fill="#fff" />
+              </svg>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: '2px' }}>
+                <span ref={velocityTextRef} style={{ color: '#fff', fontSize: '30px', fontWeight: 700, fontFamily: 'var(--font-geist-sans), sans-serif', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1 }}>0</span>
+                <span style={{ color: '#9ca3af', fontSize: '10px', fontWeight: 600, fontFamily: 'var(--font-geist-sans), sans-serif', marginTop: '3px' }}>km/h</span>
+              </div>
             </div>
+            <GaugeStat label={t('Max. Tempo')} value={rideSpeedStats?.maxKmh} align="right" />
           </div>
         </div>
         </Rnd>
@@ -1975,6 +1940,23 @@ export default function GlobeMap({
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+// Tacho: Dreiviertelkreis (Mitte 50/47, Radius 42) von unten links über oben nach unten rechts
+const GAUGE_MAX_KMH = 150;
+const GAUGE_START: [number, number] = [50 - 42 * Math.SQRT1_2, 47 + 42 * Math.SQRT1_2];
+const GAUGE_ARC = `M ${GAUGE_START[0]} ${GAUGE_START[1]} A 42 42 0 1 1 ${50 + 42 * Math.SQRT1_2} ${GAUGE_START[1]}`;
+
+function GaugeStat({ label, value, align }: { label: string; value: number | undefined; align: 'left' | 'right' }) {
+  return (
+    <div style={{ textAlign: align, fontFamily: 'var(--font-geist-sans), sans-serif' }}>
+      <div style={{ color: '#6b7280', fontSize: '9px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ color: '#fff', fontSize: '15px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginTop: '2px' }}>
+        {value === undefined ? '–' : Math.round(value)}
+        {value !== undefined && <span style={{ color: '#9ca3af', fontSize: '9px', fontWeight: 600, marginLeft: '3px' }}>km/h</span>}
+      </div>
+    </div>
+  );
+}
 
 function distance(p1: [number, number], p2: [number, number]) {
   const R = 6371e3;

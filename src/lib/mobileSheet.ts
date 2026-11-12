@@ -45,3 +45,6 @@ export function sheetPadding(): { top: number; left: number; right: number; bott
     ? { top: 0, left: Math.round(window.innerWidth / 2), right: 0, bottom: 0 }
     : { top: 0, left: 0, right: 0, bottom: sheetPx() };
 }
+
+/** Desktop: Höhe des Tacho-Fensters oben rechts – Höhenprofil und Community rücken darunter */
+export const SPEEDO_H = 162;

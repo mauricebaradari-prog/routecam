@@ -23,7 +23,8 @@ import { elevationByDistance } from '@/lib/elevation';
 import { announceRideCreated } from '@/lib/rideCreated';
 import FloatingLikes from '@/components/FloatingLikes';
 import { useDb } from '@/lib/db';
-import { phoneLayout } from '@/lib/mobileSheet';
+import { phoneLayout, SPEEDO_H } from '@/lib/mobileSheet';
+import { rideSpeed } from '@/lib/speed';
 
 const YouTubeOverlay = dynamic(() => import('@/components/YouTubeOverlay'), { ssr: false });
 const GlobeMap = dynamic(() => import('@/components/GlobeMap'), { ssr: false });
@@ -51,9 +52,8 @@ export default function Home() {
   }, [openModal]);
   const [initialVideoPos, setInitialVideoPos] = useState<{ x: number; y: number; key?: string } | null>(null);
   const videoSideRef = useRef<{ key: string; side: number } | null>(null);
-  // windows on the map: elevation profile on, speed window off (no switch in the UI today)
+  // windows on the map: elevation profile on; the speedometer only for rides with a GPS time axis (desktop)
   const showElevation = true;
-  const showVelocity = false;
 
   const {
     state,
@@ -142,6 +142,8 @@ export default function Home() {
   // animationProgress = video time; the map needs the position along the route.
   // Synced rides map via GPS timestamps, others linearly (see src/lib/trackSync.ts).
   const sync = useMemo(() => syncMapper(activeRoute), [activeRoute]);
+  const rideSpeedStats = useMemo(() => rideSpeed(activeRoute?.timeline), [activeRoute]);
+  const showVelocity = sync.active;
   // Höhenprofil aus der GPX-Datei (falls die Fahrt Höhenwerte hat)
   const gpxElevation = useMemo(() => elevationByDistance(activeRoute?.elevationSample, activeRoute?.timeline), [activeRoute?.elevationSample, activeRoute?.timeline]);
   // 0 keeps meaning "not started" for the map (full-route view), even if the video starts mid-track
@@ -338,6 +340,7 @@ export default function Home() {
           showElevation={showElevation && hasRoute}
           gpxElevation={gpxElevation}
           showVelocity={showVelocity && hasRoute}
+          rideSpeedStats={rideSpeedStats}
           durationSeconds={state.durationSeconds}
           onSeek={p => handleSeek(sync.toVideo(p))}
           comments={routeComments}
@@ -368,10 +371,12 @@ export default function Home() {
             const len = Math.hypot(ux, uy);
             if (len < 1) { ux = 0; uy = -1; } else { ux /= len; uy /= len; }
             const at = (vx: number, vy: number) => {
-              // so weit entlang (vx,vy), dass zwischen Fensterkante und Pin mindestens `gap` frei bleibt
+              // so weit entlang (vx,vy), dass das Fenster weder Pin noch das Kästchen darüber (km, Zeit, Tempo) verdeckt
+              const clearX = w / 2 + 40 + 20;                       // Kästchen ±40 px breit
+              const clearY = vy < 0 ? h / 2 + 88 + 16 : h / 2 + gap; // Kästchen reicht bis ~88 px über den Pin
               const t = Math.min(
-                Math.abs(vx) > 1e-3 ? (w / 2 + gap) / Math.abs(vx) : Infinity,
-                Math.abs(vy) > 1e-3 ? (h / 2 + gap) / Math.abs(vy) : Infinity,
+                Math.abs(vx) > 1e-3 ? clearX / Math.abs(vx) : Infinity,
+                Math.abs(vy) > 1e-3 ? clearY / Math.abs(vy) : Infinity,
               );
               return { x: x + vx * t - w / 2, y: y + vy * t - h / 2 };
             };
@@ -400,7 +405,8 @@ export default function Home() {
           routeName={state.routes.find(r => r.id === state.activeRouteId)?.name ?? ''}
           activeWindow={state.activeWindow}
           setActiveWindow={setActiveWindow}
-          defaultY={showVelocity ? 504 : 248}
+          key={showVelocity ? 'with-speed' : 'no-speed'}
+          defaultY={showVelocity ? 248 + SPEEDO_H + 12 : 248}
           currentSeconds={state.animationProgress * state.durationSeconds}
           commentCount={allRouteComments.length}
           onAddComment={(seconds, text, parentId) => addComment(state.activeRouteId, seconds, text, authUser?.name, parentId)}
