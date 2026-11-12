@@ -4,7 +4,7 @@ import type { EditorState } from '@/hooks/useEditorState';
 import type { Visibility } from '@/lib/routeVisibility';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import Link from 'next/link';
-import { GripHorizontal, ChevronRight, Maximize2, Minimize2, Play, Pause, X } from 'lucide-react';
+import { ChevronRight, Maximize2, Minimize2, Play, Pause, X } from 'lucide-react';
 import { ownerOf, channelHref, type RouteOwner } from '@/lib/channels';
 import { loadAllRoutes } from '@/lib/userRoutes';
 import ChannelAvatar from '@/components/ChannelAvatar';
@@ -364,7 +364,13 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
           <Maximize2 size={15} />
         </button>
       )}
-      {!isMobile && <GripHorizontal size={20} className="shrink-0" />}
+      {/* X statt Greif-Symbol: schließt die Fahrt (nichts mehr ausgewählt). Verschieben geht weiter über die ganze Leiste. */}
+      {!isMobile && onClose && (
+        <button type="button" onClick={onClose} title={t('Schließen')} aria-label={t('Schließen')}
+          className="no-drag shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">
+          <X size={17} />
+        </button>
+      )}
     </div>
   );
 
