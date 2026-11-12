@@ -13,7 +13,7 @@ function SyncPage() {
   const [routeId, setRouteId] = useState<string | null | undefined>(undefined);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- reads browser-only state once after the static page has loaded
   useEffect(() => { setRouteId(new URLSearchParams(window.location.search).get('route')); }, []);
-  if (routeId === undefined) return <div className="h-screen bg-black" />;
+  if (routeId === undefined) return <div className="h-dvh bg-black" />;
   return <SyncEditor routeId={routeId} />;
 }
 

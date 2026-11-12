@@ -283,10 +283,10 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   }
 
   // ── Empty states ──
-  if (!loaded) return <div className="h-screen bg-black" />;
+  if (!loaded) return <div className="h-dvh bg-black" />;
   if (!route || !tl || !isOwn) {
     return (
-      <div className="h-screen bg-black text-white flex items-center justify-center p-6">
+      <div className="h-dvh bg-black text-white flex items-center justify-center p-6">
         <div className="max-w-md text-center">
           <p className="text-lg font-semibold">{!route ? t('Fahrt nicht gefunden') : t('Diese Fahrt lässt sich nicht ausrichten')}</p>
           <p className="text-sm text-white/50 mt-2">
@@ -304,7 +304,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   const overhangEnd = offset + videoDur > tl.durationSeconds;
 
   return (
-    <div className="h-screen w-full bg-black text-white font-sans flex flex-col overflow-hidden">
+    <div className="h-dvh w-full bg-black text-white font-sans flex flex-col overflow-hidden">
       {/* top bar */}
       <header className="h-14 shrink-0 flex items-center gap-3 px-4 border-b border-white/10">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center" title={t('Zurück ohne Speichern')}><ArrowLeft size={18} /></button>
