@@ -1659,7 +1659,7 @@ export default function GlobeMap({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <Mountain size={14} className="text-[#CCFF00]" />
                 {/* Smartphone: keine Überschrift – rechts daneben sitzt die Leiste mit Kommentaren, Likes … */}
-                {!isMobile && <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Elevation Profile')}</h3>}
+                {!isMobile && <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Höhenprofil')}</h3>}
                 {isMobile && <span style={{ color: '#9ca3af', fontSize: '11px', fontWeight: 600, fontFamily: 'sans-serif' }}>{(totalDistRef.current / 1000).toFixed(0)} KM · {Math.floor(durationSeconds / 60)}M {durationSeconds % 60}S</span>}
               </div>
               <div style={{ color: '#9ca3af', fontSize: '10px', fontWeight: 500, fontFamily: 'sans-serif', display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: '6px' }}>
