@@ -20,6 +20,7 @@ import CameraPanel, { CAMERA_MODES } from '@/components/panels/CameraPanel';
 import { t, useT } from '@/lib/i18n';
 import { mapCamera } from '@/lib/mapCamera';
 import { elevationByDistance } from '@/lib/elevation';
+import { useDb } from '@/lib/db';
 import { phoneLayout } from '@/lib/mobileSheet';
 
 const YouTubeOverlay = dynamic(() => import('@/components/YouTubeOverlay'), { ssr: false });
@@ -75,6 +76,12 @@ export default function Home() {
   const { comments: allRouteComments, addComment } = useRouteComments(state.activeRouteId);
   // the map shows a thread once – at its top comment; replies live in the community list
   const routeComments = useMemo(() => allRouteComments.filter(c => !c.parentId), [allRouteComments]);
+  // Likes mit Stelle im Video → Peace-Symbol auf der Route
+  const { likes: allLikes, profiles: allProfiles } = useDb();
+  const routeLikes = useMemo(() => allLikes
+    .filter(l => l.route_id === state.activeRouteId && typeof l.seconds === 'number')
+    .map(l => ({ userId: l.user_id, seconds: l.seconds as number, name: allProfiles[l.user_id]?.name || '', picture: allProfiles[l.user_id]?.picture ?? null })),
+  [allLikes, allProfiles, state.activeRouteId]);
   const { user: authUser } = useAuth(); // signed-in Google user names their comments
 
   // Comments the vehicle is near: from 3 s before until 6 s after their video position.
@@ -328,6 +335,7 @@ export default function Home() {
           durationSeconds={state.durationSeconds}
           onSeek={p => handleSeek(sync.toVideo(p))}
           comments={routeComments}
+          likeMarks={routeLikes}
           focus={focus}
           activeCommentIds={activeCommentIds}
           overlapBadges={overlapBadges}

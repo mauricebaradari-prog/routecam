@@ -139,7 +139,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const likeBtn = (compact: boolean) => (
     <button
       type="button"
-      onClick={() => { if (stats.liked || allowInteraction()) toggleLike(routeId); }}
+      onClick={() => { if (stats.liked || allowInteraction()) toggleLike(routeId, currentSeconds > 0 ? currentSeconds : undefined); }}
       title={stats.liked ? t('Gefällt mir nicht mehr') : t('Gefällt mir')}
       className={`inline-flex items-center gap-1.5 rounded-full transition-colors ${compact ? 'h-8 px-2.5' : 'h-9 px-3.5'} ${
         stats.liked ? 'bg-[#CCFF00]/15 text-[#CCFF00]' : 'bg-white/10 text-white hover:bg-white/20'

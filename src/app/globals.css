@@ -117,7 +117,7 @@ body.is-dragging iframe {
 .rc-count {
   margin-left: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 9999px;
   display: flex; align-items: center; justify-content: center;
-  background: #CCFF00; color: #0b0d10; border: 2px solid #0b0d10;
+  background: #0b0d10; color: #CCFF00; border: 2px solid #CCFF00;
   font: 700 10px/1 var(--font-geist-mono, ui-monospace, monospace);
 }
 .rc-comment-group:hover .rc-stack { transform: scale(1.12); }
@@ -224,3 +224,12 @@ body.is-dragging iframe {
   .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/90 { background-color: #0b0d10 !important; }
   .bg-\[\#0f0f0f\]\/85 { background-color: #0f0f0f !important; }
 }
+
+/* Like auf der Route: Peace-Symbol an der Stelle, an der geliked wurde */
+.rc-like {
+  width: 24px; height: 24px; border-radius: 9999px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: #0b0d10; color: #CCFF00; border: 2px solid #CCFF00;
+  transition: transform 0.15s ease;
+}
+.rc-like:hover { transform: scale(1.15); }

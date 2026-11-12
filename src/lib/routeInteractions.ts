@@ -58,15 +58,19 @@ export function useRouteInteractions() {
     };
   }, [me, likes, ratings, myRouteReports, reportsOnMine]);
 
-  const toggleLike = useCallback(async (routeId: string) => {
+  /** seconds: Stelle im Video, an der geliked wurde (erscheint als Peace-Symbol auf der Route) */
+  const toggleLike = useCallback(async (routeId: string, seconds?: number) => {
     const s = db();
     if (!s.me) return;
     const uid = s.me.id;
     const before = s.likes;
     const liked = before.some(l => l.route_id === routeId && l.user_id === uid);
-    setDb({ likes: liked ? before.filter(l => !(l.route_id === routeId && l.user_id === uid)) : [...before, { route_id: routeId, user_id: uid }] });
+    const at = seconds !== undefined && isFinite(seconds) ? Math.round(seconds * 10) / 10 : null;
+    setDb({ likes: liked ? before.filter(l => !(l.route_id === routeId && l.user_id === uid)) : [...before, { route_id: routeId, user_id: uid, seconds: at }] });
     const q = supabase().from('likes');
-    const { error } = liked ? await q.delete().eq('route_id', routeId).eq('user_id', uid) : await q.insert({ route_id: routeId });
+    let { error } = liked ? await q.delete().eq('route_id', routeId).eq('user_id', uid) : await q.insert({ route_id: routeId, seconds: at });
+    // Spalte „seconds“ noch nicht in der Datenbank → ohne Stelle speichern
+    if (error && !liked && /seconds/.test(error.message)) ({ error } = await supabase().from('likes').insert({ route_id: routeId }));
     if (error) { setDb({ likes: before }); alert(dbError(error).message); }
   }, []);
 

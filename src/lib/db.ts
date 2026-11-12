@@ -18,7 +18,7 @@ export interface RouteRow {
   id: string; owner_id: string; visibility: VisibilityValue; config: RouteConfig;
   place_names: PlaceNamesRow | null; hidden: boolean; created_at: string; updated_at: string;
 }
-export interface LikeRow { route_id: string; user_id: string }
+export interface LikeRow { route_id: string; user_id: string; seconds?: number | null }
 export interface RatingRow { route_id: string; user_id: string; stars: number }
 export interface RouteReportRow { route_id: string; reason: string; note: string | null; created_at: string }
 export interface CommentRow {
@@ -148,7 +148,8 @@ export function refresh(): Promise<void> {
     const [profiles, routes, likes, ratings, comments, groups, mine] = await Promise.all([
       sb.from('profiles').select('id,name,picture,slug,is_founder'),
       sb.from('routes').select('*'),
-      sb.from('likes').select('route_id,user_id'),
+      // mit Stelle im Video; fehlt die Spalte noch (Migration 0005 nicht eingespielt), ohne
+      sb.from('likes').select('route_id,user_id,seconds').then(r => (r.error ? sb.from('likes').select('route_id,user_id') : r)),
       sb.from('ratings').select('route_id,user_id,stars'),
       sb.from('comments').select('*').order('seconds'),
       sb.from('route_groups').select('*').order('created_at'),

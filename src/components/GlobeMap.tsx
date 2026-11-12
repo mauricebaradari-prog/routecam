@@ -47,6 +47,8 @@ interface GlobeMapProps {
   /** start of the active route on screen + a point a little further along it (for the video window), key = route geometry */
   onPoint1Projected?: (x: number, y: number, dirX: number, dirY: number, key: string) => void;
   showElevation?: boolean;
+  /** Likes mit Stelle im Video – als Peace-Symbol auf der Route */
+  likeMarks?: { userId: string; seconds: number; name: string; picture: string | null }[];
   /** Höhenprofil aus der GPX-Datei (über die Strecke); fehlt es, kommt es von Open-Meteo */
   gpxElevation?: number[] | null;
   showVelocity?: boolean;
@@ -128,10 +130,14 @@ function bboxOf(pts: [number, number][]): [number, number, number, number] {
 const bboxHits = (bb: [number, number, number, number], v: [number, number, number, number]) =>
   bb[0] <= v[2] && bb[2] >= v[0] && bb[1] <= v[3] && bb[3] >= v[1];
 
+/** Peace-Hand (wie PeaceHand.tsx) als SVG-Text für die Kartenmarker */
+const PEACE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 10.5L7.9 3.3A1.8 1.8 0 0 0 4.5 4.3L6.7 11.5"/><path d="M14 11.3L17.2 4.3A1.8 1.8 0 0 0 14 2.9L10.8 9.9"/><path d="M6.7 11.5C5.4 12 5 13.4 5.2 15c.4 3.2 2.6 5 5.6 5h1.6c3 0 5.4-2.4 5.4-5.5V13a2 2 0 0 0-4 0v-1.7"/><path d="M5.4 14.4c1.8-1.2 4.6-1.4 6.4-.2"/></svg>';
+
 export default function GlobeMap({
 
   cities,
   gpxElevation,
+  likeMarks,
   routes,
   mapStyle,
   animationProgress,
@@ -226,6 +232,9 @@ export default function GlobeMap({
 
   // ── Timed comments on the route (SoundCloud-style) ──
   const commentsRef = useRef<RouteComment[]>(comments);
+  const likeMarksRef = useRef<NonNullable<GlobeMapProps['likeMarks']>>([]);
+  likeMarksRef.current = likeMarks ?? [];
+  const likeMarkersRef = useRef<maplibregl.Marker[]>([]);
   const onSeekRef = useRef(onSeek);
   const onBackgroundClickRef = useRef(onBackgroundClick);
   const onPoint1ProjectedRef = useRef(onPoint1Projected);
@@ -252,7 +261,28 @@ export default function GlobeMap({
     return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t];
   }
 
+  // Peace-Symbole: wo auf der Route jemand die Fahrt geliked hat
+  function rebuildLikeMarkers() {
+    const map = mapRef.current;
+    likeMarkersRef.current.forEach(m => m.remove());
+    likeMarkersRef.current = [];
+    const duration = durationRef.current;
+    if (!map || !duration || fullRouteCoordsRef.current.length < 2) return;
+    for (const l of likeMarksRef.current) {
+      const progress = timeToRouteRef.current(Math.min(1, l.seconds / duration));
+      const at = pointOnRoute(progress);
+      if (!at) continue;
+      const el = document.createElement('div');
+      el.className = 'rc-like';
+      el.title = `${l.name ? l.name + ' · ' : ''}${formatCommentTime(l.seconds)}`;
+      el.innerHTML = PEACE_SVG;
+      el.addEventListener('click', e => { e.stopPropagation(); onSeekRef.current?.(progress); });
+      likeMarkersRef.current.push(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(at).addTo(map));
+    }
+  }
+
   function rebuildCommentMarkers() {
+    rebuildLikeMarkers();
     const map = mapRef.current;
     commentMarkersRef.current.forEach(m => m.marker.remove());
     commentMarkersRef.current = [];
@@ -442,6 +472,11 @@ export default function GlobeMap({
     rebuildCommentMarkers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comments, durationSeconds, timeToRoute]);
+  const likeKey = (likeMarks ?? []).map(l => `${l.userId}@${l.seconds}`).join('|');
+  useEffect(() => {
+    rebuildLikeMarkers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [likeKey]);
 
   // Show the bubbles of the comments the vehicle is currently near (decided by the page)
   const activeKey = activeCommentIds.join(',');
