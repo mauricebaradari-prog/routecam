@@ -1810,13 +1810,13 @@ export default function GlobeMap({
                   }} />
                   <div style={{ 
                     position: 'absolute', left: `${leftPct}%`, bottom: `${bottomPct}%`, 
-                    transform: 'translate(-50%, -14px)', whiteSpace: 'nowrap',
-                    color: '#fff', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-geist-sans), sans-serif', fontVariantNumeric: 'tabular-nums',
-                    background: 'rgba(0,0,0,0.85)', padding: '3px 7px', borderRadius: '6px', lineHeight: 1.25,
+                    transform: 'translate(-50%, -13px)', whiteSpace: 'nowrap',
+                    color: '#fff', fontSize: '10px', fontWeight: 700, fontFamily: 'var(--font-geist-sans), sans-serif', fontVariantNumeric: 'tabular-nums',
+                    background: 'rgba(0,0,0,0.85)', padding: '2px 6px', borderRadius: '5px', lineHeight: 1.25,
                     zIndex: 20, pointerEvents: 'none', transition: 'none'
                   }}>
                     {Math.round(currentElev)}m
-                    {speedNow !== null && isFinite(speedNow) && <span style={{ color: '#CCFF00', marginLeft: '7px' }}>{Math.max(0, Math.round(speedNow))} km/h</span>}
+                    {speedNow !== null && isFinite(speedNow) && <span style={{ color: '#CCFF00', marginLeft: '6px' }}>{Math.max(0, Math.round(speedNow))} km/h</span>}
                   </div>
                 </>
               );
