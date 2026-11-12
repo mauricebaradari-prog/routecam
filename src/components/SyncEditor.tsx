@@ -126,8 +126,8 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
 
   // floating video window: top right of the map, 400 px wide
   const videoWindowDefault = useMemo(() => {
-    const w = 400, h = Math.round(w * 9 / 16) + 34;
     const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const w = Math.min(400, vw - 24), h = Math.round(w * 9 / 16) + 34; // Handy: ganze Breite minus Rand
     return { x: Math.max(12, vw - w - 16), y: 12, width: w, height: h };
   }, []);
 
@@ -193,7 +193,14 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     mapRef.current = map;
     const b = new maplibregl.LngLatBounds();
     line.coords.forEach(c => b.extend(c));
-    map.fitBounds(b, { padding: { top: 70, bottom: 40, left: 40, right: 440 }, duration: 0 });
+    // Route in den freien Teil der Karte: am Rechner liegt das Video rechts, am Handy oben über die ganze Breite
+    const padding = () => {
+      const w = mapEl.current?.clientWidth ?? 1280;
+      return w < 640
+        ? { top: videoWindowDefault.y + videoWindowDefault.height + 24, bottom: 28, left: 28, right: 28 }
+        : { top: 70, bottom: 40, left: 40, right: 440 };
+    };
+    map.fitBounds(b, { padding: padding(), duration: 0 });
     map.on('load', () => {
       const empty = { type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: line.coords } };
       map.addSource('track', { type: 'geojson', data: empty });
@@ -216,10 +223,10 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     map.on('resize', () => {
       if (fitted || !mapEl.current?.clientWidth) return;
       fitted = true;
-      map.fitBounds(b, { padding: { top: 70, bottom: 40, left: 40, right: 440 }, duration: 0 });
+      map.fitBounds(b, { padding: padding(), duration: 0 });
     });
     return () => { ro.disconnect(); map.remove(); mapRef.current = null; setMapReady(false); };
-  }, [route, line]);
+  }, [route, line, videoWindowDefault]);
 
   // covered stretch + vehicle follow the offset and the video time
   useEffect(() => {
