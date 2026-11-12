@@ -343,7 +343,7 @@ function Dashboard() {
 
   return (
     // html/body are overflow:hidden for the map, so this page scrolls its own container
-    <div className="no-scrollbar h-screen overflow-y-auto w-full bg-[#0b0d10] text-white font-sans">
+    <div className="no-scrollbar h-dvh overflow-y-auto w-full bg-[#0b0d10] text-white font-sans">
       {/* Same top bar as the map page, without search (the dashboard has its own) */}
       <AppHeader
         routes={allRoutes}

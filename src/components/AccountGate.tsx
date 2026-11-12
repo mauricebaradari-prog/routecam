@@ -18,11 +18,11 @@ export default function AccountGate({ children }: { children: React.ReactNode })
 
   useEffect(() => { if (ready && !user) openSignupWall('account'); }, [ready, user]);
 
-  if (!ready) return <div className="h-screen bg-[#0b0d10]" />;
+  if (!ready) return <div className="h-dvh bg-[#0b0d10]" />;
   if (user) return <>{children}</>;
 
   return (
-    <div className="h-screen bg-[#0b0d10] text-white flex items-center justify-center px-6">
+    <div className="h-dvh bg-[#0b0d10] text-white flex items-center justify-center px-6">
       <div className="max-w-sm text-center">
         <span className="mx-auto w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60"><Lock size={20} /></span>
         <h1 className="mt-4 text-lg font-semibold">{t('Dieser Bereich gehört zu deinem Konto')}</h1>

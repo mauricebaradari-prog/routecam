@@ -78,7 +78,7 @@ export default function ChannelPage() {
   }), [rides, statsOf]);
 
   return (
-    <div className="no-scrollbar h-screen overflow-y-auto w-full bg-[#0b0d10] text-white font-sans">
+    <div className="no-scrollbar h-dvh overflow-y-auto w-full bg-[#0b0d10] text-white font-sans">
       <AppHeader
         routes={routes}
         activeRouteId=""

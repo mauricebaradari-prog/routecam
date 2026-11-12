@@ -10,7 +10,7 @@ export default function PageShell({ title, subtitle, children, current = 'other'
   const router = useRouter();
   const routes = useAllRoutes();
   return (
-    <div className="no-scrollbar h-screen overflow-y-auto w-full bg-[#0b0d10] text-white font-sans">
+    <div className="no-scrollbar h-dvh overflow-y-auto w-full bg-[#0b0d10] text-white font-sans">
       <AppHeader
         routes={routes}
         activeRouteId=""
