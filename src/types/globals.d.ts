@@ -18,6 +18,8 @@ declare global {
     getPlaybackRate(): number;
     setPlaybackRate(rate: number): void;
     setPlaybackQuality?(quality: string): void;
+    mute?(): void;
+    unMute?(): void;
     getVideoData(): { video_id?: string; title?: string };
     getIframe(): HTMLIFrameElement;
     loadVideoById(videoId: string, startSeconds?: number): void;

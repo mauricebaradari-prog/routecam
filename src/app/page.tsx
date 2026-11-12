@@ -3,7 +3,8 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Video } from 'lucide-react';
+import { Play, Pause, Video, Volume2, VolumeX } from 'lucide-react';
+import { isVideoMuted, setVideoMuted } from '@/lib/videoMute';
 import { useEditorState, NO_ROUTE, type RouteConfig } from '@/hooks/useEditorState';
 import { useRouteVisibility } from '@/lib/routeVisibility';
 import { useRouteComments } from '@/lib/routeComments';
@@ -51,6 +52,8 @@ export default function Home() {
     };
   }, [openModal]);
   const [initialVideoPos, setInitialVideoPos] = useState<{ x: number; y: number; key?: string } | null>(null);
+  // der Knopf erscheint erst mit einer Fahrt (nur im Browser) – daher direkt aus dem Speicher lesen
+  const [muted, setMuted] = useState(() => typeof window !== 'undefined' && isVideoMuted());
   const videoSideRef = useRef<{ key: string; side: number } | null>(null);
   // windows on the map: elevation profile on; the speedometer only for rides with a GPS time axis (desktop)
   const showElevation = true;
@@ -492,6 +495,16 @@ export default function Home() {
             >
               {/* shows the current camera mode, like the speed button shows its value */}
               {(() => { const M = CAMERA_MODES.find(m => m.value === state.cameraMode)?.Icon ?? Video; return <M size={18} />; })()}
+            </button>
+            {/* Ton des Videos aus/an – gemerkt für die nächsten Fahrten */}
+            <button
+              onClick={() => { setVideoMuted(!muted); setMuted(!muted); }}
+              aria-pressed={muted}
+              className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-all border bg-black/50 border-white/10 hover:bg-black/70"
+              title={muted ? t('Ton einschalten') : t('Ton ausschalten')}
+              aria-label={muted ? t('Ton einschalten') : t('Ton ausschalten')}
+            >
+              {muted ? <VolumeX size={18} className="text-[#CCFF00]" /> : <Volume2 size={18} className="text-white" />}
             </button>
             </>)}
           </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { applyVideoMute } from '@/lib/videoMute';
 import { Rnd } from 'react-rnd';
 import type { EditorState } from '@/hooks/useEditorState';
 import type { Visibility } from '@/lib/routeVisibility';
@@ -113,6 +114,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
             setIsReady(true); 
             window.__YT_PLAYER = p; 
             applyRate();
+            applyVideoMute(p);
             // The route (and its video) may have changed while the player was still loading –
             // the switch effect skipped it then, so catch up here (cue = load without playing).
             try {
