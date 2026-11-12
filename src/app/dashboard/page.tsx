@@ -13,6 +13,7 @@ import sparklinesData from '../../data/sparklines.json';
 import type { RouteConfig } from '@/hooks/useEditorState';
 import { haversineDistance } from '@/lib/geo';
 import { useAllRoutes, deleteRoute, routeFromTrack, saveUserRoute } from '@/lib/userRoutes';
+import { announceRideCreated } from '@/lib/rideCreated';
 import { placeNamesOf, setPlaceNames, originalPlaceNames } from '@/lib/placeNames';
 import { useYouTubeDuration } from '@/lib/youtubeDuration';
 import AppHeader from '@/components/AppHeader';
@@ -240,6 +241,7 @@ function Dashboard() {
     const route = routeFromTrack(ride);
     await saveUserRoute({ ...route, visibility: ride.visibility }); // throws on failure – the modal shows the error
     setCreateOpen(false);
+    announceRideCreated({ routeId: route.id, name: route.name, videoId: route.videoId, needsSync: !!route.timeline && !route.synced });
     if (ride.align && route.timeline) router.push(`/sync?route=${route.id}`);
   }
 

@@ -20,6 +20,8 @@ import CameraPanel, { CAMERA_MODES } from '@/components/panels/CameraPanel';
 import { t, useT } from '@/lib/i18n';
 import { mapCamera } from '@/lib/mapCamera';
 import { elevationByDistance } from '@/lib/elevation';
+import { announceRideCreated } from '@/lib/rideCreated';
+import FloatingLikes from '@/components/FloatingLikes';
 import { useDb } from '@/lib/db';
 import { phoneLayout } from '@/lib/mobileSheet';
 
@@ -96,6 +98,7 @@ export default function Home() {
     const route = routeFromTrack(ride);
     await saveUserRoute({ ...route, visibility: ride.visibility }); // throws on failure – the modal shows the error
     setCreateOpen(false);
+    announceRideCreated({ routeId: route.id, name: route.name, videoId: route.videoId, needsSync: !!route.timeline && !route.synced });
     if (ride.align && route.timeline) { router.push(`/sync?route=${route.id}`); return; }
     setActiveRoute(route.id);
   }
@@ -300,6 +303,7 @@ export default function Home() {
       {/* ── Top bar (YouTube-style) ── */}
       <AppHeader routes={listedRoutes} activeRouteId={state.activeRouteId} onSelectRoute={setActiveRoute} onCreate={() => setCreateOpen(true)} trackerCta />
       {createOpen && <CreateRideModal onClose={() => setCreateOpen(false)} onCreate={handleCreateRide} />}
+      {hasRoute && <FloatingLikes likes={routeLikes} videoSeconds={state.animationProgress * (state.durationSeconds || 0)} playing={state.isAnimating} />}
       
       {/* ── Map area ── */}
       <main className="absolute inset-0">
