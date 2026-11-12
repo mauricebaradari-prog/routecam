@@ -5,6 +5,7 @@ import { GripHorizontal, Gauge, Mountain, LocateFixed } from 'lucide-react';
 //  { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { Rnd } from 'react-rnd';
+import { stackRef, stackDragged } from '@/lib/windowStack';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 type MaplibreMap = maplibregl.Map;
 type GeoJSONSource = maplibregl.GeoJSONSource;
@@ -1880,14 +1881,14 @@ export default function GlobeMap({
         }
         return (
           <Rnd
-            key={showVelocity ? 'with-speed' : 'no-speed'}
+            ref={stackRef(2)}
             default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: showVelocity ? 80 + SPEEDO_H + 12 : 80, width: 320, height: 'auto' }}
             bounds="parent"
             enableResizing={false}
             className="z-50"
             style={{ zIndex: activeWindow === 'elevation' ? 60 : 50 }}
             onDragStart={() => { lockIframes(); setActiveWindow?.('elevation'); }}
-            onDragStop={unlockIframes}
+            onDragStop={(_, d) => { unlockIframes(); stackDragged(2, d); }}
             onMouseDown={() => setActiveWindow && setActiveWindow('elevation')}
           >
             {content}
@@ -1896,13 +1897,14 @@ export default function GlobeMap({
       })()}
       {showVelocity && !isMobile && (
         <Rnd
+          ref={stackRef(1)}
           default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 80, width: 320, height: 'auto' }}
           bounds="parent"
           enableResizing={false}
           className="z-50"
           style={{ zIndex: activeWindow === 'velocity' ? 60 : 50 }}
           onDragStart={() => { lockIframes(); setActiveWindow?.('velocity'); }}
-          onDragStop={unlockIframes}
+          onDragStop={(_, d) => { unlockIframes(); stackDragged(1, d); }}
           onMouseDown={() => setActiveWindow && setActiveWindow('velocity')}
         >
         <div style={{ width: '100%', background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: 'grab' }} className="active:cursor-grabbing">

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
+import { stackRef, stackDragged } from '@/lib/windowStack';
 import { SHEET_ELEV_H, phoneLayout } from '@/lib/mobileSheet';
 import { Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, Clock, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
 import PeaceHand from '@/components/icons/PeaceHand';
@@ -445,13 +446,14 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   return (
     <>
       <Rnd
+        ref={stackRef(3)}
         default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: defaultY, width: 320, height: 'auto' }}
         bounds="parent"
         enableResizing={false}
         dragHandleClassName="community-drag"
         style={{ zIndex: activeWindow === 'community' ? 60 : 50 }}
         onDragStart={() => { lockIframes(); setActiveWindow?.('community'); }}
-        onDragStop={() => { unlockIframes(); setTimeout(fitList, 0); }}
+        onDragStop={(_, d) => { unlockIframes(); stackDragged(3, d); setTimeout(fitList, 0); }}
         onMouseDown={() => setActiveWindow?.('community')}
       >
         <div className="relative w-full rounded-xl border border-white/[0.08] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl" style={{ background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)' }}>
