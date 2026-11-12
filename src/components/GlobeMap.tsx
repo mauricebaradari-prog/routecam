@@ -699,14 +699,18 @@ export default function GlobeMap({
           const currentDuration = durationRef.current;
           
           const onP1 = onPoint1ProjectedRef.current;
-          if (currentProgress === 0 && fullPts.length > 0 && onP1) {
-             const p1 = mapRef.current.project([fullPts[0][0], fullPts[0][1]]);
-             // a point ~20 % along the route → in which direction the ride leaves the start
-             const ahead = fullPts[Math.min(fullPts.length - 1, Math.max(1, Math.floor(fullPts.length * 0.2)))];
+          if (fullPts.length > 0 && onP1) {
+             // Anker fürs Videofenster: vor dem Start der Startpunkt, beim Abspielen der Pin
+             const atPin = currentProgress > 0 && vehicleLngLatRef.current;
+             const p1 = atPin ? mapRef.current.project(vehicleLngLatRef.current!) : mapRef.current.project([fullPts[0][0], fullPts[0][1]]);
+             // ein Punkt ein Stück weiter auf der Route → in welche Richtung es weitergeht
+             const fromIdx = atPin ? Math.floor(currentProgress * (fullPts.length - 1)) : 0;
+             const ahead = fullPts[Math.min(fullPts.length - 1, fromIdx + Math.max(1, Math.floor(fullPts.length * 0.05)))];
              const pa = mapRef.current.project([ahead[0], ahead[1]]);
              const key = geometryKeyRef.current;
              const last = lastP1Ref.current;
-             if (!last || last.key !== key || Math.abs(last.x - p1.x) > 10 || Math.abs(last.y - p1.y) > 10) {
+             const minMove = atPin ? 30 : 10; // am Pin nicht bei jedem kleinen Ruckeln nachziehen
+             if (!last || last.key !== key || Math.abs(last.x - p1.x) > minMove || Math.abs(last.y - p1.y) > minMove) {
                lastP1Ref.current = { x: p1.x, y: p1.y, key };
                Promise.resolve().then(() => onP1(p1.x, p1.y, pa.x, pa.y, key));
              }

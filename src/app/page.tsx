@@ -50,6 +50,7 @@ export default function Home() {
     };
   }, [openModal]);
   const [initialVideoPos, setInitialVideoPos] = useState<{ x: number; y: number; key?: string } | null>(null);
+  const videoSideRef = useRef<{ key: string; side: number } | null>(null);
   // windows on the map: elevation profile on, speed window off (no switch in the UI today)
   const showElevation = true;
   const showVelocity = false;
@@ -359,7 +360,7 @@ export default function Home() {
             // Video window right at the start of the ride, preferably on the side the route does NOT
             // go to (route heads north → video below the start). If that side has no room on screen,
             // the next side that fits is used, so the window never lands on the start.
-            const w = 320, h = 204, gap = 36, pad = 20;
+            const w = 320, h = 264, gap = 52, pad = 20; // Fenstergröße inkl. Kopf- und Kanalleiste
             // keep clear of the left control column and the info windows (Elevation, Community) on the right
             const minX = 96, maxX = window.innerWidth - w - 344 - pad;
             const minY = HEADER_HEIGHT + 16, maxY = window.innerHeight - h - pad;
@@ -367,13 +368,22 @@ export default function Home() {
             const len = Math.hypot(ux, uy);
             if (len < 1) { ux = 0; uy = -1; } else { ux /= len; uy /= len; }
             const at = (vx: number, vy: number) => {
-              const extent = Math.abs(vx) * w / 2 + Math.abs(vy) * h / 2;
-              return { x: x + vx * (gap + extent) - w / 2, y: y + vy * (gap + extent) - h / 2 };
+              // so weit entlang (vx,vy), dass zwischen Fensterkante und Pin mindestens `gap` frei bleibt
+              const t = Math.min(
+                Math.abs(vx) > 1e-3 ? (w / 2 + gap) / Math.abs(vx) : Infinity,
+                Math.abs(vy) > 1e-3 ? (h / 2 + gap) / Math.abs(vy) : Infinity,
+              );
+              return { x: x + vx * t - w / 2, y: y + vy * t - h / 2 };
             };
             const candidates = [at(-ux, -uy), at(0, 1), at(-1, 0), at(1, 0), at(0, -1)];
             const clampCost = (c: { x: number; y: number }) =>
               Math.max(0, minX - c.x) + Math.max(0, c.x - maxX) + Math.max(0, minY - c.y) + Math.max(0, c.y - maxY);
-            const best = candidates.find(c => clampCost(c) === 0) ?? candidates.reduce((a, b) => (clampCost(b) < clampCost(a) ? b : a));
+            // beim Abspielen die bisherige Seite behalten, solange sie passt – sonst springt das Fenster hin und her
+            const prev = videoSideRef.current?.key === key ? videoSideRef.current.side : -1;
+            const side = prev >= 0 && clampCost(candidates[prev]) === 0 ? prev
+              : Math.max(0, candidates.findIndex(c => clampCost(c) === 0));
+            videoSideRef.current = { key, side };
+            const best = candidates.findIndex(c => clampCost(c) === 0) >= 0 ? candidates[side] : candidates.reduce((a, b) => (clampCost(b) < clampCost(a) ? b : a));
             const idealX = Math.max(minX, Math.min(best.x, maxX));
             const idealY = Math.max(minY, Math.min(best.y, maxY));
             setInitialVideoPos({ x: idealX, y: idealY, key });

@@ -57,9 +57,8 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
     return () => clearTimeout(t);
   }, []);
 
-  // The window sits at the start of the ride. It follows the start while the camera settles
-  // after a route is selected (fly-in ~1.5 s), then stays put. A new route places it again –
-  // unless the user has moved/resized the window for this route.
+  // Das Fenster sitzt neben dem Anker: vor dem Abspielen am Startpunkt, beim Abspielen am Pin –
+  // und zieht mit, solange man es nicht selbst verschoben hat. Eine neue Fahrt platziert es neu.
   const placedKeyRef = useRef<string | undefined>(undefined);
   const placedAtRef = useRef(0);
   const userMovedRef = useRef(false);
@@ -70,7 +69,8 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
       placedKeyRef.current = initialPos.key;
       placedAtRef.current = now;
       userMovedRef.current = false;
-    } else if (userMovedRef.current || now - placedAtRef.current > 3000) {
+    } else if (userMovedRef.current) {
+      // selbst verschoben → bleibt, wo man es hingelegt hat
       return;
     }
     setPos({ x: initialPos.x, y: initialPos.y });
