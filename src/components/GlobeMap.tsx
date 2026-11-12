@@ -71,6 +71,8 @@ interface GlobeMapProps {
   timeToRoute?: (videoFraction: number) => number;
   routeToTime?: (routeFraction: number) => number;
   speedAt?: ((routeFraction: number) => number) | null; // real GPS speed, km/h
+  /** Tempo an der aktuellen Videostelle (km/h) – null ohne GPS-Zeitachse oder vor dem Start */
+  speedNow?: number | null;
 }
 
 
@@ -166,6 +168,7 @@ export default function GlobeMap({
   timeToRoute = (p: number) => p,
   routeToTime = (p: number) => p,
   speedAt = null,
+  speedNow = null,
 }: GlobeMapProps) {
   useT();
   const timeToRouteRef = useRef(timeToRoute);
@@ -174,6 +177,8 @@ export default function GlobeMap({
   timeToRouteRef.current = timeToRoute;
   routeToTimeRef.current = routeToTime;
   speedAtRef.current = speedAt;
+  const speedNowRef = useRef<number | null>(speedNow);
+  speedNowRef.current = speedNow;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   const prevStyleRef = useRef<string | null>(null);
@@ -533,6 +538,8 @@ export default function GlobeMap({
   const compassNeedleRef = React.useRef<SVGGElement>(null);
   const vehicleDotRef = React.useRef<HTMLDivElement>(null);
   const distanceBadgeRef = React.useRef<HTMLDivElement>(null);
+  const distanceSpeedRef = React.useRef<HTMLSpanElement>(null);
+  const badgeSpeedRef = React.useRef<number | null>(null);
   const distanceTextRef = React.useRef<HTMLSpanElement>(null);
   const distanceTimeRef = React.useRef<HTMLSpanElement>(null);
   const fullSvgPathRef = React.useRef<SVGPathElement>(null);
@@ -873,6 +880,24 @@ export default function GlobeMap({
                  distanceBadgeRef.current.style.display = 'flex';
                  distanceTextRef.current.textContent = `${distKm} km`;
                  distanceTimeRef.current.textContent = `${m}m ${s}s`;
+                 // aktuelles Tempo an dieser Stelle – nur mit echter GPS-Zeitachse und sobald das Video läuft
+                 const speedEl = distanceSpeedRef.current;
+                 if (speedEl) {
+                   const live = speedNowRef.current;
+                   if (live === null || !isFinite(live)) {
+                     speedEl.style.display = 'none';
+                     distanceBadgeRef.current.style.marginTop = '-50px';
+                     badgeSpeedRef.current = null;
+                   } else {
+                     // sanft nachführen, bei Sprüngen (Spulen) sofort
+                     const prev = badgeSpeedRef.current;
+                     const v = prev === null || Math.abs(prev - live) > 40 ? live : prev * 0.9 + live * 0.1;
+                     badgeSpeedRef.current = v;
+                     speedEl.textContent = `${Math.max(0, Math.round(v))} km/h`;
+                     speedEl.style.display = 'block';
+                     distanceBadgeRef.current.style.marginTop = '-76px';
+                   }
+                 }
              }
           } else {
              if (velocityTextRef.current) velocityTextRef.current.textContent = "0";
@@ -1687,6 +1712,7 @@ export default function GlobeMap({
       >
         <span ref={distanceTextRef} className="text-[#CCFF00] font-bold text-xs">0 km</span>
         <span ref={distanceTimeRef} className="text-white/70 text-[10px] font-medium uppercase tracking-wider">0m 0s</span>
+        <span ref={distanceSpeedRef} className="text-white font-bold text-[11px] font-mono" style={{ display: 'none' }}>0 km/h</span>
       </div>
 
       {cities.length >= 2 && (

@@ -329,6 +329,7 @@ export default function Home() {
           timeToRoute={sync.toRoute}
           routeToTime={sync.toVideo}
           speedAt={sync.speedAt}
+          speedNow={sync.speedAtVideo && state.animationProgress > 0 ? sync.speedAtVideo(state.animationProgress) : null}
           isAnimating={state.isAnimating}
           cameraMode={state.cameraMode}
           routeColor={state.routeColor}

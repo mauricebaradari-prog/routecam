@@ -101,9 +101,11 @@ export interface SyncMapper {
   toRoute: (videoFraction: number) => number;
   toVideo: (routeFraction: number) => number;
   speedAt: ((routeFraction: number) => number) | null;
+  /** Tempo zur Videostelle (0–1) – steht man im Video, ist es 0 */
+  speedAtVideo: ((videoFraction: number) => number) | null;
 }
 
-const IDENTITY: SyncMapper = { active: false, toRoute: p => p, toVideo: p => p, speedAt: null };
+const IDENTITY: SyncMapper = { active: false, toRoute: p => p, toVideo: p => p, speedAt: null, speedAtVideo: null };
 
 export function syncMapper(route: SyncFields | undefined): SyncMapper {
   const tl = route?.timeline;
@@ -115,6 +117,7 @@ export function syncMapper(route: SyncFields | undefined): SyncMapper {
     toRoute: p => distAtTrackTime(tl, p * dur + off),
     toVideo: d => Math.min(1, Math.max(0, (trackTimeAtDist(tl, d) - off) / dur)),
     speedAt: d => speedAtTrackTime(tl, trackTimeAtDist(tl, d)),
+    speedAtVideo: p => speedAtTrackTime(tl, Math.min(tl.durationSeconds, Math.max(0, p * dur + off))),
   };
 }
 
