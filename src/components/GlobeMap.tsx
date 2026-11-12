@@ -15,6 +15,7 @@ import { buildMapStyle } from '@/lib/mapStyles';
 import { formatCommentTime, type RouteComment } from '@/lib/routeComments';
 import { fillAvatarEl } from '@/lib/avatar';
 import { mapCamera } from '@/lib/mapCamera';
+import PeaceHand from '@/components/icons/PeaceHand';
 import { createPortal } from 'react-dom';
 import { SHEET_ELEV_H, SHEET_H, sheetPx, phoneLayout, sheetPadding } from '@/lib/mobileSheet';
 import { t, useT } from '@/lib/i18n';
@@ -1773,6 +1774,20 @@ export default function GlobeMap({
                         boxShadow: active ? `0 0 0 2px #CCFF00, 0 0 10px ${c.color}` : 'none',
                         zIndex: 19, pointerEvents: 'none', transition: 'width 150ms, height 150ms, box-shadow 150ms',
                       }} />
+                    );
+                  })}
+                  {/* Likes – Peace-Symbol an der Stelle, an der geliked wurde */}
+                  {durationSeconds > 0 && (likeMarks ?? []).map((l, i) => {
+                    const p = timeToRoute(Math.min(1, l.seconds / durationSeconds));
+                    return (
+                      <div key={`like-${l.userId}-${i}`} title={formatCommentTime(l.seconds)} style={{
+                        position: 'absolute', left: `${p * 100}%`, bottom: `${((elevAt(p) - min) / range) * 100}%`,
+                        transform: 'translate(-50%, 50%)', width: '18px', height: '18px', borderRadius: '50%',
+                        background: '#0b0d10', color: '#CCFF00', border: '1.5px solid #CCFF00',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 19, pointerEvents: 'none',
+                      }}>
+                        <PeaceHand size={11} strokeWidth={2.6} />
+                      </div>
                     );
                   })}
                   <div style={{
