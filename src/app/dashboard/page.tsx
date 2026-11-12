@@ -7,8 +7,9 @@ import { ownerOf } from '@/lib/channels';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutGrid, List, Search, Play, ExternalLink, Clock, ArrowUpDown, ChevronDown, Trash2, Heart, Star, Flag, MessageCircle, X, MapPin, FolderPlus, Folder, Plus, Check, ListVideo, EllipsisVertical, Pencil } from 'lucide-react';
+import { LayoutGrid, List, Search, Play, ExternalLink, Clock, ArrowUpDown, ChevronDown, Trash2, Star, Flag, MessageCircle, X, MapPin, FolderPlus, Folder, Plus, Check, ListVideo, EllipsisVertical, Pencil } from 'lucide-react';
 import PeaceHand from '@/components/icons/PeaceHand';
+import { rideSpeed, type RideSpeed } from '@/lib/speed';
 import sparklinesData from '../../data/sparklines.json';
 import type { RouteConfig } from '@/hooks/useEditorState';
 import { haversineDistance } from '@/lib/geo';
@@ -27,7 +28,7 @@ import { VisibilityBadge, VisibilityIcon, visibilityLabel } from '@/components/V
 import { t, useT, locale, k } from '@/lib/i18n';
 
 type ViewMode = 'table' | 'cards';
-type SortKey = 'index' | 'name' | 'visibility' | 'date' | 'distance' | 'duration' | 'climb' | 'likes' | 'rating' | 'comments' | 'reports';
+type SortKey = 'index' | 'name' | 'visibility' | 'date' | 'distance' | 'duration' | 'climb' | 'speed' | 'likes' | 'rating' | 'comments' | 'reports';
 
 const VIEW_KEY = 'routecam.dashboard.view';
 function formatDate(iso?: string) {
@@ -105,6 +106,7 @@ interface RouteRow {
   end: string;
   distanceKm: number; // straight lines between waypoints, so a lower bound of the road distance
   climbM: number;
+  speed: RideSpeed | null; // aus der Zeitachse (nur Fahrten mit Zeitstempeln)
   minEle: number;
   maxEle: number;
 }
@@ -126,6 +128,7 @@ function buildRows(routes: RouteConfig[]): RouteRow[] {
       end: cities[cities.length - 1]?.name ?? '–',
       distanceKm,
       climbM,
+      speed: rideSpeed(route.timeline),
       minEle: ele.length ? Math.min(...ele) : 0,
       maxEle: ele.length ? Math.max(...ele) : 0,
     };
@@ -176,7 +179,7 @@ const SORT_LABELS: [SortKey, string][] = [
 ];
 
 // Table grid: check · # · video · route · 4 stat columns (route value on top, community value below) · actions
-const TABLE_GRID = 'grid grid-cols-[28px_36px_136px_minmax(260px,1fr)_92px_104px_100px_96px_212px] gap-x-3';
+const TABLE_GRID = 'grid grid-cols-[28px_36px_136px_minmax(260px,1fr)_92px_104px_100px_96px_96px_212px] gap-x-3';
 
 function SortLabel({ k, sort, onSort, children }: { k: SortKey; sort: Sort; onSort: (k: SortKey) => void; children: React.ReactNode }) {
   return (
@@ -295,6 +298,7 @@ function Dashboard() {
       case 'distance': return r.distanceKm;
       case 'duration': return r.route.durationSeconds;
       case 'climb': return r.climbM;
+      case 'speed': return r.speed?.avgKmh ?? -1;
       case 'likes': return interactionsOf(r.route.id).likeCount;
       case 'rating': return interactionsOf(r.route.id).avgRating ?? -1;
       case 'comments': return commentsOf(r.route.id);
@@ -312,6 +316,12 @@ function Dashboard() {
     distanceKm: rows.reduce((sum, r) => sum + r.distanceKm, 0),
     seconds: rows.reduce((sum, r) => sum + r.route.durationSeconds, 0),
     climbM: rows.reduce((sum, r) => sum + r.climbM, 0),
+    // Ø über alle Fahrten mit Zeitstempeln, gewichtet nach Fahrzeit
+    avgKmh: (() => {
+      const sp = rows.map(r => r.speed).filter((x): x is RideSpeed => !!x);
+      const sec = sp.reduce((a, x) => a + x.movingSeconds, 0);
+      return sec ? (sp.reduce((a, x) => a + x.movingKm, 0) / sec) * 3600 : null;
+    })(),
     likes: rows.reduce((sum, r) => sum + interactionsOf(r.route.id).likeCount, 0),
     reports: rows.reduce((sum, r) => sum + interactionsOf(r.route.id).reportCount, 0),
     comments: rows.reduce((sum, r) => sum + commentsOf(r.route.id), 0),
@@ -360,6 +370,7 @@ function Dashboard() {
             { label: t('Videozeit'), value: formatDuration(totals.seconds) },
             { label: t('Distanz (Luftlinie)'), value: `${Math.round(totals.distanceKm).toLocaleString(locale())} km` },
             { label: t('Höhenmeter ↑'), value: `${Math.round(totals.climbM).toLocaleString(locale())} m` },
+            { label: t('Ø Tempo'), value: totals.avgKmh === null ? '–' : `${Math.round(totals.avgKmh)} km/h` },
             { label: t('Likes'), value: String(totals.likes) },
             { label: t('Ø Bewertung'), value: formatRating(totals.rating) },
             { label: t('Kommentare'), value: String(totals.comments) },
@@ -487,6 +498,7 @@ function Dashboard() {
                 <StatHeader top={<SortLabel {...sortProps} k="distance">{t('Distanz*')}</SortLabel>} bottom={<SortLabel {...sortProps} k="likes">Likes</SortLabel>} />
                 <StatHeader top={<SortLabel {...sortProps} k="duration">{t('Dauer')}</SortLabel>} bottom={<SortLabel {...sortProps} k="rating">{t('Bewertung')}</SortLabel>} />
                 <StatHeader top={<SortLabel {...sortProps} k="climb">{t('Höhe ↑')}</SortLabel>} bottom={<SortLabel {...sortProps} k="comments">{t('Kommentare')}</SortLabel>} />
+                <StatHeader top={<SortLabel {...sortProps} k="speed">{t('Ø Tempo')}</SortLabel>} bottom={<span>{t('Max. Tempo')}</span>} />
                 <StatHeader top={<span>{t('Profil')}</span>} bottom={<SortLabel {...sortProps} k="reports">{t('Meldungen')}</SortLabel>} />
                 <div />
               </div>
@@ -531,6 +543,10 @@ function Dashboard() {
                     <StatCell
                       top={<span className="font-mono" title={`${Math.round(r.minEle)}–${Math.round(r.maxEle)} m`}>{Math.round(r.climbM)} m</span>}
                       bottom={<CommentsButton count={commentsOf(r.route.id)} onClick={() => setCommentsFor(r.route)} />}
+                    />
+                    <StatCell
+                      top={<span className="font-mono" title={t('ohne Standzeiten')}>{r.speed ? `${Math.round(r.speed.avgKmh)} km/h` : '–'}</span>}
+                      bottom={<span className="font-mono text-white/50">{r.speed ? `${Math.round(r.speed.maxKmh)} km/h` : '–'}</span>}
                     />
                     <StatCell
                       top={<Sparkline routeId={r.route.id} sample={r.route.elevationSample} width={80} height={22} />}
@@ -628,7 +644,9 @@ function Dashboard() {
                       <dd className="font-mono mt-0.5">{Math.round(r.climbM)} m</dd>
                       <dd className="text-[10px] text-white/40 font-mono">{Math.round(r.minEle)}–{Math.round(r.maxEle)} m</dd>
                     </div>
-                    <div><dt className="text-white/40">Likes</dt><dd className="font-mono mt-0.5 inline-flex items-center gap-1.5"><Heart size={12} className="text-white/40" />{st.likeCount}</dd></div>
+                    <div><dt className="text-white/40">{t('Ø Tempo')}</dt><dd className="font-mono mt-0.5">{r.speed ? `${Math.round(r.speed.avgKmh)} km/h` : '–'}</dd></div>
+                    <div><dt className="text-white/40">{t('Max. Tempo')}</dt><dd className="font-mono mt-0.5">{r.speed ? `${Math.round(r.speed.maxKmh)} km/h` : '–'}</dd></div>
+                    <div><dt className="text-white/40">Likes</dt><dd className="font-mono mt-0.5 inline-flex items-center gap-1.5"><PeaceHand size={13} className="text-white/40" />{st.likeCount}</dd></div>
                     <div><dt className="text-white/40">{t('Bewertung')}</dt><dd className="mt-0.5"><RatingCell avg={st.avgRating} count={st.ratingCount} /></dd></div>
                     <div><dt className="text-white/40">{t('Kommentare')}</dt><dd className="font-mono mt-0.5"><CommentsButton count={commentsOf(r.route.id)} onClick={() => setCommentsFor(r.route)} /></dd></div>
                     <div><dt className="text-white/40">{t('Meldungen')}</dt><dd className="font-mono mt-0.5"><ReportsCell reports={st.reports} /></dd></div>

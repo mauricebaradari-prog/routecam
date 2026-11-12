@@ -482,5 +482,8 @@
 "Navigation": "Navigation",
 "Fahrt angelegt": "Ride created",
 "„{name}“ ist mit deinem Video verbunden.": "“{name}” is now linked to your video.",
-"Jetzt ansehen": "Watch now"
+"Jetzt ansehen": "Watch now",
+"Ø Tempo": "Avg speed",
+"Max. Tempo": "Top speed",
+"ohne Standzeiten": "excluding stops"
 }
