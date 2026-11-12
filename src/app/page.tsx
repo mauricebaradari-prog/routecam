@@ -21,7 +21,7 @@ import CameraPanel, { CAMERA_MODES } from '@/components/panels/CameraPanel';
 import { t, useT } from '@/lib/i18n';
 import { mapCamera } from '@/lib/mapCamera';
 import { elevationByDistance } from '@/lib/elevation';
-import { announceRideCreated } from '@/lib/rideCreated';
+import { announceRideCreated, deferRideCreated, showReleasedRideCreated } from '@/lib/rideCreated';
 import FloatingLikes from '@/components/FloatingLikes';
 import { useDb } from '@/lib/db';
 import { phoneLayout, SPEEDO_H } from '@/lib/mobileSheet';
@@ -102,7 +102,9 @@ export default function Home() {
     const route = routeFromTrack(ride);
     await saveUserRoute({ ...route, visibility: ride.visibility }); // throws on failure – the modal shows the error
     setCreateOpen(false);
-    announceRideCreated({ routeId: route.id, name: route.name, videoId: route.videoId, needsSync: !!route.timeline && !route.synced });
+    const created = { routeId: route.id, name: route.name, videoId: route.videoId, needsSync: !!route.timeline && !route.synced };
+    // direkt ins Sync-Fenster: Toast erst nach „Fertig“ auf der Karte
+    if (ride.align && route.timeline) deferRideCreated(created); else announceRideCreated(created);
     if (ride.align && route.timeline) { router.push(`/sync?route=${route.id}`); return; }
     setActiveRoute(route.id);
   }
@@ -129,6 +131,8 @@ export default function Home() {
     const route = loadAllRoutes().find(r => r.id === routeId);
     if (!route) return;
     setActiveRoute(route.id);
+    // frisch angelegt und eben im Sync-Fenster fertig ausgerichtet → jetzt „Fahrt angelegt“ zeigen
+    window.setTimeout(() => showReleasedRideCreated(route.id), 400);
     const t = Number(params.get('t'));
     if (t > 0 && route.durationSeconds) {
       const progress = Math.min(1, t / route.durationSeconds);

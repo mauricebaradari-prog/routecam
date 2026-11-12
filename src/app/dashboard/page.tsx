@@ -14,7 +14,7 @@ import sparklinesData from '../../data/sparklines.json';
 import type { RouteConfig } from '@/hooks/useEditorState';
 import { haversineDistance } from '@/lib/geo';
 import { useAllRoutes, deleteRoute, routeFromTrack, saveUserRoute } from '@/lib/userRoutes';
-import { announceRideCreated } from '@/lib/rideCreated';
+import { announceRideCreated, deferRideCreated } from '@/lib/rideCreated';
 import { placeNamesOf, setPlaceNames, originalPlaceNames } from '@/lib/placeNames';
 import { useYouTubeDuration } from '@/lib/youtubeDuration';
 import AppHeader from '@/components/AppHeader';
@@ -26,6 +26,7 @@ import { useRouteComments, formatCommentTime, type RouteComment } from '@/lib/ro
 import { useRouteVisibility, VISIBILITY_OPTIONS, type Visibility } from '@/lib/routeVisibility';
 import { VisibilityBadge, VisibilityIcon, visibilityLabel } from '@/components/Visibility';
 import { t, useT, locale, k } from '@/lib/i18n';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 type ViewMode = 'table' | 'cards';
 type SortKey = 'index' | 'name' | 'visibility' | 'date' | 'distance' | 'duration' | 'climb' | 'speed' | 'likes' | 'rating' | 'comments' | 'reports';
@@ -244,12 +245,16 @@ function Dashboard() {
     const route = routeFromTrack(ride);
     await saveUserRoute({ ...route, visibility: ride.visibility }); // throws on failure – the modal shows the error
     setCreateOpen(false);
-    announceRideCreated({ routeId: route.id, name: route.name, videoId: route.videoId, needsSync: !!route.timeline && !route.synced });
+    const created = { routeId: route.id, name: route.name, videoId: route.videoId, needsSync: !!route.timeline && !route.synced };
+    // direkt ins Sync-Fenster: Toast erst nach „Fertig“ auf der Karte
+    if (ride.align && route.timeline) deferRideCreated(created); else announceRideCreated(created);
     if (ride.align && route.timeline) router.push(`/sync?route=${route.id}`);
   }
 
   // Multi-selection + groups
   const { groups, groupsOf, createGroup, addToGroup, removeFromGroup, renameGroup, setGroupVisibility, deleteGroup } = useRouteGroups();
+  const [groupToDelete, setGroupToDelete] = useState<RouteGroup | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -399,7 +404,7 @@ function Dashboard() {
                   onOpen={() => { setGroupFilter(g.id); setSelected([]); }}
                   onRename={name => renameGroup(g.id, name)}
                   onVisibility={v => setGroupVisibility(g.id, v)}
-                  onDelete={() => { deleteGroup(g.id); showToast(t('Gruppe „{name}“ gelöscht', { name: g.name })); }}
+                  onDelete={() => setGroupToDelete(g)}
                 />
               ))}
             </div>
@@ -432,7 +437,7 @@ function Dashboard() {
             </select>
             {activeGroup && (
               <button
-                onClick={() => { deleteGroup(activeGroup.id); showToast(t('Gruppe „{name}“ gelöscht', { name: activeGroup.name })); }}
+                onClick={() => setGroupToDelete(activeGroup)}
                 title={t('Gruppe löschen (die Routen bleiben erhalten)')}
                 className="h-full px-3 border-l border-white/10 text-white/50 hover:text-red-300"
               >
@@ -671,7 +676,7 @@ function Dashboard() {
           onClear={() => setSelected([])}
           onAddTo={g => { addToGroup(g.id, selected); showToast(selected.length === 1 ? t('1 Route zu „{name}“ hinzugefügt', { name: g.name }) : t('{n} Routen zu „{name}“ hinzugefügt', { n: selected.length, name: g.name })); setSelected([]); }}
           onCreate={name => { const g = createGroup(name, selected); showToast(selected.length === 1 ? t('Gruppe „{name}“ mit 1 Route erstellt', { name: g.name }) : t('Gruppe „{name}“ mit {n} Routen erstellt', { name: g.name, n: selected.length })); setSelected([]); }}
-          onRemoveFromActive={() => { if (!activeGroup) return; removeFromGroup(activeGroup.id, selected); showToast(t('{n} aus „{name}“ entfernt', { n: selected.length, name: activeGroup.name })); setSelected([]); }}
+          onRemoveFromActive={() => { if (activeGroup) setConfirmRemove(true); }}
         />
       )}
 
@@ -696,6 +701,36 @@ function Dashboard() {
           onSave={names => {
             setPlaceNames(toRename.id, names).then(() => showToast(t('Fahrt gespeichert')), e => showToast(e.message));
             setToRename(null);
+          }}
+        />
+      )}
+
+      {groupToDelete && (
+        <ConfirmDialog
+          title={t('Gruppe löschen?')}
+          text={t('„{name}“ wird gelöscht. Die Fahrten darin bleiben erhalten.', { name: groupToDelete.name })}
+          onCancel={() => setGroupToDelete(null)}
+          onConfirm={() => {
+            const g = groupToDelete;
+            deleteGroup(g.id);
+            if (groupFilter === g.id) setGroupFilter(null);
+            showToast(t('Gruppe „{name}“ gelöscht', { name: g.name }));
+            setGroupToDelete(null);
+          }}
+        />
+      )}
+
+      {confirmRemove && activeGroup && (
+        <ConfirmDialog
+          title={selected.length === 1 ? t('1 Fahrt aus der Gruppe entfernen?') : t('{n} Fahrten aus der Gruppe entfernen?', { n: selected.length })}
+          text={t('Sie werden aus „{name}“ entfernt, bleiben aber erhalten.', { name: activeGroup.name })}
+          confirmLabel={t('Entfernen')}
+          onCancel={() => setConfirmRemove(false)}
+          onConfirm={() => {
+            removeFromGroup(activeGroup.id, selected);
+            showToast(t('{n} aus „{name}“ entfernt', { n: selected.length, name: activeGroup.name }));
+            setSelected([]);
+            setConfirmRemove(false);
           }}
         />
       )}

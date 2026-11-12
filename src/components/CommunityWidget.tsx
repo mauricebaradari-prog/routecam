@@ -13,6 +13,7 @@ import { formatCommentTime, useCommentReports, useRouteComments, COMMENT_REPORT_
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import { useRouteInteractions, REPORT_REASONS, formatRating, type ReportReason } from '@/lib/routeInteractions';
 import { t, useT } from '@/lib/i18n';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Props {
   routeId: string;
@@ -46,7 +47,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const [replyDraft, setReplyDraft] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; replies: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [hoverStars, setHoverStars] = useState(0);
   const [mobileStars, setMobileStars] = useState(false);
@@ -209,6 +210,14 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   // Kommentarliste + Eingabe: am Desktop im Fenster, auf dem Smartphone im Kommentar-Panel
   const commentsSection = (
     <>
+      {confirmDelete && (
+        <ConfirmDialog
+          title={t('Kommentar löschen?')}
+          text={confirmDelete.replies === 0 ? undefined : confirmDelete.replies === 1 ? t('Die Antwort darauf wird mitgelöscht.') : t('Die {n} Antworten darauf werden mitgelöscht.', { n: confirmDelete.replies })}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => { deleteComment(confirmDelete.id); setConfirmDelete(null); showToast(t('Kommentar gelöscht')); }}
+        />
+      )}
           {/* Comments */}
           <div className="mt-3 pt-3 border-t border-white/10">
             <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-white/50">
@@ -272,7 +281,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                           </button>
                           {/* actions: answer (everyone), edit + delete (own), report (others) */}
                           <div className="absolute right-1.5 top-1.5 flex items-center gap-0.5">
-                            {confirmDelete !== c.id && (
+                            {(
                               <button
                                 type="button"
                                 onClick={() => { setReplyTo(top.id); setReplyDraft(''); setEditing(null); }}
@@ -283,7 +292,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                                 <CornerDownRight size={12} />
                               </button>
                             )}
-                            {own && confirmDelete !== c.id && (
+                            {own && (
                               <button
                                 type="button"
                                 onClick={() => { setEditing(c.id); setEditDraft(c.text); setReplyTo(null); }}
@@ -297,20 +306,12 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
                             {own ? (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (confirmDelete === c.id) { deleteComment(c.id); setConfirmDelete(null); showToast(t('Kommentar gelöscht')); }
-                                  else setConfirmDelete(c.id);
-                                }}
-                                onBlur={() => setConfirmDelete(id => (id === c.id ? null : id))}
-                                title={confirmDelete === c.id ? t('Zum Löschen noch einmal klicken') : !reply && thread.length > 1 ? t('Löschen – die Antworten gehen mit') : t('Eigenen Kommentar löschen')}
-                                aria-label={confirmDelete === c.id ? t('Löschen bestätigen') : t('Eigenen Kommentar löschen')}
-                                className={`h-6 rounded-full flex items-center justify-center gap-1 transition-opacity ${
-                                  confirmDelete === c.id
-                                    ? 'px-2 bg-red-500 text-white text-[10px] font-semibold opacity-100'
-                                    : 'w-6 text-white/40 hover:text-red-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100'
-                                }`}
+                                onClick={() => setConfirmDelete({ id: c.id, replies: reply ? 0 : thread.length - 1 })}
+                                title={!reply && thread.length > 1 ? t('Löschen – die Antworten gehen mit') : t('Eigenen Kommentar löschen')}
+                                aria-label={t('Eigenen Kommentar löschen')}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-red-300 hover:bg-white/10 opacity-0 group-hover/c:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
                               >
-                                <Trash2 size={12} />{confirmDelete === c.id && (!reply && thread.length > 1 ? (thread.length === 2 ? t('Mit 1 Antwort löschen?') : t('Mit {n} Antworten löschen?', { n: thread.length - 1 })) : t('Löschen?'))}
+                                <Trash2 size={12} />
                               </button>
                             ) : !flagged && (
                               <button

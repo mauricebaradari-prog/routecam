@@ -8,6 +8,7 @@
 // Map (track + covered stretch + vehicle), video, and a timeline with the speed curve
 // where the video is a bar that can be dragged along the track.
 
+import { releaseRideCreated } from '@/lib/rideCreated';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as maplibregl from 'maplibre-gl';
@@ -270,6 +271,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
       alert((e as Error).message);
       return;
     }
+    releaseRideCreated(route.id);
     router.push(`/?route=${route.id}`);
   }
 
