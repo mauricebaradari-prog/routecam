@@ -415,7 +415,9 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
   }, [offset, videoDur, tl.durationSeconds]);
   const [f0, f1] = fullRange();
   const [r0, r1] = view ?? [f0, f1];
-  const LABEL_W = 72;
+  // Handy: nur das Nötigste – kein Spurname, keine Feinschritte, kein Kürzen/Zoom (Griffe und Ziehen gehen weiter)
+  const compact = width < 640;
+  const LABEL_W = compact ? 8 : 72;
   const plotW = Math.max(100, width - LABEL_W - 16);
   const x = (t: number) => LABEL_W + ((t - r0) / (r1 - r0)) * plotW;
   const tAt = (px: number) => r0 + ((px - LABEL_W) / plotW) * (r1 - r0);
@@ -453,17 +455,17 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
   // Mouse wheel / trackpad: vertical = zoom at the cursor (also pinch), horizontal or Shift = pan
   const zoomAtRef = useRef(zoomAt);
   const panByRef = useRef(panBy);
-  const viewRef = useRef({ r0, r1, plotW });
-  useLayoutEffect(() => { zoomAtRef.current = zoomAt; panByRef.current = panBy; viewRef.current = { r0, r1, plotW }; });
+  const viewRef = useRef({ r0, r1, plotW, labelW: LABEL_W });
+  useLayoutEffect(() => { zoomAtRef.current = zoomAt; panByRef.current = panBy; viewRef.current = { r0, r1, plotW, labelW: LABEL_W }; });
   useEffect(() => {
     const el = wrap.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const { r0, r1, plotW } = viewRef.current;
+      const { r0, r1, plotW, labelW } = viewRef.current;
       const rect = el.getBoundingClientRect();
       const px = e.clientX - rect.left - 8; // px-2 padding
-      const anchor = r0 + ((px - LABEL_W) / plotW) * (r1 - r0);
+      const anchor = r0 + ((px - labelW) / plotW) * (r1 - r0);
       const horizontal = e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY);
       if (horizontal) panByRef.current(((e.shiftKey ? e.deltaY : e.deltaX) / plotW) * (r1 - r0));
       else zoomAtRef.current(Math.max(r0, Math.min(r1, anchor)), Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.0025)));
@@ -545,15 +547,16 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
   return (
     <div className="shrink-0 border-t border-white/10 bg-[#0b0d10]">
       <div className="min-h-11 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 border-b border-white/5">
-        <button onClick={onTogglePlay} className="h-8 px-3 rounded-full bg-[#CCFF00] text-black font-semibold hover:brightness-110 text-sm flex items-center gap-1.5">
-          {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? t('Pause') : t('Play')}
+        <button onClick={onTogglePlay} aria-label={playing ? t('Pause') : t('Play')} className={`h-8 rounded-full bg-[#CCFF00] text-black font-semibold hover:brightness-110 text-sm flex items-center justify-center gap-1.5 ${compact ? 'w-8' : 'px-3'}`}>
+          {playing ? <Pause size={14} /> : <Play size={14} />} {!compact && (playing ? t('Pause') : t('Play'))}
         </button>
         <span className="font-mono text-sm text-white/70">{t('Video')} {fmt(videoTime, true)} <span className="text-white/35">/ {fmt(videoDur)}</span></span>
         <span className="text-white/30 text-sm">=</span>
         <label className="flex items-center gap-2" title={t('Stelle der Aufzeichnung, die das Video gerade zeigt – eintippen (z. B. 8:40) oder den Video-Balken ziehen')}>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#CCFF00]">{t('Aufzeichnung')}</span>
+          {!compact && <span className="text-[10px] font-bold uppercase tracking-widest text-[#CCFF00]">{t('Aufzeichnung')}</span>}
           <TimeInput value={head} onCommit={t => onOffset(t - videoTime)} />
         </label>
+        {!compact && <>
         <div className="flex items-center gap-1">
           {[-1, -0.1, 0.1, 1].map(d => (
             <button key={d} onClick={() => onOffset(offset + d)} className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-xs font-mono">
@@ -577,6 +580,7 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
           <button onClick={fitVideo} title={t('Auf das Video zoomen')} className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-xs">{t('Video')}</button>
           <button onClick={() => setView(null)} disabled={!view} title={t('Alles zeigen')} className="h-8 px-2 rounded-md bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 text-xs">{t('Alles')}</button>
         </div>
+        </>}
       </div>
       <div ref={wrap} className="px-2 select-none">
         <svg width={width} height={H} onClick={onLaneClick} style={{ display: 'block', cursor: 'pointer' }}>
@@ -596,8 +600,10 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
             </g>
           ))}
           </g>
+          {!compact && <>
           <text x={8} y={TRACK_Y + TRACK_H / 2 + 3} fill="rgba(255,255,255,0.45)" fontSize={10} fontWeight={700} letterSpacing={1}>{t('TRACK')}</text>
           <text x={8} y={VIDEO_Y + VIDEO_H / 2 + 3} fill="rgba(255,255,255,0.45)" fontSize={10} fontWeight={700} letterSpacing={1}>{t('VIDEO')}</text>
+          </>}
 
           <g clipPath="url(#sync-plot)">
           {/* track: full recording as a lane, speed as a waveform, stops marked */}
