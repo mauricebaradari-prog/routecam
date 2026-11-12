@@ -1664,7 +1664,7 @@ export default function GlobeMap({
       </svg>
       <div 
         ref={vehicleDotRef}
-        className="absolute w-4 h-4 bg-[#CCFF00] rounded-full border-2 border-black pointer-events-none z-20"
+        className="absolute w-4 h-4 bg-[#CCFF00] rounded-full border-2 border-black pointer-events-none z-[41]"
         style={{ 
           top: 0, left: 0,
           marginLeft: '-8px', marginTop: '-8px',
@@ -1676,7 +1676,7 @@ export default function GlobeMap({
       
       <div 
         ref={distanceBadgeRef}
-        className="absolute pointer-events-none z-20 flex flex-col items-center justify-center bg-black/80 [@media(pointer:fine)]:backdrop-blur-md rounded-lg border border-white/10 [@media(pointer:fine)]:shadow-xl"
+        className="absolute pointer-events-none z-40 flex flex-col items-center justify-center bg-black/80 [@media(pointer:fine)]:backdrop-blur-md rounded-lg border border-white/10 [@media(pointer:fine)]:shadow-xl"
         style={{
           top: 0, left: 0,
           marginLeft: '-35px', marginTop: '-50px',
