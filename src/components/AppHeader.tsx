@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
-import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Layers, ShieldCheck, Info, SquareUser as UserSquare, Smartphone } from 'lucide-react';
+import { Menu, Search, Plus, User, X, Map as MapIcon, LayoutGrid, ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Settings, LifeBuoy, Layers, ShieldCheck, Info, SquareUser as UserSquare, Smartphone, ListChecks } from 'lucide-react';
 import { useDb } from '@/lib/db';
 import { channelHref, ownerOf } from '@/lib/channels';
 import { useAllRoutes } from '@/lib/userRoutes';
@@ -369,6 +369,7 @@ function AccountMenu({ variant = 'header' }: { variant?: 'header' | 'bottom' }) 
                 <MenuLink href="/settings" icon={<Settings size={16} />} onClick={() => setOpen(false)}>{t('Einstellungen')}</MenuLink>
                 <MenuLink href="/about#support" icon={<LifeBuoy size={16} />} onClick={() => setOpen(false)}>Support</MenuLink>
                 {isFounder && <MenuLink href="/admin" icon={<ShieldCheck size={16} />} onClick={() => setOpen(false)}>Admin</MenuLink>}
+                {isFounder && <MenuLink href="/admin#launch" icon={<ListChecks size={16} />} onClick={() => setOpen(false)}>Launchliste</MenuLink>}
                 {bottom && <MenuLink href="/tracker" icon={<Smartphone size={16} />} onClick={() => setOpen(false)}>{t('GPS Tracker App')}</MenuLink>}
                 {bottom && <MenuLink href="/about" icon={<Info size={16} />} onClick={() => setOpen(false)}>About</MenuLink>}
               </div>

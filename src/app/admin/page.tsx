@@ -20,6 +20,7 @@ import { REPORT_REASONS } from '@/lib/routeInteractions';
 import { COMMENT_REPORT_REASONS, formatCommentTime } from '@/lib/routeComments';
 import { channelHref } from '@/lib/channels';
 import { ROUTES } from '@/data/routes';
+import LaunchTab from './LaunchTab';
 
 // ── Data shapes (as the admin_* functions return them) ──────────────────────
 type Period = 'today' | 'd7' | 'd30' | 'all';
@@ -56,6 +57,7 @@ const TABS = [
   { id: 'activity', label: 'Aktivität' },
   { id: 'users', label: 'Nutzer' },
   { id: 'routes', label: 'Fahrten' },
+  { id: 'launch', label: 'Launchliste' },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
 
@@ -114,7 +116,22 @@ export default function AdminPage() {
   const { me } = useDb();
   const isFounder = !!me?.is_founder;
 
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTabState] = useState<Tab>('overview');
+  const [reloadKey, setReloadKey] = useState(0);
+  // the tab is in the address (#launch …), so the menu can link straight to it
+  const setTab = useCallback((t: Tab) => {
+    setTabState(t);
+    try { history.replaceState(null, '', t === 'overview' ? location.pathname : `#${t}`); } catch {}
+  }, []);
+  useEffect(() => {
+    const fromHash = () => {
+      const h = location.hash.slice(1);
+      if (TABS.some(t => t.id === h)) setTabState(h as Tab);
+    };
+    fromHash();
+    window.addEventListener('hashchange', fromHash);
+    return () => window.removeEventListener('hashchange', fromHash);
+  }, []);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
@@ -185,7 +202,7 @@ export default function AdminPage() {
           <span className="hidden sm:inline text-xs text-neutral-500 adark:text-neutral-400">
             {loading ? 'Lädt …' : loadedAt ? <>Stand {new Date(loadedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</> : null}
           </span>
-          <button onClick={load} disabled={loading} className={btnSecondary}>Aktualisieren</button>
+          <button onClick={() => { load(); setReloadKey(k => k + 1); }} disabled={loading} className={btnSecondary}>Aktualisieren</button>
           <Link href="/" className={btnPrimary}>Zur App</Link>
         </>
       }
@@ -213,6 +230,7 @@ export default function AdminPage() {
       {tab === 'activity' && <ActivityTab items={activity} />}
       {tab === 'users' && <UsersTab users={users} />}
       {tab === 'routes' && <RoutesTab routes={routes} onChanged={load} />}
+      {tab === 'launch' && <LaunchTab reloadKey={reloadKey} />}
     </Shell>
   );
 }
