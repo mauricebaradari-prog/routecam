@@ -160,7 +160,7 @@ export default function LaunchTab({ reloadKey }: { reloadKey: number }) {
   }, [todos, filter, sortPrio]);
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl mx-auto">
       {/* summary + view controls */}
       <div className="flex flex-col gap-3 mb-8">
         <div className="flex items-baseline justify-between gap-3 flex-wrap">

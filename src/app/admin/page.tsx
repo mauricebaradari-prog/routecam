@@ -258,7 +258,7 @@ function useAdminTheme() {
 function Shell({ children, right }: { children?: React.ReactNode; right?: React.ReactNode }) {
   const { theme, toggle } = useAdminTheme();
   return (
-    <div data-admin-theme={theme} className="min-h-screen bg-neutral-50 adark:bg-neutral-950 text-neutral-900 adark:text-neutral-100">
+    <div data-admin-theme={theme} className="h-dvh overflow-y-auto bg-neutral-50 adark:bg-neutral-950 text-neutral-900 adark:text-neutral-100">
       <header className="sticky top-0 z-10 bg-white/90 adark:bg-neutral-900/90 backdrop-blur border-b border-neutral-200 adark:border-neutral-800">
         <div className="w-full px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-3">
           <span className="font-semibold">RouteCam</span>
