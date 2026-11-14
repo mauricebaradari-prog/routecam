@@ -248,3 +248,7 @@ body.is-dragging iframe {
 /* Toast „Fahrt angelegt“ kommt von unten */
 .rc-toast-in { animation: rcToastIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 @keyframes rcToastIn { from { transform: translateY(16px); opacity: 0; } }
+
+/* Tooltips (components/Tooltips.tsx): kurz einblenden */
+.rc-tip { animation: rc-tip-in 0.12s ease-out; }
+@keyframes rc-tip-in { from { opacity: 0; } to { opacity: 1; } }

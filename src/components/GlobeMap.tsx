@@ -1736,9 +1736,7 @@ export default function GlobeMap({
                   </g>
                 </svg>
                 <span ref={headingTextRef} style={{ color: '#fff', fontSize: '12px', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.03em', minWidth: '52px', textAlign: 'right' }}>N 0°</span>
-                <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}>
-                  <GripHorizontal size={14} />
-                </button>
+                <span data-tip={t('Ziehen zum Verschieben')} style={{ color: '#9ca3af', padding: '4px', pointerEvents: 'auto', cursor: 'grab', display: 'inline-flex' }}><GripHorizontal size={14} /></span>
               </div>
             )}
           </div>
@@ -1930,9 +1928,7 @@ export default function GlobeMap({
               <Gauge size={14} className="text-[#CCFF00]" />
               <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Tempo')}</h3>
             </div>
-            <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}>
-              <GripHorizontal size={14} />
-            </button>
+            <span data-tip={t('Ziehen zum Verschieben')} style={{ color: '#9ca3af', padding: '4px', pointerEvents: 'auto', cursor: 'grab', display: 'inline-flex' }}><GripHorizontal size={14} /></span>
           </div>
           {/* Tacho 0–150 km/h: Dreiviertelkreis, gefüllter Teil in der Routenfarbe, Rest als Skalenstriche */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 112px 1fr', alignItems: 'center' }} className="pointer-events-none">

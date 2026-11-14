@@ -449,6 +449,7 @@ export default function Home() {
         <button
           id="top-left-play-btn"
           onClick={handlePlayPause}
+          aria-label={state.isAnimating ? t('Pause') : t('Abspielen')}
           disabled={!canAnimate}
           className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl backdrop-blur-md transition-all border ${
             canAnimate

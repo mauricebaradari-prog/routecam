@@ -405,7 +405,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
           </button>
           {likeBtn(true)}
           <div className="relative">
-            <button type="button" onClick={() => setMobileStars(s => !s)} className="inline-flex items-center gap-1 h-8 px-2.5 rounded-full bg-white/10 text-white">
+            <button type="button" onClick={() => setMobileStars(s => !s)} aria-label={t('Bewerten')} className="inline-flex items-center gap-1 h-8 px-2.5 rounded-full bg-white/10 text-white">
               <Star size={15} className={stats.myRating ? 'text-[#CCFF00]' : ''} fill={stats.myRating ? 'currentColor' : 'none'} />
               <span className="text-sm tabular-nums">{formatRating(stats.avgRating)}</span>
             </button>
@@ -458,7 +458,7 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
               <Users size={14} className="text-[#CCFF00]" />
               <h3 className="text-[11px] font-bold tracking-[0.05em] uppercase text-white">Community</h3>
             </div>
-            <GripHorizontal size={14} className="text-gray-400" />
+            <span data-tip={t('Ziehen zum Verschieben')} className="inline-flex"><GripHorizontal size={14} className="text-gray-400" /></span>
           </div>
 
           <div className="flex items-center gap-2">

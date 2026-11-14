@@ -490,5 +490,7 @@
 "Entfernen": "Убрать",
 "Kommentar löschen?": "Удалить комментарий?",
 "Die Antwort darauf wird mitgelöscht.": "Ответ на него тоже будет удалён.",
-"Die {n} Antworten darauf werden mitgelöscht.": "Ответы на него ({n}) тоже будут удалены."
+"Die {n} Antworten darauf werden mitgelöscht.": "Ответы на него ({n}) тоже будут удалены.",
+"Bewerten": "Оценить",
+"Ziehen zum Verschieben": "Перетащите, чтобы переместить"
 }

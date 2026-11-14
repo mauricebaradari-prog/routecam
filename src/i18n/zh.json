@@ -490,5 +490,7 @@
 "Entfernen": "移除",
 "Kommentar löschen?": "删除评论？",
 "Die Antwort darauf wird mitgelöscht.": "对它的回复也会一并删除。",
-"Die {n} Antworten darauf werden mitgelöscht.": "对它的 {n} 条回复也会一并删除。"
+"Die {n} Antworten darauf werden mitgelöscht.": "对它的 {n} 条回复也会一并删除。",
+"Bewerten": "评分",
+"Ziehen zum Verschieben": "拖动以移动"
 }

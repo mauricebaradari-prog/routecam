@@ -490,5 +490,7 @@
 "Entfernen": "外す",
 "Kommentar löschen?": "コメントを削除しますか？",
 "Die Antwort darauf wird mitgelöscht.": "このコメントへの返信も削除されます。",
-"Die {n} Antworten darauf werden mitgelöscht.": "このコメントへの{n}件の返信も削除されます。"
+"Die {n} Antworten darauf werden mitgelöscht.": "このコメントへの{n}件の返信も削除されます。",
+"Bewerten": "評価する",
+"Ziehen zum Verschieben": "ドラッグして移動"
 }

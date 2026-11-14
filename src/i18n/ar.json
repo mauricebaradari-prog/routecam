@@ -490,5 +490,7 @@
 "Entfernen": "إزالة",
 "Kommentar löschen?": "حذف التعليق؟",
 "Die Antwort darauf wird mitgelöscht.": "سيُحذف الرد عليه أيضًا.",
-"Die {n} Antworten darauf werden mitgelöscht.": "ستُحذف الردود عليه ({n}) أيضًا."
+"Die {n} Antworten darauf werden mitgelöscht.": "ستُحذف الردود عليه ({n}) أيضًا.",
+"Bewerten": "تقييم",
+"Ziehen zum Verschieben": "اسحب للنقل"
 }

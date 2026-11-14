@@ -490,5 +490,7 @@
 "Entfernen": "Remove",
 "Kommentar löschen?": "Delete comment?",
 "Die Antwort darauf wird mitgelöscht.": "The reply to it will be deleted too.",
-"Die {n} Antworten darauf werden mitgelöscht.": "The {n} replies to it will be deleted too."
+"Die {n} Antworten darauf werden mitgelöscht.": "The {n} replies to it will be deleted too.",
+"Bewerten": "Rate",
+"Ziehen zum Verschieben": "Drag to move"
 }

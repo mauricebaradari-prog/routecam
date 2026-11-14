@@ -490,5 +490,7 @@
 "Entfernen": "Αφαίρεση",
 "Kommentar löschen?": "Διαγραφή σχολίου;",
 "Die Antwort darauf wird mitgelöscht.": "Θα διαγραφεί και η απάντηση.",
-"Die {n} Antworten darauf werden mitgelöscht.": "Θα διαγραφούν και οι {n} απαντήσεις."
+"Die {n} Antworten darauf werden mitgelöscht.": "Θα διαγραφούν και οι {n} απαντήσεις.",
+"Bewerten": "Αξιολόγηση",
+"Ziehen zum Verschieben": "Σύρετε για μετακίνηση"
 }

@@ -373,7 +373,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
         >
           <div className="sync-drag h-[34px] shrink-0 flex items-center gap-2 px-3 cursor-move text-white/50 hover:text-white/90">
             <span className="flex-1 min-w-0 text-[11px] font-bold tracking-wide uppercase text-white/80 truncate select-none">{t('Video')}</span>
-            <GripHorizontal size={18} className="shrink-0" />
+            <span data-tip={t('Ziehen zum Verschieben')} className="inline-flex shrink-0"><GripHorizontal size={18} /></span>
           </div>
           <div className="relative bg-black" style={{ height: 'calc(100% - 34px)' }}>
             <div ref={playerMount} className="absolute inset-0 [&_iframe]:w-full [&_iframe]:h-full" />
