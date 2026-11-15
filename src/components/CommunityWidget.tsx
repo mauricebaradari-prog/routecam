@@ -32,7 +32,7 @@ interface Props {
 // Floating "Community" window on the map: like, share, rate (1–5 stars), report (behind ⋯).
 export default function CommunityWidget({ routeId, routeName, activeWindow, setActiveWindow, defaultY, currentSeconds, commentCount, onAddComment, comments, activeCommentIds, onSeekToSeconds }: Props) {
   useT();
-  const { statsOf, toggleLike, rate, report } = useRouteInteractions();
+  const { statsOf, addLike, rate, report } = useRouteInteractions();
   const stats = statsOf(routeId);
   const [isMobile, setIsMobile] = useState(false);
   const [landscape, setLandscape] = useState(false);
@@ -140,8 +140,8 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const likeBtn = (compact: boolean) => (
     <button
       type="button"
-      onClick={() => { if (stats.liked || allowInteraction()) toggleLike(routeId, currentSeconds > 0 ? currentSeconds : undefined); }}
-      title={stats.liked ? t('Gefällt mir nicht mehr') : t('Gefällt mir')}
+      onClick={() => { if (allowInteraction()) addLike(routeId, currentSeconds > 0 ? currentSeconds : undefined); }}
+      title={t('Gefällt mir')}
       className={`inline-flex items-center gap-1.5 rounded-full transition-colors ${compact ? 'h-8 px-2.5' : 'h-9 px-3.5'} ${
         stats.liked ? 'bg-[#CCFF00]/15 text-[#CCFF00]' : 'bg-white/10 text-white hover:bg-white/20'
       }`}

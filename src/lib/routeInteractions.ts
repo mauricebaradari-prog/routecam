@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { db, dbError, setDb, useDb } from '@/lib/db';
+import { db, dbError, setDb, useDb, type LikeRow } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { t, locale, k } from '@/lib/i18n';
 
@@ -58,20 +58,19 @@ export function useRouteInteractions() {
     };
   }, [me, likes, ratings, myRouteReports, reportsOnMine]);
 
-  /** seconds: Stelle im Video, an der geliked wurde (erscheint als Peace-Symbol auf der Route) */
-  const toggleLike = useCallback(async (routeId: string, seconds?: number) => {
+  /** Jeder Klick ist ein weiterer Like (beliebig viele pro Person und Fahrt).
+   *  seconds: Stelle im Video, an der geliked wurde (erscheint als Peace-Symbol auf der Route) */
+  const addLike = useCallback(async (routeId: string, seconds?: number) => {
     const s = db();
     if (!s.me) return;
     const uid = s.me.id;
-    const before = s.likes;
-    const liked = before.some(l => l.route_id === routeId && l.user_id === uid);
     const at = seconds !== undefined && isFinite(seconds) ? Math.round(seconds * 10) / 10 : null;
-    setDb({ likes: liked ? before.filter(l => !(l.route_id === routeId && l.user_id === uid)) : [...before, { route_id: routeId, user_id: uid, seconds: at }] });
-    const q = supabase().from('likes');
-    let { error } = liked ? await q.delete().eq('route_id', routeId).eq('user_id', uid) : await q.insert({ route_id: routeId, seconds: at });
+    const mine: LikeRow = { route_id: routeId, user_id: uid, seconds: at };
+    setDb({ likes: [...db().likes, mine] });
+    let { error } = await supabase().from('likes').insert({ route_id: routeId, seconds: at });
     // Spalte „seconds“ noch nicht in der Datenbank → ohne Stelle speichern
-    if (error && !liked && /seconds/.test(error.message)) ({ error } = await supabase().from('likes').insert({ route_id: routeId }));
-    if (error) { setDb({ likes: before }); alert(dbError(error).message); }
+    if (error && /seconds/.test(error.message)) ({ error } = await supabase().from('likes').insert({ route_id: routeId }));
+    if (error) { setDb({ likes: db().likes.filter(l => l !== mine) }); alert(dbError(error).message); }
   }, []);
 
   // Clicking the current rating again removes it
@@ -100,7 +99,7 @@ export function useRouteInteractions() {
     if (error) { setDb({ myRouteReports: s.myRouteReports }); alert(dbError(error, t('Die Meldung konnte nicht gesendet werden.')).message); }
   }, []);
 
-  return { statsOf, toggleLike, rate, report };
+  return { statsOf, addLike, rate, report };
 }
 
 export function formatRating(avg: number | null) {
