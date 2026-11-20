@@ -16,9 +16,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 const isLong = u => /(^|\.)google\.[a-z.]+$/i.test(u.hostname) && !/^consent\./i.test(u.hostname) && (u.pathname.startsWith('/maps') || u.searchParams.has('saddr') || u.searchParams.has('daddr'));
 
 export async function onRequestGet({ request }) {
-  const params = new URL(request.url).searchParams;
-  const raw = params.get('url') || '';
-  const debug = params.has('debug');
+  const raw = new URL(request.url).searchParams.get('url') || '';
   let target;
   try { target = new URL(raw.trim()); } catch { return json({ error: 'invalid' }, 400); }
 
@@ -56,7 +54,6 @@ export async function onRequestGet({ request }) {
       .replace(/\\\//g, '/').replace(/&amp;/g, '&');
     const found = html.match(/https:\/\/(?:www\.)?google\.[a-z.]+\/maps\/[^"'\s<>\\]+/i);
     if (found) { target = new URL(found[0]); continue; }
-    if (debug) return json({ error: 'no-route', hops, len: raw.length, head: raw.slice(0, 1200), google: [...raw.matchAll(/.{0,80}google.{0,120}/gi)].slice(0, 8).map(m => m[0]) }, 422);
     break;
   }
   return isLong(target) ? json({ url: target.toString() }) : json({ error: 'no-route', hops, last: `${target.hostname}${target.pathname.slice(0, 40)}` }, 422);

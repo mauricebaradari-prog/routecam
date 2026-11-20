@@ -74,7 +74,8 @@ export function parseMapsUrl(href: string): MapsRoute | null {
 }
 
 function nameOf(w: Waypoint) {
-  return 'name' in w ? w.name.split(',')[0].trim() : `${w.lat.toFixed(3)}, ${w.lng.toFixed(3)}`;
+  // nur der Ortsname: bis zum ersten Komma (auch arabisch „،“), ohne Plus-Code wie „XF63+55R“
+  return 'name' in w ? w.name.split(/[,،]/)[0].replace(/\s*[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\s*/g, ' ').replace(/[\u200e\u200f\u202a-\u202e]/g, '').trim() : `${w.lat.toFixed(3)}, ${w.lng.toFixed(3)}`;
 }
 
 async function geocode(name: string): Promise<{ lat: number; lng: number }> {
