@@ -84,3 +84,26 @@ export function baseTimeFromDurations(coords: { lat: number; lng: number }[], du
   if (out[out.length - 1][0] < 1) out.push([1, +T.toFixed(1)]);
   return out;
 }
+
+/** Pause auf der Strecke: an Stelle d (0–1) stand man s Sekunden */
+export interface RoutePause { d: number; s: number }
+
+/**
+ * Pausen → Stopps im Video. Die Fahrzeit ist die Videolänge ohne die Pausen; sie wird nach der
+ * Grundschätzung über die Strecke verteilt. Jede Pause beginnt, wenn man ihre Stelle erreicht, und
+ * hält den Punkt so lange fest.
+ */
+export function anchorsFromPauses(pauses: RoutePause[], baseTime: BaseTime | undefined, videoDur: number): SyncAnchor[] {
+  const base = baseTime && baseTime.length >= 2 ? baseTime : UNIFORM;
+  const B = (d: number) => interp(base, d, 0, 1);
+  const total = B(1) || 1;
+  const sorted = [...pauses].filter(p => p.s > 0).sort((a, b) => a.d - b.d);
+  const paused = sorted.reduce((sum, p) => sum + p.s, 0);
+  const moving = Math.max(0, videoDur - paused);
+  let before = 0;
+  return sorted.map(p => {
+    const v = (B(p.d) / total) * moving + before;
+    before += p.s;
+    return { v: +v.toFixed(1), d: p.d, until: +(v + p.s).toFixed(1) };
+  });
+}

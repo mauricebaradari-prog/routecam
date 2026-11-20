@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Visibility } from '@/lib/routeVisibility';
 import type { TrackTimeline } from '@/lib/trackSync';
-import type { SyncAnchor, BaseTime } from '@/lib/estimatedTimeline';
+import type { SyncAnchor, BaseTime, RoutePause } from '@/lib/estimatedTimeline';
 import { loadAllRoutes, onUserRoutesChange } from '@/lib/userRoutes';
 
 export interface City {
@@ -40,6 +40,8 @@ export interface RouteConfig {
   /** Strecke ohne Zeitstempel: `timeline` ist geschätzt (Grundschätzung + Passpunkte/Stopps, siehe estimatedTimeline.ts) */
   estimated?: boolean;
   anchors?: SyncAnchor[];
+  /** Pausen auf der Strecke (Stelle + Dauer) – daraus entstehen die `anchors` */
+  pauses?: RoutePause[];
   baseTime?: BaseTime;
   syncOffset?: number;
   synced?: boolean;

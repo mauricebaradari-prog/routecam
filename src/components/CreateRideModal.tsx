@@ -280,7 +280,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                         : t('GPS aus der Kamera ({camera}) – den Start richtest du im nächsten Schritt aus', { camera: file.camera })}</span>
                     </>) : !file.stats.hasTime ? (<>
                       <AlertTriangle size={14} className="shrink-0" />
-                      {t('Keine Zeitstempel – im nächsten Schritt mit Stopps und Passpunkten ausrichten.')}
+                      {t('Keine Zeitstempel – im nächsten Schritt trägst du deine Pausen ein.')}
                     </>) : videoTooLong ? (<>
                       <AlertTriangle size={14} className="shrink-0" />
                       {t('Das Video ist länger als die Aufzeichnung – passt die Datei zum Video?')}
@@ -297,7 +297,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                   <p className="font-medium text-amber-200">{t('Mit einem Google-Maps-Link funktioniert nicht alles:')}</p>
                   <ul className="mt-1.5 space-y-0.5 list-disc pl-4 marker:text-amber-300/60">
                     <li>{t('Kein Tempo und kein Tacho – der Link enthält keine Zeitstempel.')}</li>
-                    <li>{t('Die Position im Video ist geschätzt – im nächsten Schritt machst du sie mit Stopps und Passpunkten genau.')}</li>
+                    <li>{t('Die Position im Video ist geschätzt – im nächsten Schritt trägst du ein, wo und wie lange du angehalten hast.')}</li>
                     <li>{t('Die Strecke ist die von Google geplante Route: Umwege, Pausen und abweichende Wege fehlen.')}</li>
                     <li>{t('Das Höhenprofil kommt aus Geländedaten statt aus deinem GPS.')}</li>
                   </ul>

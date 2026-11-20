@@ -12,8 +12,8 @@ import { releaseRideCreated } from '@/lib/rideCreated';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as maplibregl from 'maplibre-gl';
-import { ArrowLeft, Pause, Play, RotateCcw, Check, Info, ZoomIn, ZoomOut, GripHorizontal, Scissors, MapPin, PauseCircle, X as XIcon } from 'lucide-react';
-import { buildEstimatedTimeline, type SyncAnchor } from '@/lib/estimatedTimeline';
+import { ArrowLeft, Pause, Play, RotateCcw, Check, Info, ZoomIn, ZoomOut, GripHorizontal, Scissors, X as XIcon } from 'lucide-react';
+import { buildEstimatedTimeline, anchorsFromPauses, type RoutePause } from '@/lib/estimatedTimeline';
 import { Rnd } from 'react-rnd';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 import type { RouteConfig } from '@/hooks/useEditorState';
@@ -85,10 +85,12 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   }, [routeId, dbLoaded, authReady, loaded]);
 
   const videoDur = route?.durationSeconds ?? 0;
-  // Strecke ohne Zeitstempel (Google-Maps-Link, GPX ohne Zeiten): statt Versatz Stopps und Passpunkte
+  // Strecke ohne Zeitstempel (Google-Maps-Link, GPX ohne Zeiten): statt Versatz Pausen auf der Strecke –
+  // Stelle anklicken, eingeben wie lange man dort stand; den Rest rechnet die App
   const pinMode = !!route && (!!route.estimated || (!route.timeline && route.source === 'track'));
-  const [anchors, setAnchors] = useState<SyncAnchor[]>([]);
+  const [pauses, setPauses] = useState<RoutePause[]>([]);
   const line = useLine(route);
+  const anchors = useMemo(() => anchorsFromPauses(pauses, route?.baseTime, videoDur), [pauses, route?.baseTime, videoDur]);
   const pinTl = useMemo(
     () => (pinMode && route ? buildEstimatedTimeline({ baseTime: route.baseTime, anchors, videoDur, distanceKm: line.km }) : undefined),
     [pinMode, route, anchors, videoDur, line.km],
@@ -101,7 +103,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   const [prevRoute, setPrevRoute] = useState(route);
   if (route !== prevRoute) {
     setPrevRoute(route);
-    if (route) { setOffsetState(route.estimated ? 0 : route.syncOffset ?? 0); setAnchors(route.anchors ?? []); }
+    if (route) { setOffsetState(route.estimated ? 0 : route.syncOffset ?? 0); setPauses(route.pauses ?? []); }
   }
   const setOffset = useCallback((o: number) => {
     if (!tl) return;
@@ -264,16 +266,16 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
   }, [posFrac, line]);
 
 
-  // ── Passpunkte & Stopps (nur ohne Zeitstempel) ──
-  // pick: nächster Klick auf die Karte setzt einen Passpunkt bzw. den Ort eines Stopps
-  const [pick, setPick] = useState<null | 'here' | 'stop'>(null);
-  const [openStop, setOpenStop] = useState<number | null>(null); // Videosekunde, an der ein Stopp begann (Ende fehlt noch)
+  // ── Pausen auf der Strecke (nur ohne Zeitstempel) ──
+  // edit: offenes Fenster an einer Stelle der Strecke (neue Pause oder bestehende ändern)
+  const [edit, setEdit] = useState<{ d: number; index: number | null; min: string; sec: string; x: number; y: number } | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
   useEffect(() => {
     if (!pinError) return;
     const id = setTimeout(() => setPinError(null), 5000);
     return () => clearTimeout(id);
   }, [pinError]);
+  const pausedTotal = pauses.reduce((sum, p) => sum + p.s, 0);
 
   const posFracRef = useRef(0);
   useLayoutEffect(() => { posFracRef.current = posFrac; });
@@ -297,92 +299,70 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     return near.reduce((best, h) => (Math.abs(h.f - posFracRef.current) < Math.abs(best.f - posFracRef.current) ? h : best)).f;
   }, [line]);
 
-  /** passt der neue Punkt in die Reihenfolge? (später im Video = weiter auf der Strecke) */
-  const checkOrder = useCallback((v: number, d: number, until?: number): string | null => {
-    for (const a of anchors) {
-      const end = a.until ?? a.v;
-      if (v >= a.v - 0.5 && v <= end + 0.5 && a.until !== undefined) return t('Zu dieser Videostelle gibt es schon einen Stopp.');
-      if (a.v < v && a.d > d + 0.002) return t('Diese Stelle liegt auf der Strecke vor einem früheren Punkt. Später im Video muss weiter auf der Strecke sein.');
-      if (a.v > v && a.d < d - 0.002) return t('Diese Stelle liegt auf der Strecke hinter einem späteren Punkt. Später im Video muss weiter auf der Strecke sein.');
-      if (until !== undefined && a.v > v && a.v < until) return t('Zwischen Anfang und Ende des Stopps liegt schon ein anderer Punkt.');
-    }
-    return null;
-  }, [anchors]);
+  /** Fenster an einer Stelle öffnen: neue Pause (index null) oder bestehende */
+  const openEditor = useCallback((d: number, index: number | null) => {
+    const map = mapRef.current, pos = line.pointAt(d);
+    if (!map || !pos) return;
+    const pt = map.project(pos);
+    const s = index !== null ? pauses[index].s : 60;
+    setEdit({ d, index, min: String(Math.floor(s / 60)), sec: String(Math.round(s % 60)), x: pt.x, y: pt.y });
+    setPinError(null);
+  }, [line, pauses]);
+  const openRef = useRef(openEditor);
+  useLayoutEffect(() => { openRef.current = openEditor; });
+  const pausesRef = useRef(pauses);
+  useLayoutEffect(() => { pausesRef.current = pauses; });
 
-  // Klick auf die Karte, während „Hier bin ich“ oder „Stopp“ aktiv ist
-  const pickRef = useRef<{ pick: typeof pick; handle: (f: number) => void }>({ pick: null, handle: () => {} });
-  const pickNow = {
-    pick,
-    handle: (f: number) => {
-      const v = +videoTime.toFixed(1);
-      const err = checkOrder(v, f);
-      if (err) { setPinError(err); return; }
-      if (pick === 'stop') {
-        setAnchors(list => [...list.filter(a => Math.abs(a.v - v) > 0.5), { v, d: +f.toFixed(5), until: v }]);
-        setOpenStop(v);
-      } else {
-        setAnchors(list => [...list.filter(a => Math.abs(a.v - v) > 0.5), { v, d: +f.toFixed(5) }]);
-      }
-      setPick(null);
-      setPinError(null);
-    },
-  };
-  useLayoutEffect(() => { pickRef.current = pickNow; });
+  // Klick auf die Strecke → Pause an dieser Stelle (liegt dort schon eine, wird sie geöffnet)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !pinMode) return;
     const onClick = (e: maplibregl.MapMouseEvent) => {
-      if (!pickRef.current.pick) return;
       const f = fracAt(e.lngLat);
-      if (f === null) { setPinError(t('Bitte direkt auf die Strecke klicken.')); return; }
-      pickRef.current.handle(f);
+      if (f === null) { setEdit(null); return; }
+      const near = pausesRef.current.findIndex(p => Math.abs(p.d - f) * line.km < 0.05); // innerhalb 50 m
+      openRef.current(near >= 0 ? pausesRef.current[near].d : f, near >= 0 ? near : null);
     };
+    const close = () => setEdit(null);
     map.on('click', onClick);
-    return () => { map.off('click', onClick); };
-  }, [mapReady, pinMode, fracAt]);
-  useEffect(() => {
-    const c = mapRef.current?.getCanvas();
-    if (c) c.style.cursor = pick ? 'crosshair' : '';
-  }, [pick, mapReady]);
+    map.on('movestart', close);
+    const c = map.getCanvas();
+    c.style.cursor = 'pointer';
+    return () => { map.off('click', onClick); map.off('movestart', close); c.style.cursor = ''; };
+  }, [mapReady, pinMode, fracAt, line.km]);
 
-  const endStop = useCallback(() => {
-    if (openStop === null) return;
-    const until = +videoTime.toFixed(1);
-    if (until < openStop + 1) { setPinError(t('Das Ende des Stopps muss später im Video liegen als sein Anfang.')); return; }
-    const a = anchors.find(x => x.v === openStop);
-    if (!a) { setOpenStop(null); return; }
-    // zwischen Anfang und Ende darf kein anderer Punkt liegen
-    if (anchors.some(o => o !== a && o.v > a.v - 0.5 && o.v < until + 0.5)) { setPinError(t('Zwischen Anfang und Ende des Stopps liegt schon ein anderer Punkt.')); return; }
-    setAnchors(list => list.map(x => (x === a ? { ...x, until } : x)));
-    setOpenStop(null);
-  }, [openStop, videoTime, anchors]);
+  const saveEdit = useCallback(() => {
+    if (!edit) return;
+    const s = (parseInt(edit.min || '0', 10) || 0) * 60 + (parseInt(edit.sec || '0', 10) || 0);
+    if (s <= 0) { setPinError(t('Bitte eine Dauer eingeben.')); return; }
+    const others = pauses.filter((_, i) => i !== edit.index).reduce((sum, p) => sum + p.s, 0);
+    if (others + s >= videoDur) { setPinError(t('Alle Pausen zusammen müssen kürzer sein als das Video ({time}).', { time: fmt(videoDur) })); return; }
+    const next: RoutePause = { d: +edit.d.toFixed(5), s };
+    setPauses(list => edit.index !== null ? list.map((p, i) => (i === edit.index ? next : p)) : [...list, next].sort((a, b) => a.d - b.d));
+    setEdit(null);
+  }, [edit, pauses, videoDur]);
+  const removePause = useCallback((index: number) => {
+    setPauses(list => list.filter((_, i) => i !== index));
+    setEdit(null);
+  }, []);
 
-  const removeAnchor = useCallback((v: number) => {
-    setAnchors(list => list.filter(a => a.v !== v));
-    if (openStop === v) setOpenStop(null);
-  }, [openStop]);
-
-  // Passpunkte und Stopps als Nadeln auf der Karte (Klick = Video an diese Stelle)
+  // Pausen als Nadeln auf der Karte, mit ihrer Dauer
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !pinMode) return;
-    const sorted = [...anchors].sort((a, b) => a.v - b.v);
-    let n = 0;
-    const markers = sorted.map(a => {
-      const pos = line.pointAt(a.d);
+    const markers = pauses.map((p, i) => {
+      const pos = line.pointAt(p.d);
       if (!pos) return null;
-      const stop = a.until !== undefined;
-      if (!stop) n++;
       const el = document.createElement('button');
       el.type = 'button';
-      el.title = stop ? `${t('Stopp')} ${fmt(a.v)} – ${fmt(a.until!)}` : `${t('Hier bin ich')} ${fmt(a.v)}`;
-      el.style.cssText = `width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 11px/1 system-ui;cursor:pointer;border:2px solid #000;box-shadow:0 2px 6px rgba(0,0,0,.5);${stop ? 'background:#f59e0b;color:#000' : 'background:#fff;color:#000'}`;
-      el.textContent = stop ? 'II' : String(n);
-      el.addEventListener('click', ev => { ev.stopPropagation(); seekVideo(a.v); });
+      el.title = t('Pause {time} – ändern oder entfernen', { time: fmt(p.s) });
+      el.style.cssText = 'height:22px;padding:0 8px;border-radius:11px;display:flex;align-items:center;gap:4px;font:700 11px/1 ui-monospace,monospace;cursor:pointer;border:2px solid #000;box-shadow:0 2px 6px rgba(0,0,0,.5);background:#f59e0b;color:#000;white-space:nowrap';
+      el.textContent = `❚❚ ${fmt(p.s)}`;
+      el.addEventListener('click', ev => { ev.stopPropagation(); openRef.current(p.d, i); });
       return new maplibregl.Marker({ element: el }).setLngLat(pos).addTo(map);
     });
     return () => { markers.forEach(m => m?.remove()); };
-  }, [anchors, mapReady, pinMode, line, seekVideo]);
+  }, [pauses, mapReady, pinMode, line]);
 
   // ── Keyboard: ←/→ 1 s, Shift 10 s, Alt 0.1 s; Space play/pause ──
   useEffect(() => {
@@ -406,7 +386,7 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
     if (!route) return;
     if (pinMode) {
       try {
-        await updateUserRoute(route.id, { estimated: true, anchors, timeline: pinTl, syncOffset: 0, synced: true });
+        await updateUserRoute(route.id, { estimated: true, pauses, anchors, timeline: pinTl, syncOffset: 0, synced: true });
       } catch (e) {
         alert((e as Error).message);
         return;
@@ -453,13 +433,13 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
       <header className="h-14 shrink-0 flex items-center gap-3 px-4 border-b border-white/10">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center" title={t('Zurück ohne Speichern')}><ArrowLeft size={18} /></button>
         <div className="min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">{pinMode ? t('Video ausrichten · Stopps & Passpunkte') : t('Video ausrichten')}</div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-white/40">{pinMode ? t('Pausen auf der Strecke') : t('Video ausrichten')}</div>
           <div className="text-sm font-semibold truncate">{route.name}</div>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <button
-            onClick={() => { if (pinMode) { setAnchors(route.anchors ?? []); setOpenStop(null); setPick(null); } else { setOffset(savedOffset); setTrimAuto(true); } }}
-            disabled={pinMode ? JSON.stringify(anchors) === JSON.stringify(route.anchors ?? []) : Math.abs(offset - savedOffset) < 0.05 && trimAuto}
+            onClick={() => { if (pinMode) { setPauses(route.pauses ?? []); setEdit(null); } else { setOffset(savedOffset); setTrimAuto(true); } }}
+            disabled={pinMode ? JSON.stringify(pauses) === JSON.stringify(route.pauses ?? []) : Math.abs(offset - savedOffset) < 0.05 && trimAuto}
             className="h-9 px-3 rounded-full text-sm text-white/70 hover:bg-white/10 disabled:opacity-30 flex items-center gap-1.5"
           ><RotateCcw size={14} /> {t('Zurücksetzen')}</button>
           <button onClick={finish} className="h-9 px-4 rounded-full text-sm font-semibold bg-[#CCFF00] text-black hover:brightness-110 flex items-center gap-1.5">
@@ -480,11 +460,11 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
             <span><span className="text-white/40">{t('Strecke')}</span> <span className="font-mono">{line.km.toFixed(1)} km</span></span>
             <span><span className="text-white/40">{t('Position')}</span> <span className="font-mono">km {(posFrac * line.km).toFixed(1)}</span></span>
           </div>
-          <p className="rounded-lg bg-black/70 backdrop-blur-md border border-[#CCFF00]/25 px-3 py-2 text-xs text-white/70 flex gap-1.5 max-w-md"><Info size={14} className="shrink-0 mt-px text-[#CCFF00]" />
-            {route.baseTime
-              ? t('Diese Strecke hat keine Zeitstempel. Die Position im Video ist nach der geschätzten Fahrzeit verteilt – mit Stopps und Passpunkten wird sie genau.')
-              : t('Diese Strecke hat keine Zeitstempel. Die Position im Video ist gleichmäßig verteilt – mit Stopps und Passpunkten wird sie genau.')}
-          </p>
+          <div className="rounded-lg bg-black/75 backdrop-blur-md border border-[#CCFF00]/30 px-3.5 py-3 text-xs text-white/75 max-w-sm leading-relaxed">
+            <p className="text-sm font-semibold text-white">{t('Wo hast du angehalten?')}</p>
+            <p className="mt-1">{t('Klicke auf der Strecke auf die Stelle und gib ein, wie lange du dort standest. Den Rest rechnet RouteCam aus.')}</p>
+            <p className="mt-1 text-white/45">{t('Mit Play prüfst du, ob der Punkt auf der Karte zum Video passt.')}</p>
+          </div>
         </div>
         ) : (
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-2 max-w-[calc(100%-24px)] pointer-events-none">
@@ -511,6 +491,18 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
             </p>
           )}
         </div>
+        )}
+
+        {pinMode && edit && (
+          <PauseEditor
+            edit={edit}
+            km={edit.d * line.km}
+            onChange={(min, sec) => setEdit(e => (e ? { ...e, min, sec } : e))}
+            onSave={saveEdit}
+            onRemove={edit.index !== null ? () => removePause(edit.index!) : undefined}
+            onCancel={() => setEdit(null)}
+            error={pinError}
+          />
         )}
 
         <Rnd
@@ -544,15 +536,12 @@ export default function SyncEditor({ routeId }: { routeId: string | null }) {
           playing={playing}
           onTogglePlay={togglePlay}
           onSeekVideo={seekVideo}
+          pauses={pauses}
           anchors={anchors}
           lineKm={line.km}
-          pick={pick}
-          onPick={p => { setPick(p); setPinError(null); }}
-          openStop={openStop}
-          onEndStop={endStop}
-          onRemove={removeAnchor}
-          error={pinError}
-          hasBase={!!route.baseTime}
+          pausedTotal={pausedTotal}
+          onOpen={i => openEditor(pauses[i].d, i)}
+          onRemove={removePause}
         />
       ) : (
       <SyncTimeline
@@ -851,114 +840,82 @@ function SyncTimeline({ tl, videoDur, offset, trim, trimAuto, onTrim, onTrimToVi
   );
 }
 
-// ── Ohne Zeitstempel: Video-Zeitleiste mit Stopps und Passpunkten ──
-function PinPanel({ videoDur, videoTime, playing, onTogglePlay, onSeekVideo, anchors, lineKm, pick, onPick, openStop, onEndStop, onRemove, error, hasBase }: {
-  videoDur: number; videoTime: number; playing: boolean; onTogglePlay: () => void; onSeekVideo: (s: number) => void;
-  anchors: SyncAnchor[]; lineKm: number; pick: null | 'here' | 'stop'; onPick: (p: null | 'here' | 'stop') => void;
-  openStop: number | null; onEndStop: () => void; onRemove: (v: number) => void; error: string | null; hasBase: boolean;
+// ── Ohne Zeitstempel: Fenster für eine Pause an einer Stelle der Strecke ──
+function PauseEditor({ edit, km, onChange, onSave, onRemove, onCancel, error }: {
+  edit: { x: number; y: number; min: string; sec: string; index: number | null }; km: number;
+  onChange: (min: string, sec: string) => void; onSave: () => void; onRemove?: () => void; onCancel: () => void; error: string | null;
 }) {
-  const wrap = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(800);
-  useEffect(() => {
-    if (!wrap.current) return;
-    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
-    ro.observe(wrap.current);
-    return () => ro.disconnect();
-  }, []);
-  const compact = width < 640;
-  const PAD = 12;
-  const plotW = Math.max(100, width - PAD * 2);
-  const dur = Math.max(1, videoDur);
-  const x = (v: number) => PAD + (v / dur) * plotW;
-  const sorted = [...anchors].sort((a, b) => a.v - b.v);
-  const tickStep = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600].find(st => dur / st <= 12) ?? 7200;
-  const ticks: number[] = [];
-  for (let tt = 0; tt <= dur; tt += tickStep) ticks.push(tt);
-  const H = 64, BAR_Y = 22, BAR_H = 26;
+  const minRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { minRef.current?.focus(); minRef.current?.select(); }, []);
+  const field = 'w-14 h-10 rounded-lg bg-[#121212] border border-white/15 focus:border-[#CCFF00] outline-none text-center font-mono text-lg text-white';
+  const keys = (e: React.KeyboardEvent) => { if (e.key === 'Enter') onSave(); if (e.key === 'Escape') onCancel(); };
+  return (
+    <div className="absolute z-30 w-64 -translate-x-1/2 rounded-xl border border-white/15 bg-[#161616]/95 backdrop-blur-md shadow-2xl p-3.5 text-white"
+      style={{ left: edit.x, top: edit.y + 18 }} onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">{edit.index !== null ? t('Pause ändern') : t('Hier angehalten')}</p>
+        <span className="text-[11px] font-mono text-white/40">km {km.toFixed(1)}</span>
+      </div>
+      <p className="mt-0.5 text-xs text-white/50">{t('Wie lange hast du hier gestanden?')}</p>
+      <div className="mt-2.5 flex items-center gap-2">
+        <input ref={minRef} value={edit.min} onChange={e => onChange(e.target.value.replace(/\D/g, '').slice(0, 3), edit.sec)} onKeyDown={keys} inputMode="numeric" className={field} aria-label={t('Minuten')} />
+        <span className="text-xs text-white/50">{t('Min.')}</span>
+        <input value={edit.sec} onChange={e => onChange(edit.min, e.target.value.replace(/\D/g, '').slice(0, 2))} onKeyDown={keys} inputMode="numeric" className={field} aria-label={t('Sekunden')} />
+        <span className="text-xs text-white/50">{t('Sek.')}</span>
+      </div>
+      {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+      <div className="mt-3 flex items-center gap-2">
+        {onRemove && <button type="button" onClick={onRemove} className="h-8 px-2.5 rounded-full text-xs text-red-300 hover:bg-red-400/10">{t('Entfernen')}</button>}
+        <button type="button" onClick={onCancel} className="ml-auto h-8 px-3 rounded-full text-xs text-white/70 hover:bg-white/10">{t('Abbrechen')}</button>
+        <button type="button" onClick={onSave} className="h-8 px-3.5 rounded-full text-xs font-semibold bg-[#CCFF00] text-black hover:brightness-110">{t('Speichern')}</button>
+      </div>
+    </div>
+  );
+}
 
-  const btn = 'h-8 rounded-full text-sm font-medium flex items-center gap-1.5 px-3 transition-colors';
-  let n = 0;
+// ── Ohne Zeitstempel: Abspielen + Liste der Pausen ──
+function PinPanel({ videoDur, videoTime, playing, onTogglePlay, onSeekVideo, pauses, anchors, lineKm, pausedTotal, onOpen, onRemove }: {
+  videoDur: number; videoTime: number; playing: boolean; onTogglePlay: () => void; onSeekVideo: (s: number) => void;
+  pauses: RoutePause[]; anchors: { v: number; d: number; until?: number }[]; lineKm: number; pausedTotal: number;
+  onOpen: (index: number) => void; onRemove: (index: number) => void;
+}) {
+  const dur = Math.max(1, videoDur);
+  // Zeitleiste des Videos: Pausen als orange Abschnitte – nur zum Anschauen und Springen
   return (
     <div className="shrink-0 border-t border-white/10 bg-[#0b0d10]">
-      <div className="min-h-11 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 border-b border-white/5">
-        <button onClick={onTogglePlay} aria-label={playing ? t('Pause') : t('Play')} className={`h-8 rounded-full bg-[#CCFF00] text-black font-semibold hover:brightness-110 text-sm flex items-center justify-center gap-1.5 ${compact ? 'w-8' : 'px-3'}`}>
-          {playing ? <Pause size={14} /> : <Play size={14} />} {!compact && (playing ? t('Pause') : t('Play'))}
+      <div className="py-2 flex flex-wrap items-center gap-x-3 gap-y-2 px-4">
+        <button onClick={onTogglePlay} aria-label={playing ? t('Pause') : t('Play')} className="h-8 px-3 rounded-full bg-[#CCFF00] text-black font-semibold hover:brightness-110 text-sm flex items-center justify-center gap-1.5">
+          {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? t('Pause') : t('Play')}
         </button>
-        <span className="font-mono text-sm text-white/70">{t('Video')} {fmt(videoTime, true)} <span className="text-white/35">/ {fmt(videoDur)}</span></span>
-        {openStop !== null ? (
-          <>
-            <span className="text-xs text-amber-300">{t('Stopp seit {time} – spiel das Video bis zur Weiterfahrt', { time: fmt(openStop) })}</span>
-            <button onClick={onEndStop} className={`${btn} bg-amber-400 text-black hover:brightness-110`}><Play size={14} /> {t('Stopp endet hier')}</button>
-            <button onClick={() => onRemove(openStop)} className={`${btn} text-white/60 hover:bg-white/10`}>{t('Abbrechen')}</button>
-          </>
-        ) : pick ? (
-          <>
-            <span className="text-xs text-[#CCFF00]">{pick === 'stop'
-              ? t('Klicke auf der Karte, wo du bei {time} stehst', { time: fmt(videoTime) })
-              : t('Klicke auf der Karte, wo du bei {time} bist', { time: fmt(videoTime) })}</span>
-            <button onClick={() => onPick(null)} className={`${btn} text-white/60 hover:bg-white/10`}>{t('Abbrechen')}</button>
-          </>
-        ) : (
-          <>
-            <button onClick={() => onPick('here')} title={t('Video anhalten, dann auf der Karte zeigen, wo du gerade bist (Ortsschild, Kreuzung …)')}
-              className={`${btn} border border-white/20 hover:bg-white/10`}><MapPin size={14} /> {t('Hier bin ich')}</button>
-            <button onClick={() => onPick('stop')} title={t('Hier stehst du (Ampel, Pause, Fotostopp): Ort auf der Karte wählen, dann das Ende im Video setzen')}
-              className={`${btn} border border-amber-400/40 text-amber-300 hover:bg-amber-400/10`}><PauseCircle size={14} /> {t('Stopp')}</button>
-          </>
-        )}
-        {error && <span className="basis-full text-xs text-red-300">{error}</span>}
+        <span className="font-mono text-sm text-white/70">{fmt(videoTime)} <span className="text-white/35">/ {fmt(videoDur)}</span></span>
+        <span className="text-xs text-white/45">
+          {pauses.length === 1
+            ? t('1 Pause · {time}', { time: fmt(pausedTotal) })
+            : pauses.length
+            ? t('{n} Pausen · zusammen {time}', { n: pauses.length, time: fmt(pausedTotal) })
+            : t('Noch keine Pause – klicke auf der Karte auf die Strecke, wo du angehalten hast.')}
+        </span>
       </div>
-      <div ref={wrap} className="px-0 select-none">
-        <svg width={width} height={H} style={{ display: 'block', cursor: 'pointer', touchAction: 'none' }}
-          onClick={e => { const r = e.currentTarget.getBoundingClientRect(); onSeekVideo(((e.clientX - r.left - PAD) / plotW) * dur); }}>
-          {ticks.map(tt => (
-            <g key={tt}>
-              <line x1={x(tt)} x2={x(tt)} y1={14} y2={H - 4} stroke="rgba(255,255,255,0.06)" />
-              <text x={x(tt) + 3} y={11} fill="rgba(255,255,255,0.35)" fontSize={9} fontFamily="monospace">{fmt(tt)}</text>
-            </g>
+      <div className="px-4 pb-2.5">
+        <div className="relative h-2 rounded-full bg-white/[0.07] cursor-pointer"
+          onClick={e => { const r = e.currentTarget.getBoundingClientRect(); onSeekVideo(((e.clientX - r.left) / r.width) * dur); }}>
+          {anchors.map(a => a.until !== undefined && (
+            <span key={a.v} className="absolute inset-y-0 rounded-full bg-amber-400" style={{ left: `${(a.v / dur) * 100}%`, width: `${Math.max(0.5, ((a.until - a.v) / dur) * 100)}%` }} />
           ))}
-          <rect x={x(0)} y={BAR_Y} width={plotW} height={BAR_H} rx={6} fill="rgba(204,255,0,0.08)" stroke="rgba(204,255,0,0.35)" />
-          {sorted.map(a => {
-            const stop = a.until !== undefined;
-            if (!stop) n++;
-            return stop ? (
-              <g key={a.v} onClick={e => { e.stopPropagation(); onSeekVideo(a.v); }}>
-                <title>{t('Stopp {from} – {to} · km {km}', { from: fmt(a.v), to: fmt(a.until!), km: (a.d * lineKm).toFixed(1) })}</title>
-                <rect x={x(a.v)} y={BAR_Y} width={Math.max(4, x(a.until!) - x(a.v))} height={BAR_H} rx={3} fill="#f59e0b" opacity={0.85} />
-              </g>
-            ) : (
-              <g key={a.v} onClick={e => { e.stopPropagation(); onSeekVideo(a.v); }}>
-                <title>{t('Hier bin ich {time} · km {km}', { time: fmt(a.v), km: (a.d * lineKm).toFixed(1) })}</title>
-                <line x1={x(a.v)} x2={x(a.v)} y1={BAR_Y} y2={BAR_Y + BAR_H} stroke="#fff" strokeWidth={2} />
-                <circle cx={x(a.v)} cy={BAR_Y + BAR_H / 2} r={8} fill="#fff" stroke="#000" strokeWidth={1.5} />
-                <text x={x(a.v)} y={BAR_Y + BAR_H / 2 + 3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill="#000">{n}</text>
-              </g>
-            );
-          })}
-          <line x1={x(videoTime)} x2={x(videoTime)} y1={14} y2={H - 4} stroke="#ef4444" strokeWidth={1.5} pointerEvents="none" />
-          <circle cx={x(videoTime)} cy={16} r={4} fill="#ef4444" pointerEvents="none" />
-        </svg>
-        {/* Liste: anspringen oder löschen */}
-        <div className="px-3 pb-2 flex flex-wrap gap-1.5 min-h-8">
-          {!sorted.length && (
-            <p className="text-xs text-white/40 py-1">
-              {t('Noch keine Punkte. Tipp: Wo du stehst (Ampel, Pause, Fotostopp), setze einen Stopp. An markanten Stellen „Hier bin ich“. Beginnt das Video nicht am Start der Strecke, setze bei 0:00 „Hier bin ich“.')}
-              {!hasBase && ' '}
-            </p>
-          )}
-          {(() => { let k = 0; return sorted.map(a => {
-            const stop = a.until !== undefined;
-            if (!stop) k++;
-            return (
-              <span key={a.v} className={`inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full text-xs border ${stop ? 'border-amber-400/40 bg-amber-400/10 text-amber-200' : 'border-white/15 bg-white/[0.06] text-white/80'}`}>
-                <button type="button" onClick={() => onSeekVideo(a.v)} className="font-mono hover:underline">
-                  {stop ? `${t('Stopp')} ${fmt(a.v)}–${fmt(a.until!)}` : `${k} · ${fmt(a.v)}`} <span className="opacity-60">· km {(a.d * lineKm).toFixed(1)}</span>
-                </button>
-                <button type="button" onClick={() => onRemove(a.v)} aria-label={t('Punkt entfernen')} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/15"><XIcon size={12} /></button>
-              </span>
-            );
-          }); })()}
+          <span className="absolute -top-1 w-1 h-4 rounded-full bg-[#ef4444]" style={{ left: `calc(${(videoTime / dur) * 100}% - 2px)` }} />
         </div>
+        {!!pauses.length && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {pauses.map((p, i) => (
+              <span key={`${p.d}-${i}`} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full text-xs border border-amber-400/40 bg-amber-400/10 text-amber-200">
+                <button type="button" onClick={() => onOpen(i)} className="hover:underline">
+                  ❚❚ <span className="font-mono">{fmt(p.s)}</span> <span className="opacity-60">· km {(p.d * lineKm).toFixed(1)}</span>
+                </button>
+                <button type="button" onClick={() => onRemove(i)} aria-label={t('Pause entfernen')} className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/15"><XIcon size={12} /></button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
