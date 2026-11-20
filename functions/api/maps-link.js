@@ -34,18 +34,16 @@ export async function onRequestGet({ request }) {
       continue;
     }
     if (isLong(target)) return json({ url: target.toString() });
+    // Als Browser bekommt man eine Zwischenseite (Deeplink-Ansicht) ohne Ziel; einfache Programme
+    // bekommen die Weiterleitung direkt. Darum zuerst so anfragen, dann als Browser.
     let res;
-    try {
-      res = await fetch(target.toString(), {
-        redirect: 'manual',
-        headers: {
-          'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36',
-          'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'accept-language': 'en-US,en;q=0.9',
-        },
-      });
-    } catch {
-      return json({ error: 'fetch', hops }, 502);
+    for (const ua of ['curl/8.7.1', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36']) {
+      try {
+        res = await fetch(target.toString(), { redirect: 'manual', headers: { 'user-agent': ua, 'accept': '*/*', 'accept-language': 'en-US,en;q=0.9' } });
+      } catch {
+        return json({ error: 'fetch', hops }, 502);
+      }
+      if (res.headers.get('location')) break;
     }
     hops.push(`${res.status} ${target.hostname}${target.pathname.slice(0, 40)}`);
     const loc = res.headers.get('location');
