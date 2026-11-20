@@ -1,7 +1,8 @@
 'use client';
 // Auswahl der Bento-Ansicht: „Frei“ (Fenster verschiebbar, Standard) oder eine von sechs festen
 // Anordnungen. Die Vorschaubilder werden aus derselben Beschreibung gezeichnet wie das Raster selbst.
-import { Gauge, Map as MapIcon, Mountain, Move, Play, Users } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Gauge, LayoutGrid, Map as MapIcon, Mountain, Move, Play, Users } from 'lucide-react';
 import { PRESETS, setBentoPreset, useBentoPreset, type Preset, type Tile } from '@/lib/bento';
 import { t } from '@/lib/i18n';
 
@@ -61,6 +62,38 @@ export default function BentoPicker({ onPicked }: { onPicked?: () => void }) {
         })}
       </div>
       <p className="mt-2.5 px-1 text-[10px] leading-snug text-white/40">{t('In einer festen Anordnung lassen sich die Fenster nicht verschieben.')}</p>
+    </div>
+  );
+}
+
+/** Knopf in der Kopfzeile (links neben „GPS Tracker App“) mit der Auswahl als Aufklapp-Fenster – nur ab 1024 px */
+export function BentoButton() {
+  const current = useBentoPreset();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', down, true);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', down, true); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  const name = t(PRESETS.find(p => p.id === current)?.name ?? 'Frei');
+  return (
+    <div ref={box} className="relative hidden lg:block">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-label={t('Ansicht')}
+        title={t('Ansicht: {name}', { name })}
+        className={`w-9 h-9 rounded-full flex items-center justify-center border transition-colors ${open || current
+          ? 'bg-[#CCFF00]/15 text-[#CCFF00] border-[#CCFF00]/45'
+          : 'text-white border-white/15 hover:bg-white/10'}`}>
+        <LayoutGrid size={17} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-72 z-[80] bg-black/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+          <BentoPicker />
+        </div>
+      )}
     </div>
   );
 }

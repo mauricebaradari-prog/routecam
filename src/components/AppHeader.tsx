@@ -22,6 +22,7 @@ import { openConsent } from '@/lib/consent';
 import UserAvatar from '@/components/UserAvatar';
 import { consentCopy } from '@/components/ConsentBanner';
 import { useTrackerTeaserDismissed } from '@/lib/trackerTeaser';
+import { BentoButton } from '@/components/BentoPicker';
 
 export const HEADER_HEIGHT = 56;
 
@@ -133,6 +134,8 @@ export default function AppHeader({ routes, activeRouteId, onSelectRoute, onCrea
                   <IconButton label={t('Suchen')} onClick={() => setMobileSearch(true)}><Search size={20} /></IconButton>
                 </span>
               )}
+              {/* Hauptseite: Ansicht (frei / feste Bento-Anordnung), nur Desktop */}
+              {trackerCta && <BentoButton />}
               {/* Tracker-Teaser weggeklickt → der Weg zur App bleibt hier in der Kopfzeile */}
               {trackerCta && teaserGone && (
                 <>

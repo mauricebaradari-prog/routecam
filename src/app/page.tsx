@@ -3,9 +3,8 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Video, Volume2, VolumeX, LayoutGrid } from 'lucide-react';
-import BentoPicker from '@/components/BentoPicker';
-import { PRESETS, useBentoPreset, useBentoActive } from '@/lib/bento';
+import { Play, Pause, Video, Volume2, VolumeX } from 'lucide-react';
+import { useBentoActive } from '@/lib/bento';
 import { isVideoMuted, setVideoMuted } from '@/lib/videoMute';
 import { useEditorState, NO_ROUTE, type RouteConfig } from '@/hooks/useEditorState';
 import { useRouteVisibility } from '@/lib/routeVisibility';
@@ -38,8 +37,7 @@ const TrackerTeaser = dynamic(() => import('@/components/TrackerTeaser'), { ssr:
 export default function Home() {
   useT();
   const router = useRouter();
-  const [openModal, setOpenModal] = useState<'none' | 'speed' | 'camera' | 'layout'>('none');
-  const bentoPreset = useBentoPreset();
+  const [openModal, setOpenModal] = useState<'none' | 'speed' | 'camera'>('none');
   const bentoOn = useBentoActive();
 
   // Speed / camera panel: closes on a click anywhere outside (map, windows …) or Escape
@@ -515,19 +513,6 @@ export default function Home() {
               {muted ? <VolumeX size={18} className="text-[#CCFF00]" /> : <Volume2 size={18} className="text-white" />}
             </button>
             </>)}
-            {/* Ansicht: frei verschiebbar oder feste Bento-Anordnung – nur auf großen Bildschirmen */}
-            <button
-              onClick={() => setOpenModal(openModal === 'layout' ? 'none' : 'layout')}
-              className={`hidden lg:flex w-10 h-10 rounded-full items-center justify-center backdrop-blur-md transition-all border ${
-                openModal === 'layout' || bentoPreset
-                  ? 'bg-[#CCFF00]/20 text-[#CCFF00] border-[#CCFF00]/50'
-                  : 'bg-black/50 text-white border-white/10 hover:bg-black/70'
-              }`}
-              title={bentoPreset ? t('Ansicht: {name}', { name: t(PRESETS.find(p => p.id === bentoPreset)?.name ?? '') }) : t('Ansicht: {name}', { name: t('Frei') })}
-              aria-label={t('Ansicht')}
-            >
-              <LayoutGrid size={18} />
-            </button>
           </div>
 
           {/* Floating Panels */}
@@ -535,7 +520,7 @@ export default function Home() {
             <div 
               className="absolute left-14 w-72 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200"
               style={{
-                top: openModal === 'camera' ? 48 : openModal === 'layout' ? (hasRoute ? 144 : 0) : 0
+                top: openModal === 'camera' ? 48 : 0
               }}
             >
               
@@ -546,7 +531,6 @@ export default function Home() {
                   onChange={set}
                 />
               )}
-              {openModal === 'layout' && <BentoPicker />}
               {openModal === 'camera' && (
                 <CameraPanel
                   cameraMode={state.cameraMode}
