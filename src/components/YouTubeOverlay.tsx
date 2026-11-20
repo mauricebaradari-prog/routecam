@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { applyVideoMute } from '@/lib/videoMute';
 import { Rnd } from 'react-rnd';
+import { useBentoRect } from '@/lib/bento';
 import type { EditorState } from '@/hooks/useEditorState';
 import type { Visibility } from '@/lib/routeVisibility';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
@@ -281,6 +282,8 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
 
   const [isMobile, setIsMobile] = useState(false);
   const [landscape, setLandscape] = useState(false);
+  // Bento-Ansicht: feste Kachel – dasselbe Fenster (sonst lädt der Player neu), nur fest platziert
+  const bento = useBentoRect('V', !isMobile);
   // Handy quer mit offener Fahrt: Navigation unten rückt in die rechte Hälfte (siehe globals.css)
   useEffect(() => {
     const root = document.documentElement;
@@ -344,7 +347,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
   const estimated = !activeRoute?.synced;
 
   const headerContent = (
-    <div className="drag-handle w-full flex items-center justify-between cursor-move text-white/50 hover:text-white/90 transition-colors px-3" style={{ height: '38px', minHeight: '38px', flexShrink: 0 }}>
+    <div className={`drag-handle w-full flex items-center justify-between ${bento ? '' : 'cursor-move'} text-white/50 hover:text-white/90 transition-colors px-3`} style={{ height: '38px', minHeight: '38px', flexShrink: 0 }}>
       {visibility && (
         <span title={t('Sichtbarkeit: {v}', { v: visibilityLabel(visibility) })} className="shrink-0 mr-2.5 flex items-center">
           <VisibilityIcon v={visibility} size={15} />
@@ -464,10 +467,11 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
 
   return (
     <Rnd
-      position={cssFullDesktop ? { x: 0, y: 0 } : { x: pos.x, y: pos.y }}
-      size={cssFullDesktop ? { width: viewport.w || size.width, height: viewport.h || size.height } : { width: size.width, height: size.height }}
-      disableDragging={cssFullDesktop}
-      enableResizing={!cssFullDesktop}
+      position={cssFullDesktop ? { x: 0, y: 0 } : bento ? { x: bento.x, y: bento.y } : { x: pos.x, y: pos.y }}
+      size={cssFullDesktop ? { width: viewport.w || size.width, height: viewport.h || size.height } : bento ? { width: bento.w, height: bento.h } : { width: size.width, height: size.height }}
+      disableDragging={cssFullDesktop || !!bento}
+      enableResizing={!cssFullDesktop && !bento}
+      lockAspectRatio={bento ? false : 16/9}
       onDragStop={(e, d) => { unlockIframes(); userMovedRef.current = true; setPos({ x: d.x, y: d.y }); }}
       onResizeStart={lockIframes}
       onResizeStop={(e, direction, ref, delta, position) => {
@@ -478,12 +482,11 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
       }}
       minWidth={200}
       minHeight={150}
-      lockAspectRatio={16/9}
       lockAspectRatioExtraHeight={38 + CHANNEL_BAR_H}
       bounds={cssFullDesktop ? undefined : 'parent'}
       dragHandleClassName="drag-handle"
       cancel=".no-drag"
-      className={`rounded-xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),0_0_30px_rgba(0,0,0,0.5)] border border-white/20 bg-black/60 backdrop-blur-md flex flex-col transition-opacity duration-1000 ${isPositioned ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`rounded-xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),0_0_30px_rgba(0,0,0,0.5)] border border-white/20 bg-black/60 backdrop-blur-md flex flex-col transition-opacity duration-1000 ${isPositioned || bento ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       style={{ zIndex: cssFullDesktop ? 200 : state.activeWindow === 'video' ? 60 : 50, ...(cssFullDesktop ? { position: 'fixed', borderRadius: 0, border: 0 } : {}) }}
       onDragStart={() => { lockIframes(); setActiveWindow?.('video'); }}
       onMouseDown={() => setActiveWindow?.('video')}

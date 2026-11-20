@@ -6,6 +6,7 @@ import { GripHorizontal, Gauge, Mountain, LocateFixed } from 'lucide-react';
 import * as maplibregl from 'maplibre-gl';
 import { Rnd } from 'react-rnd';
 import { stackRef, stackDragged } from '@/lib/windowStack';
+import { useBentoRect } from '@/lib/bento';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 type MaplibreMap = maplibregl.Map;
 type GeoJSONSource = maplibregl.GeoJSONSource;
@@ -493,6 +494,10 @@ export default function GlobeMap({
   }, [activeKey]);
   
   const [isMobile, setIsMobile] = React.useState(false);
+  // Bento-Ansicht: feste Kacheln statt verschiebbarer Fenster (null = frei)
+  const mapRect = useBentoRect('M', !isMobile);
+  const speedRect = useBentoRect('S', !!showVelocity && !isMobile);
+  const elevRect = useBentoRect('E', !!showElevation && !!elevationProfile && !isMobile);
   /** Handy quer: Fahrt-Fenster links statt unten, kein Höhenprofil */
   const [landscape, setLandscape] = React.useState(false);
   // Touch-Gerät: teure Effekte (Leuchtfilter auf der Routenlinie) weglassen – der Filter wird bei jedem Bild neu gerechnet
@@ -1660,7 +1665,8 @@ export default function GlobeMap({
   return (
     <div className="w-full h-full absolute inset-0 pointer-events-none z-0">
       {/* Smartphone: ohne gewählte Fahrt füllt die Karte den ganzen Bildschirm, mit Fahrt die obere Hälfte über dem Video */}
-      <div className={`w-full relative pointer-events-auto ${sheetOpen ? 'rc-under-sheet' : ''}`} style={{ height: "100%", ['--rc-sheet-h' as string]: landscape ? '0px' : SHEET_H }} ref={containerRef}>
+      <div className={`${mapRect ? 'absolute overflow-hidden rounded-xl border border-white/[0.08]' : 'w-full relative'} pointer-events-auto ${sheetOpen ? 'rc-under-sheet' : ''}`}
+        style={mapRect ? { left: mapRect.x, top: mapRect.y, width: mapRect.w, height: mapRect.h } : { height: "100%", ['--rc-sheet-h' as string]: landscape ? '0px' : SHEET_H }} ref={containerRef}>
             
       <svg xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
         <defs>
@@ -1710,7 +1716,7 @@ export default function GlobeMap({
       </div>
       {showElevation && elevationProfile && (() => {
         const content = (
-          <div style={{ width: '100%', height: '100%', background: isMobile ? 'transparent' : 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: isMobile ? 'none' : 'blur(12px)', boxShadow: isMobile ? 'none' : '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: isMobile ? 'default' : 'grab' }} className={isMobile ? "" : "active:cursor-grabbing"}>
+          <div style={{ width: '100%', height: '100%', background: isMobile ? 'transparent' : 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: isMobile ? 'none' : 'blur(12px)', boxShadow: isMobile ? 'none' : '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: isMobile || elevRect ? 'default' : 'grab', ...(elevRect ? { display: 'flex', flexDirection: 'column' } : {}) }} className={isMobile || elevRect ? "" : "active:cursor-grabbing"}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }} className="pointer-events-none">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -1736,12 +1742,12 @@ export default function GlobeMap({
                   </g>
                 </svg>
                 <span ref={headingTextRef} style={{ color: '#fff', fontSize: '12px', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '-0.03em', minWidth: '52px', textAlign: 'right' }}>N 0°</span>
-                <span data-tip={t('Ziehen zum Verschieben')} style={{ color: '#9ca3af', padding: '4px', pointerEvents: 'auto', cursor: 'grab', display: 'inline-flex' }}><GripHorizontal size={14} /></span>
+                {!elevRect && <span data-tip={t('Ziehen zum Verschieben')} style={{ color: '#9ca3af', padding: '4px', pointerEvents: 'auto', cursor: 'grab', display: 'inline-flex' }}><GripHorizontal size={14} /></span>}
               </div>
             )}
           </div>
           
-          <div style={{ position: 'relative', height: '60px', width: '100%' }}>
+          <div style={elevRect ? { position: 'relative', flex: 1, minHeight: 60, marginBottom: 16, width: '100%' } : { position: 'relative', height: '60px', width: '100%' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
               <div style={{ borderBottom: '1px dashed rgba(255,255,255,0.1)', height: '1px', width: '100%' }} />
               <div style={{ borderBottom: '1px dashed rgba(255,255,255,0.1)', height: '1px', width: '100%' }} />
@@ -1894,6 +1900,9 @@ export default function GlobeMap({
             document.body,
           );
         }
+        if (elevRect) return (
+          <div style={{ position: 'absolute', left: elevRect.x, top: elevRect.y, width: elevRect.w, height: elevRect.h, zIndex: 50 }}>{content}</div>
+        );
         return (
           <Rnd
             ref={stackRef(2)}
@@ -1910,28 +1919,18 @@ export default function GlobeMap({
           </Rnd>
         );
       })()}
-      {showVelocity && !isMobile && (
-        <Rnd
-          ref={stackRef(1)}
-          default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 80, width: 320, height: 'auto' }}
-          bounds="parent"
-          enableResizing={false}
-          className="z-50"
-          style={{ zIndex: activeWindow === 'velocity' ? 60 : 50 }}
-          onDragStart={() => { lockIframes(); setActiveWindow?.('velocity'); }}
-          onDragStop={(_, d) => { unlockIframes(); stackDragged(1, d); }}
-          onMouseDown={() => setActiveWindow && setActiveWindow('velocity')}
-        >
-        <div style={{ width: '100%', background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: 'grab' }} className="active:cursor-grabbing">
+      {showVelocity && !isMobile && (() => {
+        const speedContent = (
+        <div style={{ width: '100%', background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', pointerEvents: 'auto', cursor: speedRect ? 'default' : 'grab', ...(speedRect ? { height: '100%', display: 'flex', flexDirection: 'column' } : {}) }} className={speedRect ? '' : 'active:cursor-grabbing'}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }} className="pointer-events-none">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Gauge size={14} className="text-[#CCFF00]" />
               <h3 style={{ color: '#fff', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', margin: 0, fontFamily: 'sans-serif', textTransform: 'uppercase' }}>{t('Tempo')}</h3>
             </div>
-            <span data-tip={t('Ziehen zum Verschieben')} style={{ color: '#9ca3af', padding: '4px', pointerEvents: 'auto', cursor: 'grab', display: 'inline-flex' }}><GripHorizontal size={14} /></span>
+            {!speedRect && <span data-tip={t('Ziehen zum Verschieben')} style={{ color: '#9ca3af', padding: '4px', pointerEvents: 'auto', cursor: 'grab', display: 'inline-flex' }}><GripHorizontal size={14} /></span>}
           </div>
           {/* Tacho 0–150 km/h: Dreiviertelkreis, gefüllter Teil in der Routenfarbe, Rest als Skalenstriche */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 112px 1fr', alignItems: 'center' }} className="pointer-events-none">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 112px 1fr', alignItems: 'center', ...(speedRect ? { flex: 1 } : {}) }} className="pointer-events-none">
             <GaugeStat label={t('Ø Tempo')} value={rideSpeedStats?.avgKmh} align="left" />
             <div style={{ position: 'relative', width: 112, height: 100 }}>
               <svg width="112" height="100" viewBox="0 0 100 90" style={{ overflow: 'visible', display: 'block' }}>
@@ -1948,8 +1947,26 @@ export default function GlobeMap({
             <GaugeStat label={t('Max. Tempo')} value={rideSpeedStats?.maxKmh} align="right" />
           </div>
         </div>
+        );
+        if (speedRect) return (
+          <div style={{ position: 'absolute', left: speedRect.x, top: speedRect.y, width: speedRect.w, height: speedRect.h, zIndex: 50 }}>{speedContent}</div>
+        );
+        return (
+        <Rnd
+          ref={stackRef(1)}
+          default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: 80, width: 320, height: 'auto' }}
+          bounds="parent"
+          enableResizing={false}
+          className="z-50"
+          style={{ zIndex: activeWindow === 'velocity' ? 60 : 50 }}
+          onDragStart={() => { lockIframes(); setActiveWindow?.('velocity'); }}
+          onDragStop={(_, d) => { unlockIframes(); stackDragged(1, d); }}
+          onMouseDown={() => setActiveWindow && setActiveWindow('velocity')}
+        >
+          {speedContent}
         </Rnd>
-      )}
+        );
+      })()}
     </div>
   );
 }

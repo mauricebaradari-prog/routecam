@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "Balasannya juga akan dihapus.",
 "Die {n} Antworten darauf werden mitgelöscht.": "{n} balasannya juga akan dihapus.",
 "Bewerten": "Beri nilai",
-"Ziehen zum Verschieben": "Seret untuk memindahkan"
+"Ziehen zum Verschieben": "Seret untuk memindahkan",
+"Ansicht": "Tampilan",
+"Frei": "Bebas",
+"Fenster frei verschieben": "Pindahkan jendela dengan bebas",
+"Ansicht: {name}": "Tampilan: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "Dalam tata letak tetap, jendela tidak bisa dipindahkan.",
+"Karte groß": "Peta besar",
+"Video groß": "Video besar",
+"Halb & halb": "Setengah-setengah",
+"Karte oben": "Peta di atas",
+"Kino": "Bioskop",
+"Seitenleiste": "Bilah samping"
 }

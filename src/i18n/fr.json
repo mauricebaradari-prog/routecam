@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "La réponse sera également supprimée.",
 "Die {n} Antworten darauf werden mitgelöscht.": "Les {n} réponses seront également supprimées.",
 "Bewerten": "Noter",
-"Ziehen zum Verschieben": "Faire glisser pour déplacer"
+"Ziehen zum Verschieben": "Faire glisser pour déplacer",
+"Ansicht": "Affichage",
+"Frei": "Libre",
+"Fenster frei verschieben": "Déplacer les fenêtres librement",
+"Ansicht: {name}": "Affichage : {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "Dans une disposition fixe, les fenêtres ne peuvent pas être déplacées.",
+"Karte groß": "Grande carte",
+"Video groß": "Grande vidéo",
+"Halb & halb": "Moitié-moitié",
+"Karte oben": "Carte en haut",
+"Kino": "Cinéma",
+"Seitenleiste": "Barre latérale"
 }

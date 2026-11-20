@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { stackRef, stackDragged } from '@/lib/windowStack';
+import { useBentoRect } from '@/lib/bento';
 import { SHEET_ELEV_H, phoneLayout } from '@/lib/mobileSheet';
 import { Share2, Ellipsis, Flag, Trash2, Star, Users, GripHorizontal, X, Check, SendHorizontal, MessageCircle, Pencil, CornerDownRight } from 'lucide-react';
 import PeaceHand from '@/components/icons/PeaceHand';
@@ -35,6 +36,9 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
   const { statsOf, toggleLike, rate, report } = useRouteInteractions();
   const stats = statsOf(routeId);
   const [isMobile, setIsMobile] = useState(false);
+  // Bento-Ansicht: feste Kachel statt verschiebbarem Fenster
+  const bento = useBentoRect('C', !isMobile);
+  const bentoBottom = bento ? bento.y + bento.h : null;
   const [landscape, setLandscape] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -71,15 +75,16 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
     const list = listRef.current;
     if (!list) return;
     const top = list.getBoundingClientRect().top;
-    const below = (formRef.current?.offsetHeight ?? 60) + 16 /* card padding */ + 16 /* gap to screen edge */;
-    setListMax(Math.max(140, Math.floor(window.innerHeight - top - below)));
+    // in der Bento-Kachel bis zu deren Unterkante, sonst bis zum Bildschirmrand
+    const below = (formRef.current?.offsetHeight ?? 60) + 16 /* card padding */ + (bentoBottom != null ? 0 : 16 /* gap to screen edge */);
+    setListMax(Math.max(bentoBottom != null ? 60 : 140, Math.floor((bentoBottom ?? window.innerHeight) - top - below)));
   };
   useEffect(() => {
     if (isMobile) return;
     const t = setTimeout(fitList, 50);
     window.addEventListener('resize', fitList);
     return () => { clearTimeout(t); window.removeEventListener('resize', fitList); };
-  }, [isMobile, comments.length]);
+  }, [isMobile, comments.length, bentoBottom, bento?.y]);
 
   useEffect(() => {
     const onResize = () => { const l = phoneLayout(); setIsMobile(l.phone); setLandscape(l.landscape); };
@@ -437,28 +442,16 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
     );
   }
 
-  // ── Desktop: draggable window like Elevation / Heading ──
-  return (
-    <>
-      <Rnd
-        ref={stackRef(3)}
-        default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: defaultY, width: 320, height: 'auto' }}
-        bounds="parent"
-        enableResizing={false}
-        dragHandleClassName="community-drag"
-        style={{ zIndex: activeWindow === 'community' ? 60 : 50 }}
-        onDragStart={() => { lockIframes(); setActiveWindow?.('community'); }}
-        onDragStop={(_, d) => { unlockIframes(); stackDragged(3, d); setTimeout(fitList, 0); }}
-        onMouseDown={() => setActiveWindow?.('community')}
-      >
-        <div className="relative w-full rounded-xl border border-white/[0.08] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl" style={{ background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)' }}>
+  // ── Desktop: draggable window like Elevation / Heading (Bento: feste Kachel) ──
+  const card = (
+        <div className={`relative w-full rounded-xl border border-white/[0.08] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl ${bento ? 'h-full overflow-hidden' : ''}`} style={{ background: 'linear-gradient(180deg, rgba(17,17,17,0.6) 0%, rgba(17,17,17,0.4) 100%)' }}>
           {toastEl}
-          <div className="community-drag flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing select-none">
+          <div className={`community-drag flex items-center justify-between mb-4 select-none ${bento ? '' : 'cursor-grab active:cursor-grabbing'}`}>
             <div className="flex items-center gap-2">
               <Users size={14} className="text-[#CCFF00]" />
               <h3 className="text-[11px] font-bold tracking-[0.05em] uppercase text-white">Community</h3>
             </div>
-            <span data-tip={t('Ziehen zum Verschieben')} className="inline-flex"><GripHorizontal size={14} className="text-gray-400" /></span>
+            {!bento && <span data-tip={t('Ziehen zum Verschieben')} className="inline-flex"><GripHorizontal size={14} className="text-gray-400" /></span>}
           </div>
 
           <div className="flex items-center gap-2">
@@ -482,7 +475,28 @@ export default function CommunityWidget({ routeId, routeName, activeWindow, setA
 
           {commentsSection}
         </div>
+  );
+  return (
+    <>
+      {bento ? (
+        <div style={{ position: 'absolute', left: bento.x, top: bento.y, width: bento.w, height: bento.h, zIndex: 50 }}>
+        {card}
+        </div>
+      ) : (
+      <Rnd
+        ref={stackRef(3)}
+        default={{ x: typeof window !== 'undefined' ? window.innerWidth - 344 : 0, y: defaultY, width: 320, height: 'auto' }}
+        bounds="parent"
+        enableResizing={false}
+        dragHandleClassName="community-drag"
+        style={{ zIndex: activeWindow === 'community' ? 60 : 50 }}
+        onDragStart={() => { lockIframes(); setActiveWindow?.('community'); }}
+        onDragStop={(_, d) => { unlockIframes(); stackDragged(3, d); setTimeout(fitList, 0); }}
+        onMouseDown={() => setActiveWindow?.('community')}
+      >
+        {card}
       </Rnd>
+      )}
       {dialog}
     </>
   );

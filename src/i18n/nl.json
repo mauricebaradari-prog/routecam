@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "Het antwoord erop wordt ook verwijderd.",
 "Die {n} Antworten darauf werden mitgelöscht.": "De {n} antwoorden erop worden ook verwijderd.",
 "Bewerten": "Beoordelen",
-"Ziehen zum Verschieben": "Slepen om te verplaatsen"
+"Ziehen zum Verschieben": "Slepen om te verplaatsen",
+"Ansicht": "Weergave",
+"Frei": "Vrij",
+"Fenster frei verschieben": "Vensters vrij verplaatsen",
+"Ansicht: {name}": "Weergave: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "In een vaste indeling kun je de vensters niet verplaatsen.",
+"Karte groß": "Grote kaart",
+"Video groß": "Grote video",
+"Halb & halb": "Half om half",
+"Karte oben": "Kaart boven",
+"Kino": "Bioscoop",
+"Seitenleiste": "Zijbalk"
 }

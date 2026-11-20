@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "سيُحذف الرد عليه أيضًا.",
 "Die {n} Antworten darauf werden mitgelöscht.": "ستُحذف الردود عليه ({n}) أيضًا.",
 "Bewerten": "تقييم",
-"Ziehen zum Verschieben": "اسحب للنقل"
+"Ziehen zum Verschieben": "اسحب للنقل",
+"Ansicht": "العرض",
+"Frei": "حر",
+"Fenster frei verschieben": "تحريك النوافذ بحرية",
+"Ansicht: {name}": "العرض: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "في التخطيط الثابت لا يمكن تحريك النوافذ.",
+"Karte groß": "خريطة كبيرة",
+"Video groß": "فيديو كبير",
+"Halb & halb": "نصف ونصف",
+"Karte oben": "الخريطة في الأعلى",
+"Kino": "سينما",
+"Seitenleiste": "شريط جانبي"
 }

@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "对它的回复也会一并删除。",
 "Die {n} Antworten darauf werden mitgelöscht.": "对它的 {n} 条回复也会一并删除。",
 "Bewerten": "评分",
-"Ziehen zum Verschieben": "拖动以移动"
+"Ziehen zum Verschieben": "拖动以移动",
+"Ansicht": "视图",
+"Frei": "自由",
+"Fenster frei verschieben": "自由移动窗口",
+"Ansicht: {name}": "视图：{name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "固定布局中无法移动窗口。",
+"Karte groß": "大地图",
+"Video groß": "大视频",
+"Halb & halb": "各占一半",
+"Karte oben": "地图在上",
+"Kino": "影院",
+"Seitenleiste": "侧边栏"
 }

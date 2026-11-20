@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "इसका जवाब भी हट जाएगा।",
 "Die {n} Antworten darauf werden mitgelöscht.": "इसके {n} जवाब भी हट जाएँगे।",
 "Bewerten": "रेटिंग दें",
-"Ziehen zum Verschieben": "खिसकाने के लिए खींचें"
+"Ziehen zum Verschieben": "खिसकाने के लिए खींचें",
+"Ansicht": "दृश्य",
+"Frei": "मुक्त",
+"Fenster frei verschieben": "विंडो को मुक्त रूप से खिसकाएँ",
+"Ansicht: {name}": "दृश्य: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "स्थिर लेआउट में विंडो खिसकाई नहीं जा सकतीं।",
+"Karte groß": "बड़ा नक्शा",
+"Video groß": "बड़ा वीडियो",
+"Halb & halb": "आधा-आधा",
+"Karte oben": "ऊपर नक्शा",
+"Kino": "सिनेमा",
+"Seitenleiste": "साइडबार"
 }

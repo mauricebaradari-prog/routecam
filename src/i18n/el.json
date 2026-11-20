@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "Θα διαγραφεί και η απάντηση.",
 "Die {n} Antworten darauf werden mitgelöscht.": "Θα διαγραφούν και οι {n} απαντήσεις.",
 "Bewerten": "Αξιολόγηση",
-"Ziehen zum Verschieben": "Σύρετε για μετακίνηση"
+"Ziehen zum Verschieben": "Σύρετε για μετακίνηση",
+"Ansicht": "Προβολή",
+"Frei": "Ελεύθερη",
+"Fenster frei verschieben": "Μετακίνηση παραθύρων ελεύθερα",
+"Ansicht: {name}": "Προβολή: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "Σε σταθερή διάταξη τα παράθυρα δεν μετακινούνται.",
+"Karte groß": "Μεγάλος χάρτης",
+"Video groß": "Μεγάλο βίντεο",
+"Halb & halb": "Μισό-μισό",
+"Karte oben": "Χάρτης πάνω",
+"Kino": "Σινεμά",
+"Seitenleiste": "Πλευρική στήλη"
 }

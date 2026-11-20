@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "Ona verilen yanıt da silinecek.",
 "Die {n} Antworten darauf werden mitgelöscht.": "Ona verilen {n} yanıt da silinecek.",
 "Bewerten": "Puan ver",
-"Ziehen zum Verschieben": "Taşımak için sürükle"
+"Ziehen zum Verschieben": "Taşımak için sürükle",
+"Ansicht": "Görünüm",
+"Frei": "Serbest",
+"Fenster frei verschieben": "Pencereleri serbestçe taşı",
+"Ansicht: {name}": "Görünüm: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "Sabit düzende pencereler taşınamaz.",
+"Karte groß": "Büyük harita",
+"Video groß": "Büyük video",
+"Halb & halb": "Yarı yarıya",
+"Karte oben": "Harita üstte",
+"Kino": "Sinema",
+"Seitenleiste": "Kenar çubuğu"
 }

@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "Ответ на него тоже будет удалён.",
 "Die {n} Antworten darauf werden mitgelöscht.": "Ответы на него ({n}) тоже будут удалены.",
 "Bewerten": "Оценить",
-"Ziehen zum Verschieben": "Перетащите, чтобы переместить"
+"Ziehen zum Verschieben": "Перетащите, чтобы переместить",
+"Ansicht": "Вид",
+"Frei": "Свободно",
+"Fenster frei verschieben": "Перемещать окна свободно",
+"Ansicht: {name}": "Вид: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "В фиксированной раскладке окна нельзя перемещать.",
+"Karte groß": "Большая карта",
+"Video groß": "Большое видео",
+"Halb & halb": "Пополам",
+"Karte oben": "Карта сверху",
+"Kino": "Кино",
+"Seitenleiste": "Боковая панель"
 }

@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "Verrà eliminata anche la risposta.",
 "Die {n} Antworten darauf werden mitgelöscht.": "Verranno eliminate anche le {n} risposte.",
 "Bewerten": "Valuta",
-"Ziehen zum Verschieben": "Trascina per spostare"
+"Ziehen zum Verschieben": "Trascina per spostare",
+"Ansicht": "Vista",
+"Frei": "Libera",
+"Fenster frei verschieben": "Sposta liberamente le finestre",
+"Ansicht: {name}": "Vista: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "In una disposizione fissa le finestre non si possono spostare.",
+"Karte groß": "Mappa grande",
+"Video groß": "Video grande",
+"Halb & halb": "Metà e metà",
+"Karte oben": "Mappa in alto",
+"Kino": "Cinema",
+"Seitenleiste": "Barra laterale"
 }

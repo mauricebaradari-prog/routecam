@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "このコメントへの返信も削除されます。",
 "Die {n} Antworten darauf werden mitgelöscht.": "このコメントへの{n}件の返信も削除されます。",
 "Bewerten": "評価する",
-"Ziehen zum Verschieben": "ドラッグして移動"
+"Ziehen zum Verschieben": "ドラッグして移動",
+"Ansicht": "表示",
+"Frei": "フリー",
+"Fenster frei verschieben": "ウィンドウを自由に移動",
+"Ansicht: {name}": "表示: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "固定レイアウトではウィンドウを移動できません。",
+"Karte groß": "大きな地図",
+"Video groß": "大きな動画",
+"Halb & halb": "半分ずつ",
+"Karte oben": "地図を上に",
+"Kino": "シネマ",
+"Seitenleiste": "サイドバー"
 }

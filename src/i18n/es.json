@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "También se eliminará la respuesta.",
 "Die {n} Antworten darauf werden mitgelöscht.": "También se eliminarán las {n} respuestas.",
 "Bewerten": "Valorar",
-"Ziehen zum Verschieben": "Arrastra para mover"
+"Ziehen zum Verschieben": "Arrastra para mover",
+"Ansicht": "Vista",
+"Frei": "Libre",
+"Fenster frei verschieben": "Mover ventanas libremente",
+"Ansicht: {name}": "Vista: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "En una disposición fija las ventanas no se pueden mover.",
+"Karte groß": "Mapa grande",
+"Video groß": "Vídeo grande",
+"Halb & halb": "Mitad y mitad",
+"Karte oben": "Mapa arriba",
+"Kino": "Cine",
+"Seitenleiste": "Barra lateral"
 }

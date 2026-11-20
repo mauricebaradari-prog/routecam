@@ -492,5 +492,16 @@
 "Die Antwort darauf wird mitgelöscht.": "Odpowiedź również zostanie usunięta.",
 "Die {n} Antworten darauf werden mitgelöscht.": "{n} odpowiedzi również zostanie usuniętych.",
 "Bewerten": "Oceń",
-"Ziehen zum Verschieben": "Przeciągnij, aby przenieść"
+"Ziehen zum Verschieben": "Przeciągnij, aby przenieść",
+"Ansicht": "Widok",
+"Frei": "Swobodny",
+"Fenster frei verschieben": "Przesuwaj okna swobodnie",
+"Ansicht: {name}": "Widok: {name}",
+"In einer festen Anordnung lassen sich die Fenster nicht verschieben.": "W stałym układzie okien nie można przesuwać.",
+"Karte groß": "Duża mapa",
+"Video groß": "Duże wideo",
+"Halb & halb": "Pół na pół",
+"Karte oben": "Mapa u góry",
+"Kino": "Kino",
+"Seitenleiste": "Pasek boczny"
 }
