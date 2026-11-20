@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Visibility } from '@/lib/routeVisibility';
 import type { TrackTimeline } from '@/lib/trackSync';
+import type { SyncAnchor, BaseTime } from '@/lib/estimatedTimeline';
 import { loadAllRoutes, onUserRoutesChange } from '@/lib/userRoutes';
 
 export interface City {
@@ -36,6 +37,10 @@ export interface RouteConfig {
   owner?: import('@/lib/channels').RouteOwner; // account whose channel the ride belongs to
   // video ↔ track sync (see src/lib/trackSync.ts): track time = video time + syncOffset
   timeline?: TrackTimeline;
+  /** Strecke ohne Zeitstempel: `timeline` ist geschätzt (Grundschätzung + Passpunkte/Stopps, siehe estimatedTimeline.ts) */
+  estimated?: boolean;
+  anchors?: SyncAnchor[];
+  baseTime?: BaseTime;
   syncOffset?: number;
   synced?: boolean;
   // set by lib/placeNames.ts when own start/end names are applied (not stored)

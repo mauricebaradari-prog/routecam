@@ -4,7 +4,8 @@
 // Zeitstempel. Daraus wird hier die Straßenstrecke berechnet (OSRM, wie für die eingebauten
 // Fahrten). Kurzlinks (maps.app.goo.gl) löst /api/maps-link auf – der Browser darf der
 // Weiterleitung wegen CORS nicht selbst folgen.
-import type { TrackPoint } from '@/lib/track';
+import { distanceKm, type TrackPoint } from '@/lib/track';
+import { baseTimeFromDurations, type BaseTime } from '@/lib/estimatedTimeline';
 import { t } from '@/lib/i18n';
 
 export type Waypoint = { lat: number; lng: number } | { name: string };
@@ -92,7 +93,7 @@ const ROUTER: Record<TravelMode, string> = {
 };
 
 /** Link (kurz oder lang) → Strecke als Punkte (ohne Zeit, ohne Höhe) plus Titelvorschlag */
-export async function routeFromMapsLink(link: string): Promise<{ points: TrackPoint[]; title: string; mode: TravelMode }> {
+export async function routeFromMapsLink(link: string): Promise<{ points: TrackPoint[]; title: string; mode: TravelMode; baseTime?: BaseTime }> {
   let u: URL;
   try { u = new URL(link.trim()); } catch { throw new Error(t('Das ist kein gültiger Google-Maps-Link.')); }
   if (isShort(u)) {
@@ -110,10 +111,14 @@ export async function routeFromMapsLink(link: string): Promise<{ points: TrackPo
     if ('name' in w) await new Promise(r => setTimeout(r, 1100)); // Nominatim: höchstens 1 Anfrage je Sekunde
   }
   const path = coords.map(c => `${c.lng.toFixed(6)},${c.lat.toFixed(6)}`).join(';');
-  const res = await fetch(`${ROUTER[route.mode]}/${path}?overview=full&geometries=geojson`).catch(() => null);
-  const data = res?.ok ? await res.json() as { routes?: { geometry: { coordinates: [number, number][] } }[] } : null;
+  const res = await fetch(`${ROUTER[route.mode]}/${path}?overview=full&geometries=geojson&annotations=duration`).catch(() => null);
+  const data = res?.ok ? await res.json() as { routes?: { geometry: { coordinates: [number, number][] }; legs?: { annotation?: { duration?: number[] } }[] }[] } : null;
   const line = data?.routes?.[0]?.geometry.coordinates;
   if (!line || line.length < 2) throw new Error(t('Für diesen Link konnte keine Strecke berechnet werden.'));
   const first = route.names[0], last = route.names[route.names.length - 1];
-  return { points: line.map(([lng, lat]) => ({ lat, lng })), title: first && last ? `${first} → ${last}` : '', mode: route.mode };
+  const points = line.map(([lng, lat]) => ({ lat, lng }));
+  // geschätzte Fahrzeit je Abschnitt (Grundlage für die Position im Video, solange keine Passpunkte gesetzt sind)
+  const durations = (data!.routes![0].legs ?? []).flatMap(l => l.annotation?.duration ?? []);
+  const baseTime = baseTimeFromDurations(points, durations, distanceKm);
+  return { points, title: first && last ? `${first} → ${last}` : '', mode: route.mode, baseTime };
 }

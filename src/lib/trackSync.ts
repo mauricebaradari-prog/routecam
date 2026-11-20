@@ -19,6 +19,7 @@ export interface TrackTimeline {
 
 export interface SyncFields {
   timeline?: TrackTimeline;
+  estimated?: boolean; // geschätzte Zeitachse – Position ja, Tempo nein
   syncOffset?: number;   // track seconds at video second 0
   synced?: boolean;      // true once the rider confirmed the alignment in the sync editor
   durationSeconds: number;
@@ -116,8 +117,9 @@ export function syncMapper(route: SyncFields | undefined): SyncMapper {
     active: true,
     toRoute: p => distAtTrackTime(tl, p * dur + off),
     toVideo: d => Math.min(1, Math.max(0, (trackTimeAtDist(tl, d) - off) / dur)),
-    speedAt: d => speedAtTrackTime(tl, trackTimeAtDist(tl, d)),
-    speedAtVideo: p => speedAtTrackTime(tl, Math.min(tl.durationSeconds, Math.max(0, p * dur + off))),
+    // geschätzte Zeitachse: kein Tempo anzeigen – es wäre erfunden
+    speedAt: route!.estimated ? null : d => speedAtTrackTime(tl, trackTimeAtDist(tl, d)),
+    speedAtVideo: route!.estimated ? null : p => speedAtTrackTime(tl, Math.min(tl.durationSeconds, Math.max(0, p * dur + off))),
   };
 }
 

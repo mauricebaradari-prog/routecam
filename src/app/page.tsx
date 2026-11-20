@@ -152,10 +152,12 @@ export default function Home() {
   // animationProgress = video time; the map needs the position along the route.
   // Synced rides map via GPS timestamps, others linearly (see src/lib/trackSync.ts).
   const sync = useMemo(() => syncMapper(activeRoute), [activeRoute]);
-  const rideSpeedStats = useMemo(() => rideSpeed(activeRoute?.timeline), [activeRoute]);
-  const showVelocity = sync.active;
+  // nur echte Zeitstempel: eine geschätzte Zeitachse gibt kein Tempo und keine Höhe je Zeit her
+  const recordedTimeline = activeRoute?.estimated ? undefined : activeRoute?.timeline;
+  const rideSpeedStats = useMemo(() => rideSpeed(recordedTimeline), [recordedTimeline]);
+  const showVelocity = sync.active && !activeRoute?.estimated; // geschätzte Zeitachse (ohne Zeitstempel): kein Tacho
   // Höhenprofil aus der GPX-Datei (falls die Fahrt Höhenwerte hat)
-  const gpxElevation = useMemo(() => elevationByDistance(activeRoute?.elevationSample, activeRoute?.timeline), [activeRoute?.elevationSample, activeRoute?.timeline]);
+  const gpxElevation = useMemo(() => elevationByDistance(activeRoute?.elevationSample, recordedTimeline), [activeRoute?.elevationSample, recordedTimeline]);
   // 0 keeps meaning "not started" for the map (full-route view), even if the video starts mid-track
   const routeProgress = state.animationProgress > 0 ? Math.max(1e-4, sync.toRoute(state.animationProgress)) : 0;
   const overlaps = useRouteOverlaps(activeRoute, listedRoutes);

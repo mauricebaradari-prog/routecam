@@ -357,9 +357,10 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
         <span className="text-white text-[11px] font-bold tracking-wide uppercase opacity-80 truncate">
           {videoTitle || routeName}
         </span>
-        {estimated && (
-          <span className="text-[#CCFF00]/80 text-[8px] tracking-wider uppercase font-medium truncate mt-[-1px]" title={t('Ohne Zeitstempel wird die Position gleichmäßig über die Strecke verteilt')}>
-            {t('Position auf der Karte geschätzt')}
+        {(estimated || activeRoute?.estimated) && (
+          <span className="text-[#CCFF00]/80 text-[8px] tracking-wider uppercase font-medium truncate mt-[-1px]"
+            title={activeRoute?.estimated ? t('Strecke ohne Zeitstempel: die Position ist geschätzt – an Stopps und Passpunkten aus dem Sync-Fenster ausgerichtet') : t('Ohne Zeitstempel wird die Position gleichmäßig über die Strecke verteilt')}>
+            {activeRoute?.estimated && activeRoute.anchors?.length ? t('Position an Passpunkten ausgerichtet') : t('Position auf der Karte geschätzt')}
           </span>
         )}
       </div>

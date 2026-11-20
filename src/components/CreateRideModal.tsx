@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Upload, FileCheck2, AlertTriangle, Video, Trash2, Clock, Camera, HelpCircle, Map as MapIcon, Loader2 } from 'lucide-react';
 import { routeFromMapsLink, isGoogleMapsLink } from '@/lib/googleMapsLink';
+import type { BaseTime } from '@/lib/estimatedTimeline';
 import GeoFilesHelp from '@/components/GeoFilesHelp';
 import { CAMERA_VIDEO_FILES, isCameraVideo, readCameraGps } from '@/lib/cameraGps';
 import {
@@ -23,6 +24,7 @@ export interface NewRide {
   visibility: Visibility;
   align: boolean; // open the sync editor right after creating
   syncOffset?: number; // known from the camera file: track seconds at video second 0
+  baseTime?: BaseTime; // ohne Zeitstempel: geschätzte Fahrzeit je Stelle (Google Maps)
 }
 
 interface Props {
@@ -38,7 +40,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
   const [customTitle, setCustomTitle] = useState('');
   // camera: GPS read from the camera's own video file (then the video offset is exact, too)
   // google: Strecke aus einem Google-Maps-Link (nur geplante Route, keine Zeitstempel)
-  const [file, setFile] = useState<{ name: string; points: TrackPoint[]; stats: TrackStats; camera?: string; syncOffset?: number; google?: boolean } | null>(null);
+  const [file, setFile] = useState<{ name: string; points: TrackPoint[]; stats: TrackStats; camera?: string; syncOffset?: number; google?: boolean; baseTime?: BaseTime } | null>(null);
   const [mapsLink, setMapsLink] = useState('');
   const [mapsLoading, setMapsLoading] = useState(false);
   const [reading, setReading] = useState<number | null>(null); // progress 0–1 while a camera file is read
@@ -112,7 +114,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
     setMapsLoading(true);
     try {
       const r = await routeFromMapsLink(text);
-      setFile({ name: r.title ? t('Google Maps: {route}', { route: r.title }) : t('Google-Maps-Route'), points: r.points, stats: trackStats(r.points), google: true });
+      setFile({ name: r.title ? t('Google Maps: {route}', { route: r.title }) : t('Google-Maps-Route'), points: r.points, stats: trackStats(r.points), google: true, baseTime: r.baseTime });
       if (!customTitle && r.title) setCustomTitle(r.title);
       setMapsLink('');
     } catch (e) {
@@ -122,8 +124,8 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
     }
   }
 
-  // Sync is possible when the track has timestamps (one continuous video, one offset)
-  const canAlign = !!file?.stats.hasTime;
+  // Ausrichten geht immer: mit Zeitstempeln über den Versatz, ohne über Stopps und Passpunkte
+  const canAlign = !!file;
   const videoTooLong = !!(file?.stats.durationSeconds && durationSeconds && durationSeconds > file.stats.durationSeconds + 5);
 
   async function submit(e: React.FormEvent, align = canAlign) {
@@ -132,7 +134,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
     setSaving(true);
     setSaveError(null);
     try {
-      await onCreate({ title, videoId, durationSeconds, points: file.points, visibility, align, syncOffset: file.syncOffset });
+      await onCreate({ title, videoId, durationSeconds, points: file.points, visibility, align, syncOffset: file.syncOffset, baseTime: file.baseTime });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t('Speichern fehlgeschlagen.'));
       setSaving(false);
@@ -247,7 +249,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                   </div>
                   <p className="flex items-center gap-1.5 text-[11px] text-white/45 truncate">
                     <AlertTriangle size={12} className="shrink-0 text-amber-300/80" />
-                    {t('Mit einem Link nur eingeschränkt: kein Tempo, Video nicht genau ausrichtbar.')}
+                    {t('Mit einem Link eingeschränkt: kein Tempo, Position im Video geschätzt.')}
                   </p>
                 </div>
               ) : (
@@ -278,7 +280,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                         : t('GPS aus der Kamera ({camera}) – den Start richtest du im nächsten Schritt aus', { camera: file.camera })}</span>
                     </>) : !file.stats.hasTime ? (<>
                       <AlertTriangle size={14} className="shrink-0" />
-                      {t('Keine Zeitstempel – die Position im Video wird gleichmäßig geschätzt.')}
+                      {t('Keine Zeitstempel – im nächsten Schritt mit Stopps und Passpunkten ausrichten.')}
                     </>) : videoTooLong ? (<>
                       <AlertTriangle size={14} className="shrink-0" />
                       {t('Das Video ist länger als die Aufzeichnung – passt die Datei zum Video?')}
@@ -295,7 +297,7 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                   <p className="font-medium text-amber-200">{t('Mit einem Google-Maps-Link funktioniert nicht alles:')}</p>
                   <ul className="mt-1.5 space-y-0.5 list-disc pl-4 marker:text-amber-300/60">
                     <li>{t('Kein Tempo und kein Tacho – der Link enthält keine Zeitstempel.')}</li>
-                    <li>{t('Das Video lässt sich nicht genau ausrichten – die Position wird gleichmäßig über die Videolänge geschätzt.')}</li>
+                    <li>{t('Die Position im Video ist geschätzt – im nächsten Schritt machst du sie mit Stopps und Passpunkten genau.')}</li>
                     <li>{t('Die Strecke ist die von Google geplante Route: Umwege, Pausen und abweichende Wege fehlen.')}</li>
                     <li>{t('Das Höhenprofil kommt aus Geländedaten statt aus deinem GPS.')}</li>
                   </ul>

@@ -129,7 +129,7 @@ function buildRows(routes: RouteConfig[]): RouteRow[] {
       end: cities[cities.length - 1]?.name ?? '–',
       distanceKm,
       climbM,
-      speed: rideSpeed(route.timeline),
+      speed: rideSpeed(route.estimated ? undefined : route.timeline),
       minEle: ele.length ? Math.min(...ele) : 0,
       maxEle: ele.length ? Math.max(...ele) : 0,
     };
@@ -1323,9 +1323,9 @@ function EditRideDialog({ route, onCancel, onSave }: {
   );
 }
 
-// Sync editor entry (own rides with GPS timestamps only)
+// Sync editor entry (own rides from a GPS file or a Google Maps link – with or without timestamps)
 function SyncButton({ route }: { route: RouteConfig }) {
-  if (!route.timeline) return null;
+  if (!route.timeline && route.source !== 'track') return null;
   return (
     <Link href={`/sync?route=${route.id}`} title={t('Video mit der Route ausrichten')} className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-colors">
       <Clock size={14} />

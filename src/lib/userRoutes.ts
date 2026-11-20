@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ROUTES, type RouteConfig } from '@/hooks/useEditorState';
-import { simplifyTrack, sampleElevation, type TrackPoint } from '@/lib/track';
+import { simplifyTrack, sampleElevation, trackStats, type TrackPoint } from '@/lib/track';
+import { buildEstimatedTimeline, type BaseTime } from '@/lib/estimatedTimeline';
 import { buildTimeline } from '@/lib/trackSync';
 import { applyPlaceNamesAll } from '@/lib/placeNames';
 import { ownerFromId } from '@/lib/channels';
@@ -121,9 +122,13 @@ export function routeFromTrack(opts: {
   durationSeconds: number;
   points: TrackPoint[];
   syncOffset?: number;
+  baseTime?: BaseTime; // Strecke ohne Zeitstempel: geschätzte Fahrzeit je Stelle (z. B. aus Google Maps)
 }): RouteConfig {
   const id = `user-${Date.now().toString(36)}`;
   const pts = simplifyTrack(opts.points, 400);
+  const recorded = buildTimeline(opts.points); // undefined when the file has no timestamps
+  // ohne Zeitstempel: geschätzte Zeitachse (lässt sich im Sync-Fenster mit Stopps und Passpunkten verbessern)
+  const estimated = recorded ? undefined : buildEstimatedTimeline({ baseTime: opts.baseTime, videoDur: opts.durationSeconds, distanceKm: trackStats(opts.points).distanceKm });
   return {
     id,
     name: opts.title,
@@ -141,7 +146,8 @@ export function routeFromTrack(opts: {
     source: 'track',
     elevationSample: sampleElevation(opts.points, 100), // 100 Werte: reicht fürs große Höhenprofil
     createdAt: new Date().toISOString(),
-    timeline: buildTimeline(opts.points), // undefined when the file has no timestamps
+    timeline: recorded ?? estimated,
+    ...(recorded ? {} : { estimated: true, anchors: [], ...(opts.baseTime ? { baseTime: opts.baseTime } : {}) }),
     syncOffset: opts.syncOffset ?? 0,
     synced: false,
   };
