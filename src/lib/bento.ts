@@ -23,7 +23,8 @@ export const PRESETS: Preset[] = [
 ];
 
 const LEFT = 96;   // rechts neben der Knopfspalte links
-const TOP = HEADER_HEIGHT + 16;
+// erst beim Rechnen lesen: AppHeader importiert (über den Ansicht-Knopf) wiederum diese Datei
+const top = () => HEADER_HEIGHT + 16;
 const EDGE = 16;   // Abstand rechts/unten
 export const BENTO_GAP = 12;
 export const BENTO_MIN_WIDTH = 1024; // darunter (Tablet/Handy) immer frei
@@ -100,6 +101,7 @@ export function resolveAreas(areas: string[], has: (t: string) => boolean): stri
 
 export function bentoRects(preset: Preset, has: (t: string) => boolean, vw: number, vh: number): Partial<Record<Tile, Rect>> {
   const g = resolveAreas(preset.areas, has);
+  const TOP = top();
   const W = vw - LEFT - EDGE, H = vh - TOP - EDGE;
   const edges = (fr: number[], total: number) => {
     const free = total - BENTO_GAP * (fr.length - 1);
