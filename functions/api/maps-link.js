@@ -16,7 +16,9 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 const isLong = u => /(^|\.)google\.[a-z.]+$/i.test(u.hostname) && !/^consent\./i.test(u.hostname) && (u.pathname.startsWith('/maps') || u.searchParams.has('saddr') || u.searchParams.has('daddr'));
 
 export async function onRequestGet({ request }) {
-  const raw = new URL(request.url).searchParams.get('url') || '';
+  const params = new URL(request.url).searchParams;
+  const raw = params.get('url') || '';
+  const debug = params.has('debug');
   let target;
   try { target = new URL(raw.trim()); } catch { return json({ error: 'invalid' }, 400); }
 
@@ -49,9 +51,14 @@ export async function onRequestGet({ request }) {
     const loc = res.headers.get('location');
     if (loc) { target = new URL(loc, target); continue; }
     // keine Weiterleitung im Kopf: manchmal steht das Ziel nur in der Seite (Meta-Refresh, Skript, Link)
-    const html = await res.text().catch(() => '');
+    const raw = await res.text().catch(() => '');
+    // in Skripten ist die Adresse oft maskiert (\/, \u003d, \x26, &amp;)
+    const html = raw.replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/\\x([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/\\\//g, '/').replace(/&amp;/g, '&');
     const found = html.match(/https:\/\/(?:www\.)?google\.[a-z.]+\/maps\/[^"'\s<>\\]+/i);
-    if (found) { target = new URL(found[0].replace(/&amp;/g, '&')); continue; }
+    if (found) { target = new URL(found[0]); continue; }
+    if (debug) return json({ error: 'no-route', hops, len: raw.length, head: raw.slice(0, 1200), google: [...raw.matchAll(/.{0,80}google.{0,120}/gi)].slice(0, 8).map(m => m[0]) }, 422);
     break;
   }
   return isLong(target) ? json({ url: target.toString() }) : json({ error: 'no-route', hops, last: `${target.hostname}${target.pathname.slice(0, 40)}` }, 422);
