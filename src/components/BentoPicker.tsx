@@ -3,7 +3,7 @@
 // Anordnungen. Die Vorschaubilder werden aus derselben Beschreibung gezeichnet wie das Raster selbst.
 import { useEffect, useRef, useState } from 'react';
 import { Gauge, LayoutGrid, Map as MapIcon, Mountain, Move, Play, Users } from 'lucide-react';
-import { PRESETS, setBentoPreset, useBentoPreset, type Preset, type Tile } from '@/lib/bento';
+import { PRESETS, setBentoPreset, useBentoPreset, bentoColumn, bentoOffset, onBentoChange, scrollBentoColumn, type Preset, type Tile } from '@/lib/bento';
 import { t } from '@/lib/i18n';
 
 const ICON: Record<Tile, typeof Play> = { M: MapIcon, V: Play, S: Gauge, E: Mountain, C: Users };
@@ -94,6 +94,32 @@ export function BentoButton() {
           <BentoPicker />
         </div>
       )}
+    </div>
+  );
+}
+
+/** Scrollbalken für die Spalte in den Spalten-Vorlagen (rechts im Randabstand, ziehbar) */
+export function BentoScrollbar() {
+  useBentoPreset();
+  const [, force] = useState(0);
+  useEffect(() => onBentoChange(() => force(n => n + 1)), []);
+  const c = bentoColumn();
+  if (!c) return null;
+  const thumbH = Math.max(40, Math.round(c.h * c.h / c.total));
+  const maxOff = c.total - c.h;
+  const thumbY = Math.round((c.h - thumbH) * (bentoOffset() / maxOff));
+  const drag = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const startY = e.clientY, start = bentoOffset();
+    const move = (ev: PointerEvent) => scrollBentoColumn(start + (ev.clientY - startY) * (maxOff / (c.h - thumbH)));
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="fixed z-[55] w-1.5 rounded-full bg-white/[0.06]" style={{ left: c.x + c.w + 5, top: c.y, height: c.h }} data-no-tip>
+      <div onPointerDown={drag} className="absolute left-0 w-1.5 rounded-full bg-white/30 hover:bg-white/50 cursor-grab active:cursor-grabbing"
+        style={{ top: thumbY, height: thumbH }} />
     </div>
   );
 }

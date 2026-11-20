@@ -487,7 +487,7 @@ export default function YouTubeOverlay({ state, startAnimation, stopAnimation, i
       dragHandleClassName="drag-handle"
       cancel=".no-drag"
       className={`rounded-xl overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),0_0_30px_rgba(0,0,0,0.5)] border border-white/20 bg-black/60 backdrop-blur-md flex flex-col transition-opacity duration-1000 ${isPositioned || bento ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-      style={{ zIndex: cssFullDesktop ? 200 : state.activeWindow === 'video' ? 60 : 50, ...(cssFullDesktop ? { position: 'fixed', borderRadius: 0, border: 0 } : {}) }}
+      style={{ zIndex: cssFullDesktop ? 200 : state.activeWindow === 'video' ? 60 : 50, ...(cssFullDesktop ? { position: 'fixed', borderRadius: 0, border: 0 } : {}), ...(bento && !cssFullDesktop && (bento.clipTop || bento.clipBottom) ? { clipPath: `inset(${bento.clipTop}px 0 ${bento.clipBottom}px 0)` } : {}) }}
       onDragStart={() => { lockIframes(); setActiveWindow?.('video'); }}
       onMouseDown={() => setActiveWindow?.('video')}
     >

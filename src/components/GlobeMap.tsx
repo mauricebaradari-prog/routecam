@@ -6,7 +6,7 @@ import { GripHorizontal, Gauge, Mountain, LocateFixed } from 'lucide-react';
 import * as maplibregl from 'maplibre-gl';
 import { Rnd } from 'react-rnd';
 import { stackRef, stackDragged } from '@/lib/windowStack';
-import { useBentoRect } from '@/lib/bento';
+import { useBentoRect, bentoStyle } from '@/lib/bento';
 import { lockIframes, unlockIframes } from '@/lib/dragGuard';
 type MaplibreMap = maplibregl.Map;
 type GeoJSONSource = maplibregl.GeoJSONSource;
@@ -1666,7 +1666,7 @@ export default function GlobeMap({
     <div className="w-full h-full absolute inset-0 pointer-events-none z-0">
       {/* Smartphone: ohne gewählte Fahrt füllt die Karte den ganzen Bildschirm, mit Fahrt die obere Hälfte über dem Video */}
       <div className={`${mapRect ? 'absolute overflow-hidden rounded-xl border border-white/[0.08]' : 'w-full relative'} pointer-events-auto ${sheetOpen ? 'rc-under-sheet' : ''}`}
-        style={mapRect ? { left: mapRect.x, top: mapRect.y, width: mapRect.w, height: mapRect.h } : { height: "100%", ['--rc-sheet-h' as string]: landscape ? '0px' : SHEET_H }} ref={containerRef}>
+        style={mapRect ? bentoStyle(mapRect, 0) : { height: "100%", ['--rc-sheet-h' as string]: landscape ? '0px' : SHEET_H }} ref={containerRef}>
             
       <svg xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
         <defs>
@@ -1747,7 +1747,7 @@ export default function GlobeMap({
             )}
           </div>
           
-          <div style={elevRect ? { position: 'relative', flex: 1, minHeight: 60, marginBottom: 16, width: '100%' } : { position: 'relative', height: '60px', width: '100%' }}>
+          <div style={elevRect?.auto ? { position: 'relative', height: '110px', marginBottom: 16, width: '100%' } : elevRect ? { position: 'relative', flex: 1, minHeight: 60, marginBottom: 16, width: '100%' } : { position: 'relative', height: '60px', width: '100%' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
               <div style={{ borderBottom: '1px dashed rgba(255,255,255,0.1)', height: '1px', width: '100%' }} />
               <div style={{ borderBottom: '1px dashed rgba(255,255,255,0.1)', height: '1px', width: '100%' }} />
@@ -1901,7 +1901,7 @@ export default function GlobeMap({
           );
         }
         if (elevRect) return (
-          <div style={{ position: 'absolute', left: elevRect.x, top: elevRect.y, width: elevRect.w, height: elevRect.h, zIndex: 50 }}>{content}</div>
+          <div ref={elevRect.auto ? elevRect.measure : undefined} style={bentoStyle(elevRect)}>{content}</div>
         );
         return (
           <Rnd
@@ -1949,7 +1949,7 @@ export default function GlobeMap({
         </div>
         );
         if (speedRect) return (
-          <div style={{ position: 'absolute', left: speedRect.x, top: speedRect.y, width: speedRect.w, height: speedRect.h, zIndex: 50 }}>{speedContent}</div>
+          <div ref={speedRect.auto ? speedRect.measure : undefined} style={bentoStyle(speedRect)}>{speedContent}</div>
         );
         return (
         <Rnd

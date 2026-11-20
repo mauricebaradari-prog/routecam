@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Play, Pause, Video, Volume2, VolumeX } from 'lucide-react';
 import { useBentoActive } from '@/lib/bento';
+import { BentoScrollbar } from '@/components/BentoPicker';
 import { isVideoMuted, setVideoMuted } from '@/lib/videoMute';
 import { useEditorState, NO_ROUTE, type RouteConfig } from '@/hooks/useEditorState';
 import { useRouteVisibility } from '@/lib/routeVisibility';
@@ -427,6 +428,7 @@ export default function Home() {
 
         {/* Teaser für die Tracker-App – kommt verzögert herein, wegklickbar (nicht in der Bento-Ansicht: läge über den Kacheln) */}
         {!bentoOn && <TrackerTeaser />}
+        {bentoOn && <BentoScrollbar />}
 
         {/* Animation progress bar overlay */}
         {(state.isAnimating || state.animationProgress > 0) && (

@@ -2,21 +2,32 @@
 // Höhenprofil und Community fest in einem Raster mit gleichen Abständen. Standard ist „Frei“
 // (wie bisher). Die Wahl wird im Browser gemerkt.
 //
-// Jede Vorlage beschreibt das Raster wie CSS grid-template-areas: ein Buchstabe je Zelle.
-// Fehlt ein Fenster (z. B. Tempo bei Fahrten ohne Zeitstempel, oder keine Fahrt offen), übernimmt
-// ein Nachbar dessen Fläche – das Raster bleibt geschlossen.
-import { useEffect, useSyncExternalStore } from 'react';
+// Zwei Arten von Vorlagen:
+// - Raster: wie CSS grid-template-areas, ein Buchstabe je Zelle. Fehlt ein Fenster (z. B. Tempo bei
+//   Fahrten ohne Zeitstempel, oder keine Fahrt offen), übernimmt ein Nachbar dessen Fläche.
+// - Spalte (`scroll`): links ein großes Fenster, rechts eine Spalte, in der die übrigen Fenster in
+//   ihrer natürlichen Höhe untereinander stehen – mit dem Mausrad scrollbar.
+import { useCallback, useEffect, useSyncExternalStore, type CSSProperties } from 'react';
 import { HEADER_HEIGHT } from '@/components/AppHeader';
 import { k } from '@/lib/i18nKey';
 
 export type Tile = 'M' | 'V' | 'S' | 'E' | 'C'; // Map, Video, Speed (Tempo), Elevation, Community
 export interface Rect { x: number; y: number; w: number; h: number }
-export interface Preset { id: string; name: string; areas: string[]; cols: number[]; rows: number[] }
+/** Platz eines Fensters. `clipTop/clipBottom`: in der Scroll-Spalte abgeschnittener Teil oben/unten;
+ *  `auto`: Höhe ergibt sich aus dem Inhalt (dann `measure` als ref ans Fenster hängen) */
+export interface Box extends Rect { clipTop: number; clipBottom: number; auto: boolean; measure: (el: HTMLElement | null) => void }
+/** areas/cols/rows dienen bei Spalten-Vorlagen nur dem Vorschaubild */
+export interface Preset { id: string; name: string; areas: string[]; cols: number[]; rows: number[]; scroll?: { main: Tile; column: Tile[]; mainFrac: number } }
+
+const column = (id: string, name: string, main: Tile, mainFrac: number, col: Tile[]): Preset => ({
+  id, name, areas: col.map(c => `${main} ${c}`), cols: [mainFrac, 1 - mainFrac], rows: col.map(c => (c === 'V' || c === 'M' ? 1.4 : 1)),
+  scroll: { main, column: col, mainFrac },
+});
 
 export const PRESETS: Preset[] = [
-  { id: 'map-left',   name: k('Karte groß'),     areas: ['M V', 'M S', 'M E', 'M C'],           cols: [2.4, 1], rows: [1.25, 0.95, 0.75, 1.15] },
-  { id: 'video-left', name: k('Video groß'),     areas: ['V V M', 'V V M', 'S E C'],             cols: [1, 1, 1], rows: [1, 1, 0.75] },
-  { id: 'split',      name: k('Halb & halb'),    areas: ['M M V V', 'M M V V', 'S E C C'],       cols: [1, 1, 1, 1], rows: [1, 1, 0.75] },
+  column('map-left',   k('Karte groß'),  'M', 0.7, ['V', 'S', 'E', 'C']),
+  column('video-left', k('Video groß'),  'V', 0.66, ['M', 'S', 'E', 'C']),
+  column('split',      k('Halb & halb'), 'M', 0.5, ['V', 'S', 'E', 'C']),
   { id: 'map-top',    name: k('Karte oben'),     areas: ['M M M', 'V S C', 'V E C'],             cols: [1.3, 1, 1], rows: [1.5, 0.62, 0.62] },
   { id: 'cinema',     name: k('Kino'),           areas: ['V V C', 'V V C', 'M S C', 'M E C'],    cols: [1, 1, 0.85], rows: [1, 1, 0.55, 0.55] },
   { id: 'side',       name: k('Seitenleiste'),   areas: ['S M M', 'E M M', 'C V V', 'C V V'],     cols: [0.85, 1, 1], rows: [0.6, 0.6, 1, 1] },
@@ -34,6 +45,8 @@ let presetId: string | null = null;
 try { presetId = typeof window !== 'undefined' ? localStorage.getItem(KEY) : null; } catch { /* privat */ }
 if (presetId && !PRESETS.some(p => p.id === presetId)) presetId = null;
 const present = new Map<Tile, number>(); // wie viele Fenster dieser Art gerade angezeigt werden
+const heights = new Map<Tile, number>(); // gemessene Höhe der Fenster in der Scroll-Spalte
+let offset = 0; // wie weit die Spalte gescrollt ist
 let version = 0;
 const listeners = new Set<() => void>();
 const emit = () => { version++; listeners.forEach(l => l()); };
@@ -47,6 +60,7 @@ if (typeof window !== 'undefined') window.addEventListener('resize', emit);
 export function getBentoPreset() { return presetId; }
 export function setBentoPreset(id: string | null) {
   presetId = id;
+  offset = 0;
   try { if (id) localStorage.setItem(KEY, id); else localStorage.removeItem(KEY); } catch { /* egal */ }
   emit();
 }
@@ -130,11 +144,88 @@ export function useBentoPreset() {
   return useSyncExternalStore(subscribe, () => presetId, () => null);
 }
 
+interface ColumnLayout { x: number; y: number; w: number; h: number; total: number; boxes: Partial<Record<Tile, Box>> }
+
+const measures = new Map<Tile, (el: HTMLElement | null) => void>();
+const observed = new Map<Tile, { el: HTMLElement; ro: ResizeObserver }>();
+function measureFor(tile: Tile) {
+  let fn = measures.get(tile);
+  if (!fn) {
+    fn = (el: HTMLElement | null) => {
+      const prev = observed.get(tile);
+      if (prev && prev.el === el) return;
+      prev?.ro.disconnect(); observed.delete(tile);
+      if (!el || typeof ResizeObserver === 'undefined') return;
+      const ro = new ResizeObserver(() => {
+        const h = el.offsetHeight;
+        if (h && heights.get(tile) !== h) { heights.set(tile, h); emit(); }
+      });
+      ro.observe(el);
+      observed.set(tile, { el, ro });
+    };
+    measures.set(tile, fn);
+  }
+  return fn;
+}
+
+/** Spalten-Vorlage: großes Fenster links, rechts scrollbare Spalte */
+function columnLayout(preset: Preset, has: (t: string) => boolean, vw: number, vh: number): ColumnLayout | null {
+  const sc = preset.scroll!;
+  const TOP = top();
+  const W = vw - LEFT - EDGE, H = vh - TOP - EDGE;
+  const order = [sc.main, ...sc.column].filter(t => has(t));
+  if (!order.length) return null;
+  const [main, ...col] = order; // fehlt das große Fenster, rückt das erste aus der Spalte nach
+  const boxes: Partial<Record<Tile, Box>> = {};
+  const fixed = (r: Rect): Box => ({ ...r, clipTop: 0, clipBottom: 0, auto: false, measure: measureFor(main) });
+  if (!col.length) { boxes[main] = fixed({ x: LEFT, y: TOP, w: W, h: H }); return { x: LEFT + W, y: TOP, w: 0, h: H, total: 0, boxes }; }
+  const mainW = Math.round((W - BENTO_GAP) * sc.mainFrac);
+  boxes[main] = fixed({ x: LEFT, y: TOP, w: mainW, h: H });
+  const x = LEFT + mainW + BENTO_GAP, w = W - mainW - BENTO_GAP;
+  const sizes = col.map(t => t === 'V' ? Math.round(w * 9 / 16) + 82 /* Kopf- und Kanalzeile */ : t === 'M' ? Math.round(w * 0.75) : heights.get(t) ?? 200);
+  const total = sizes.reduce((a, b) => a + b, 0) + BENTO_GAP * (col.length - 1);
+  offset = Math.max(0, Math.min(offset, total - H));
+  let y = TOP - offset;
+  col.forEach((t, i) => {
+    const h = sizes[i];
+    boxes[t] = { x, y, w, h, clipTop: Math.max(0, TOP - y), clipBottom: Math.max(0, y + h - (TOP + H)), auto: t !== 'V' && t !== 'M', measure: measureFor(t) };
+    y += h + BENTO_GAP;
+  });
+  return { x, y: TOP, w, h: H, total, boxes };
+}
+
+function currentPreset() { return bentoActive() ? PRESETS.find(p => p.id === presetId) ?? null : null; }
+const hasNow = (extra?: Tile) => (t: string) => t === extra || present.has(t as Tile);
+
+/** Die scrollbare Spalte der aktuellen Vorlage (für Mausrad und Scrollbalken) – oder null */
+export function bentoColumn(): ColumnLayout | null {
+  const p = currentPreset();
+  if (!p?.scroll || typeof window === 'undefined') return null;
+  const c = columnLayout(p, hasNow(), window.innerWidth, window.innerHeight);
+  return c && c.w > 0 && c.total > c.h ? c : null;
+}
+export function scrollBentoColumn(to: number) {
+  const c = bentoColumn(); if (!c) return;
+  const next = Math.max(0, Math.min(to, c.total - c.h));
+  if (next !== offset) { offset = next; emit(); }
+}
+export function bentoOffset() { return offset; }
+
+// Mausrad über der Spalte scrollt die Spalte (auch über Karte oder Fenstern darin)
+if (typeof window !== 'undefined') {
+  window.addEventListener('wheel', e => {
+    const c = bentoColumn(); if (!c) return;
+    if (e.clientX < c.x || e.clientX > c.x + c.w || e.clientY < c.y || e.clientY > c.y + c.h) return;
+    e.preventDefault(); e.stopPropagation();
+    scrollBentoColumn(offset + (e.deltaMode === 1 ? e.deltaY * 32 : e.deltaY));
+  }, { capture: true, passive: false });
+}
+
 /**
- * Fenster meldet sich an (solange `active`) und bekommt seine feste Fläche – oder null, wenn die
+ * Fenster meldet sich an (solange `active`) und bekommt seinen festen Platz – oder null, wenn die
  * Ansicht frei ist (dann wie bisher verschiebbar).
  */
-export function useBentoRect(tile: Tile, active: boolean): Rect | null {
+export function useBentoRect(tile: Tile, active: boolean): Box | null {
   useEffect(() => {
     if (!active) return;
     present.set(tile, (present.get(tile) ?? 0) + 1);
@@ -146,10 +237,23 @@ export function useBentoRect(tile: Tile, active: boolean): Rect | null {
     };
   }, [tile, active]);
   useSyncExternalStore(subscribe, () => version, () => 0);
-  if (!active || !bentoActive()) return null;
-  const preset = PRESETS.find(p => p.id === presetId)!;
-  const has = (t: string) => t === tile || present.has(t as Tile);
-  return bentoRects(preset, has, window.innerWidth, window.innerHeight)[tile] ?? null;
+  const measure = useCallback((el: HTMLElement | null) => measureFor(tile)(el), [tile]);
+  const preset = active ? currentPreset() : null;
+  if (!preset) return null;
+  if (preset.scroll) {
+    const b = columnLayout(preset, hasNow(tile), window.innerWidth, window.innerHeight)?.boxes[tile];
+    return b ? { ...b, measure } : null;
+  }
+  const r = bentoRects(preset, hasNow(tile), window.innerWidth, window.innerHeight)[tile];
+  return r ? { ...r, clipTop: 0, clipBottom: 0, auto: false, measure } : null;
+}
+
+/** Stil für den festen Platz: Position, Größe (oder Inhaltshöhe), in der Spalte oben/unten abgeschnitten */
+export function bentoStyle(b: Box, z = 50): CSSProperties {
+  return {
+    position: 'absolute', left: b.x, top: b.y, width: b.w, height: b.auto ? undefined : b.h, zIndex: z,
+    ...(b.clipTop || b.clipBottom ? { clipPath: `inset(${b.clipTop}px 0 ${b.clipBottom}px 0)` } : {}),
+  };
 }
 
 /** Ist gerade eine feste Vorlage aktiv? (für den Fenster-Stapel: dann nichts verschieben) */
