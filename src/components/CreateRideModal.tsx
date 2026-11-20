@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Upload, FileCheck2, AlertTriangle, Video, Trash2, Clock, Camera, HelpCircle } from 'lucide-react';
+import { X, Upload, FileCheck2, AlertTriangle, Video, Trash2, Clock, Camera, HelpCircle, Map as MapIcon, Loader2 } from 'lucide-react';
+import { routeFromMapsLink, isGoogleMapsLink } from '@/lib/googleMapsLink';
 import GeoFilesHelp from '@/components/GeoFilesHelp';
 import { CAMERA_VIDEO_FILES, isCameraVideo, readCameraGps } from '@/lib/cameraGps';
 import {
@@ -36,7 +37,10 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
   const [titleMode, setTitleMode] = useState<'youtube' | 'custom'>('youtube');
   const [customTitle, setCustomTitle] = useState('');
   // camera: GPS read from the camera's own video file (then the video offset is exact, too)
-  const [file, setFile] = useState<{ name: string; points: TrackPoint[]; stats: TrackStats; camera?: string; syncOffset?: number } | null>(null);
+  // google: Strecke aus einem Google-Maps-Link (nur geplante Route, keine Zeitstempel)
+  const [file, setFile] = useState<{ name: string; points: TrackPoint[]; stats: TrackStats; camera?: string; syncOffset?: number; google?: boolean } | null>(null);
+  const [mapsLink, setMapsLink] = useState('');
+  const [mapsLoading, setMapsLoading] = useState(false);
   const [reading, setReading] = useState<number | null>(null); // progress 0–1 while a camera file is read
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -98,6 +102,23 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
     } catch (e) {
       setFile(null);
       setFileError(e instanceof Error ? e.message : t('Die Datei konnte nicht gelesen werden.'));
+    }
+  }
+
+  async function loadMapsLink(text = mapsLink) {
+    if (!text.trim() || mapsLoading) return;
+    setFileError(null);
+    if (!isGoogleMapsLink(text)) { setFileError(t('Das ist kein Google-Maps-Link.')); return; }
+    setMapsLoading(true);
+    try {
+      const r = await routeFromMapsLink(text);
+      setFile({ name: r.title ? t('Google Maps: {route}', { route: r.title }) : t('Google-Maps-Route'), points: r.points, stats: trackStats(r.points), google: true });
+      if (!customTitle && r.title) setCustomTitle(r.title);
+      setMapsLink('');
+    } catch (e) {
+      setFileError(e instanceof Error ? e.message : t('Für diesen Link konnte keine Strecke berechnet werden.'));
+    } finally {
+      setMapsLoading(false);
     }
   }
 
@@ -190,13 +211,14 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                   <span className="text-xs text-white/40">{t('Direkt auf deinem Gerät – das Video wird nicht hochgeladen.')}</span>
                 </div>
               ) : !file ? (
+                <div className="h-[244px] flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => fileInput.current?.click()}
                   onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles([...e.dataTransfer.files]); }}
-                  className={`w-full h-[244px] rounded-xl border-2 border-dashed px-6 flex flex-col items-center justify-center gap-2 transition-colors ${
+                  className={`w-full flex-1 min-h-0 rounded-xl border-2 border-dashed px-6 flex flex-col items-center justify-center gap-2 transition-colors ${
                     dragOver ? 'border-[#CCFF00] bg-[#CCFF00]/5' : 'border-white/15 hover:border-white/30 hover:bg-white/[0.03]'
                   }`}
                 >
@@ -204,6 +226,30 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                   <span className="text-sm font-medium">{t('Datei hierher ziehen oder auswählen')}</span>
                   <span className="text-xs text-white/40 text-center">{t('GPX/KML aus einer Tracking-App oder einem Navi – oder das Original-Video deiner GoPro oder Insta360: dann kommt das GPS direkt aus der Kamera')}</span>
                 </button>
+                  {/* Alternative: Google-Maps-Link (nur geplante Strecke – siehe Hinweis) */}
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1 min-w-0">
+                      <MapIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35 pointer-events-none" />
+                      <input
+                        value={mapsLink}
+                        onChange={e => setMapsLink(e.target.value)}
+                        onPaste={e => { const v = e.clipboardData.getData('text'); if (isGoogleMapsLink(v)) { e.preventDefault(); setMapsLink(v); loadMapsLink(v); } }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); loadMapsLink(); } }}
+                        placeholder={t('… oder Google-Maps-Link einfügen')}
+                        disabled={mapsLoading}
+                        className={inputCls(false) + ' pl-9 h-10 text-sm'}
+                      />
+                    </div>
+                    <button type="button" onClick={() => loadMapsLink()} disabled={!mapsLink.trim() || mapsLoading}
+                      className="h-10 px-4 rounded-lg text-sm font-medium bg-white/10 hover:bg-white/20 disabled:opacity-40 disabled:hover:bg-white/10 inline-flex items-center gap-1.5 shrink-0">
+                      {mapsLoading ? <><Loader2 size={15} className="animate-spin" /> {t('Strecke wird berechnet …')}</> : t('Übernehmen')}
+                    </button>
+                  </div>
+                  <p className="flex items-center gap-1.5 text-[11px] text-white/45 truncate">
+                    <AlertTriangle size={12} className="shrink-0 text-amber-300/80" />
+                    {t('Mit einem Link nur eingeschränkt: kein Tempo, Video nicht genau ausrichtbar.')}
+                  </p>
+                </div>
               ) : (
                 <div className="h-[244px] rounded-xl border border-white/10 bg-white/[0.03] p-3 flex flex-col">
                   <div className="flex items-center gap-3">
@@ -222,7 +268,10 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                   </dl>
                   {/* fixed-height status line: timestamps / video coverage */}
                   <p className={`mt-2 h-4 flex gap-2 text-xs truncate ${!file.stats.hasTime || videoTooLong ? 'text-amber-300' : 'text-white/50'}`}>
-                    {file.camera ? (<>
+                    {file.google ? (<>
+                      <MapIcon size={14} className="shrink-0" />
+                      {t('Geplante Route aus Google Maps – nicht die tatsächlich gefahrene Strecke')}
+                    </>) : file.camera ? (<>
                       <Camera size={14} className="shrink-0 text-[#CCFF00]" />
                       <span>{file.syncOffset !== undefined
                         ? t('GPS aus der Kamera ({camera}) – Video und Strecke passen auf die Sekunde', { camera: file.camera })
@@ -241,6 +290,18 @@ export default function CreateRideModal({ onClose, onCreate }: Props) {
                 </div>
               )}
               <input ref={fileInput} type="file" multiple accept={`${ACCEPTED_TRACK_FILES},${CAMERA_VIDEO_FILES}`} className="hidden" onChange={e => { handleFiles([...(e.target.files ?? [])]); e.target.value = ''; }} />
+              {file?.google && (
+                <div className="mt-2 rounded-lg border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2.5 text-xs text-white/70">
+                  <p className="font-medium text-amber-200">{t('Mit einem Google-Maps-Link funktioniert nicht alles:')}</p>
+                  <ul className="mt-1.5 space-y-0.5 list-disc pl-4 marker:text-amber-300/60">
+                    <li>{t('Kein Tempo und kein Tacho – der Link enthält keine Zeitstempel.')}</li>
+                    <li>{t('Das Video lässt sich nicht genau ausrichten – die Position wird gleichmäßig über die Videolänge geschätzt.')}</li>
+                    <li>{t('Die Strecke ist die von Google geplante Route: Umwege, Pausen und abweichende Wege fehlen.')}</li>
+                    <li>{t('Das Höhenprofil kommt aus Geländedaten statt aus deinem GPS.')}</li>
+                  </ul>
+                  <p className="mt-1.5 text-white/45">{t('Für das volle Erlebnis: GPX/KML aus einer Tracking-App oder das Original-Video deiner Kamera.')}</p>
+                </div>
+              )}
               <p className="mt-1.5 h-4 text-xs text-red-300 truncate">{fileError}</p>
             </Field>
           </div>

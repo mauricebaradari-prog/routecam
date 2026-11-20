@@ -1,5 +1,11 @@
 {
   "version": 1,
-  "include": ["/", "/index.html", "/channel", "/channel.html"],
+  "include": [
+    "/",
+    "/index.html",
+    "/channel",
+    "/channel.html",
+    "/api/*"
+  ],
   "exclude": []
 }
