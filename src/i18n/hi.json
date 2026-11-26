@@ -544,5 +544,6 @@
 "Pause entfernen": "स्टॉप हटाएँ",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "बिना टाइमस्टैम्प वाला रूट: स्थिति अनुमानित है – जोड़े गए स्टॉप के साथ",
 "Position mit Pausen geschätzt": "स्थिति स्टॉप के साथ अनुमानित",
-"1 Pause · {time}": "1 स्टॉप · {time}"
+"1 Pause · {time}": "1 स्टॉप · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "लेआउट तब लागू होता है जब कोई राइड खुली हो। राइड के बिना नक्शा फ़ुल स्क्रीन रहता है।"
 }

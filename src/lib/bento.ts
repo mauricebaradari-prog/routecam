@@ -66,8 +66,18 @@ export function setBentoPreset(id: string | null) {
 }
 
 /** Bento wird nur auf großen Bildschirmen mit Maus angewendet */
-export function bentoActive() {
+function presetChosen() {
   return !!presetId && typeof window !== 'undefined' && window.innerWidth >= BENTO_MIN_WIDTH;
+}
+/** Ist eine Fahrt offen (also mehr als nur die Karte da)? Ohne Fahrt bleibt die Karte im Vollbild –
+ *  sonst sähen alle Vorlagen gleich aus (nur eine eingerahmte Karte). */
+function rideOpen(extra?: Tile) {
+  return (extra !== undefined && extra !== 'M') || [...present.keys()].some(t => t !== 'M');
+}
+
+/** Bento wird nur auf großen Bildschirmen und bei offener Fahrt angewendet */
+export function bentoActive() {
+  return presetChosen() && rideOpen();
 }
 
 /** Fehlende Fenster an einen Nachbarn abgeben (nur so, dass jede Fläche ein Rechteck bleibt) */
@@ -238,7 +248,8 @@ export function useBentoRect(tile: Tile, active: boolean): Box | null {
   }, [tile, active]);
   useSyncExternalStore(subscribe, () => version, () => 0);
   const measure = useCallback((el: HTMLElement | null) => measureFor(tile)(el), [tile]);
-  const preset = active ? currentPreset() : null;
+  // eigenes Fenster zählt schon mit, auch wenn es sich erst nach diesem Zeichnen anmeldet
+  const preset = active && presetChosen() && rideOpen(tile) ? PRESETS.find(p => p.id === presetId) ?? null : null;
   if (!preset) return null;
   if (preset.scroll) {
     const b = columnLayout(preset, hasNow(tile), window.innerWidth, window.innerHeight)?.boxes[tile];
@@ -262,3 +273,9 @@ export function useBentoActive() {
   return bentoActive();
 }
 export function onBentoChange(l: () => void) { return subscribe(l); }
+
+/** Für die Auswahl: ist gerade eine Fahrt offen? */
+export function useBentoRideOpen() {
+  useSyncExternalStore(subscribe, () => version, () => 0);
+  return rideOpen();
+}

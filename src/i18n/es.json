@@ -544,5 +544,6 @@
 "Pause entfernen": "Quitar parada",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Ruta sin marcas de tiempo: la posición es estimada, con las paradas indicadas",
 "Position mit Pausen geschätzt": "Posición estimada con paradas",
-"1 Pause · {time}": "1 parada · {time}"
+"1 Pause · {time}": "1 parada · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "La disposición se aplica en cuanto abres una ruta. Sin ruta, el mapa sigue a pantalla completa."
 }

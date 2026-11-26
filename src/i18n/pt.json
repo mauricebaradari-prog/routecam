@@ -544,5 +544,6 @@
 "Pause entfernen": "Remover paragem",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Rota sem marcas de tempo: a posição é estimada – com as paragens indicadas",
 "Position mit Pausen geschätzt": "Posição estimada com paragens",
-"1 Pause · {time}": "1 paragem · {time}"
+"1 Pause · {time}": "1 paragem · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "A disposição aplica-se assim que abrires uma rota. Sem rota, o mapa fica em ecrã inteiro."
 }

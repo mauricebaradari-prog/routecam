@@ -544,5 +544,6 @@
 "Pause entfernen": "Supprimer la pause",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Trajet sans horodatage : la position est estimée – avec les pauses indiquées",
 "Position mit Pausen geschätzt": "Position estimée avec les pauses",
-"1 Pause · {time}": "1 pause · {time}"
+"1 Pause · {time}": "1 pause · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "La disposition s'applique dès qu'un trajet est ouvert. Sans trajet, la carte reste en plein écran."
 }

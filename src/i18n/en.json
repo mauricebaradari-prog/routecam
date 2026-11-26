@@ -544,5 +544,6 @@
 "Pause entfernen": "Remove stop",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Route without timestamps: the position is estimated – using the stops you added",
 "Position mit Pausen geschätzt": "Position estimated with stops",
-"1 Pause · {time}": "1 stop · {time}"
+"1 Pause · {time}": "1 stop · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "The layout applies as soon as a ride is open. Without a ride the map stays full screen."
 }

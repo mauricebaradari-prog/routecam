@@ -3,7 +3,7 @@
 // Anordnungen. Die Vorschaubilder werden aus derselben Beschreibung gezeichnet wie das Raster selbst.
 import { useEffect, useRef, useState } from 'react';
 import { Gauge, LayoutGrid, Map as MapIcon, Mountain, Move, Play, Users } from 'lucide-react';
-import { PRESETS, setBentoPreset, useBentoPreset, bentoColumn, bentoOffset, onBentoChange, scrollBentoColumn, type Preset, type Tile } from '@/lib/bento';
+import { PRESETS, setBentoPreset, useBentoPreset, useBentoRideOpen, bentoColumn, bentoOffset, onBentoChange, scrollBentoColumn, type Preset, type Tile } from '@/lib/bento';
 import { t } from '@/lib/i18n';
 
 const ICON: Record<Tile, typeof Play> = { M: MapIcon, V: Play, S: Gauge, E: Mountain, C: Users };
@@ -37,10 +37,16 @@ function Thumb({ preset, active }: { preset: Preset; active: boolean }) {
 
 export default function BentoPicker({ onPicked }: { onPicked?: () => void }) {
   const current = useBentoPreset();
+  const rideOpen = useBentoRideOpen();
   const pick = (id: string | null) => { setBentoPreset(id); onPicked?.(); };
   return (
     <div className="p-3">
       <div className="px-1 pb-2 text-[11px] font-bold tracking-[0.05em] uppercase text-white">{t('Ansicht')}</div>
+      {!rideOpen && (
+        <p className="mx-1 mb-2.5 rounded-lg border border-[#CCFF00]/25 bg-[#CCFF00]/[0.06] px-2.5 py-2 text-[11px] leading-snug text-white/75">
+          {t('Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.')}
+        </p>
+      )}
       <button type="button" onClick={() => pick(null)} data-no-tip
         className={`w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors border ${current === null ? 'border-[#CCFF00]/60 bg-[#CCFF00]/10' : 'border-transparent hover:bg-white/5'}`}>
         <Move size={16} className={current === null ? 'text-[#CCFF00]' : 'text-white/60'} />
@@ -90,7 +96,7 @@ export function BentoButton() {
         <LayoutGrid size={17} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 z-[80] bg-black/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-72 z-[80] bg-[#141414] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <BentoPicker />
         </div>
       )}

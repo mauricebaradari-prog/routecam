@@ -544,5 +544,6 @@
 "Pause entfernen": "停止を削除",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "タイムスタンプのないルート：位置は推定です – 入力した停止を反映",
 "Position mit Pausen geschätzt": "停止を反映した推定位置",
-"1 Pause · {time}": "停止 1 件 · {time}"
+"1 Pause · {time}": "停止 1 件 · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "レイアウトはライドを開くと適用されます。ライドがないときは地図が全画面のままです。"
 }

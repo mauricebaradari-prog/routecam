@@ -544,5 +544,6 @@
 "Pause entfernen": "Durağı kaldır",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Zaman damgası olmayan rota: konum tahmini – girilen duraklarla",
 "Position mit Pausen geschätzt": "Konum duraklarla tahmin edildi",
-"1 Pause · {time}": "1 durak · {time}"
+"1 Pause · {time}": "1 durak · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "Düzen, bir sürüş açıldığında uygulanır. Sürüş yokken harita tam ekran kalır."
 }

@@ -544,5 +544,6 @@
 "Pause entfernen": "Hapus pemberhentian",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Rute tanpa stempel waktu: posisi diperkirakan – dengan pemberhentian yang dimasukkan",
 "Position mit Pausen geschätzt": "Posisi diperkirakan dengan pemberhentian",
-"1 Pause · {time}": "1 pemberhentian · {time}"
+"1 Pause · {time}": "1 pemberhentian · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "Tata letak berlaku begitu sebuah perjalanan dibuka. Tanpa perjalanan, peta tetap layar penuh."
 }

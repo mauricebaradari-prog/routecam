@@ -544,5 +544,6 @@
 "Pause entfernen": "Pauze verwijderen",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Route zonder tijdstempels: de positie is geschat – met de ingevoerde pauzes",
 "Position mit Pausen geschätzt": "Positie geschat met pauzes",
-"1 Pause · {time}": "1 pauze · {time}"
+"1 Pause · {time}": "1 pauze · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "De indeling geldt zodra er een rit open is. Zonder rit blijft de kaart schermvullend."
 }

@@ -544,5 +544,6 @@
 "Pause entfernen": "Удалить остановку",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Маршрут без отметок времени: позиция приблизительная — с учётом указанных остановок",
 "Position mit Pausen geschätzt": "Позиция рассчитана с остановками",
-"1 Pause · {time}": "1 остановка · {time}"
+"1 Pause · {time}": "1 остановка · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "Раскладка применяется, как только открыта поездка. Без поездки карта остаётся на весь экран."
 }

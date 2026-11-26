@@ -544,5 +544,6 @@
 "Pause entfernen": "删除停留",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "没有时间戳的路线：位置为估算——已计入填写的停留",
 "Position mit Pausen geschätzt": "按停留估算的位置",
-"1 Pause · {time}": "1 次停留 · {time}"
+"1 Pause · {time}": "1 次停留 · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "打开一段行程后，布局才会生效。没有行程时，地图保持全屏。"
 }

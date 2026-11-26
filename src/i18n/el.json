@@ -544,5 +544,6 @@
 "Pause entfernen": "Αφαίρεση στάσης",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Διαδρομή χωρίς χρονοσημάνσεις: η θέση είναι εκτίμηση – με τις στάσεις που καταχώρησες",
 "Position mit Pausen geschätzt": "Θέση υπολογισμένη με στάσεις",
-"1 Pause · {time}": "1 στάση · {time}"
+"1 Pause · {time}": "1 στάση · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "Η διάταξη ισχύει μόλις ανοίξει μια διαδρομή. Χωρίς διαδρομή ο χάρτης μένει σε πλήρη οθόνη."
 }

@@ -544,5 +544,6 @@
 "Pause entfernen": "إزالة التوقف",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "مسار بلا طوابع زمنية: الموقع تقديري – بالتوقفات المُدخلة",
 "Position mit Pausen geschätzt": "الموقع مقدّر بالتوقفات",
-"1 Pause · {time}": "توقف واحد · {time}"
+"1 Pause · {time}": "توقف واحد · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "يُطبَّق التخطيط بمجرد فتح رحلة. بدون رحلة تبقى الخريطة بملء الشاشة."
 }

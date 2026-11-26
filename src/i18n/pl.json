@@ -544,5 +544,6 @@
 "Pause entfernen": "Usuń postój",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Trasa bez znaczników czasu: pozycja jest szacowana – z wpisanymi postojami",
 "Position mit Pausen geschätzt": "Pozycja szacowana z postojami",
-"1 Pause · {time}": "1 postój · {time}"
+"1 Pause · {time}": "1 postój · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "Układ działa, gdy otworzysz trasę. Bez trasy mapa zostaje na pełnym ekranie."
 }

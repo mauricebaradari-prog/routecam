@@ -544,5 +544,6 @@
 "Pause entfernen": "Rimuovi sosta",
 "Strecke ohne Zeitstempel: die Position ist geschätzt – mit den eingetragenen Pausen": "Percorso senza orari: la posizione è stimata, con le soste inserite",
 "Position mit Pausen geschätzt": "Posizione stimata con le soste",
-"1 Pause · {time}": "1 sosta · {time}"
+"1 Pause · {time}": "1 sosta · {time}",
+"Die Anordnung gilt, sobald eine Fahrt offen ist. Ohne Fahrt bleibt die Karte im Vollbild.": "La disposizione si applica appena apri un percorso. Senza percorso la mappa resta a schermo intero."
 }
