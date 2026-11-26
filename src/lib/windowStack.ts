@@ -1,13 +1,14 @@
 // Desktop: die Fenster rechts (Tempo, Höhenprofil, Community) stehen untereinander mit immer
 // gleichem Abstand – gemessen an ihrer echten Höhe, nicht an geschätzten Werten. Ändert sich eine
 // Höhe (Kommentare kommen dazu, Schrift lädt nach …), rücken die darunter nach. Ein Fenster, das
-// man selbst verschoben hat, bleibt stehen und fällt aus dem Stapel.
+// man selbst verschoben hat, bleibt dort stehen; sein Platz im Stapel bleibt frei, damit die
+// anderen nicht springen.
 import type { Rnd } from 'react-rnd';
 
 export const STACK_TOP = 80;
 export const STACK_GAP = 12;
 
-interface Entry { rnd: Rnd; dragged: boolean; x: number; y: number }
+interface Entry { rnd: Rnd; dragged: boolean; x: number; y: number; h: number /* Höhe zuletzt im Stapel */ }
 const entries = new Map<number, Entry>(); // Reihenfolge von oben nach unten
 let observer: ResizeObserver | null = null;
 let frame = 0;
@@ -19,8 +20,9 @@ function layout() {
     const e = entries.get(order)!;
     const el = e.rnd.getSelfElement();
     if (!el) continue;
-    if (e.dragged) continue;
-    e.x = window.innerWidth - 344; e.y = y;
+    // herausgezogenes Fenster: sein Platz im Stapel bleibt frei – die anderen bleiben stehen statt nachzurücken
+    if (e.dragged) { y += e.h + STACK_GAP; continue; }
+    e.x = window.innerWidth - 344; e.y = y; e.h = el.offsetHeight;
     e.rnd.updatePosition({ x: e.x, y: e.y });
     y += el.offsetHeight + STACK_GAP;
   }
@@ -43,7 +45,7 @@ export function stackRef(order: number) {
       entries.delete(order);
     }
     if (rnd && !entries.has(order)) {
-      entries.set(order, { rnd, dragged: false, x: 0, y: 0 });
+      entries.set(order, { rnd, dragged: false, x: 0, y: 0, h: 0 });
       if (!observer && typeof ResizeObserver !== 'undefined') observer = new ResizeObserver(schedule);
       const el = rnd.getSelfElement();
       if (el) observer?.observe(el);
