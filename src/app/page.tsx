@@ -4,7 +4,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Play, Pause, Video, Volume2, VolumeX } from 'lucide-react';
-import { useBentoActive } from '@/lib/bento';
+import { useBentoActive, useBentoTileBox } from '@/lib/bento';
 import { BentoScrollbar } from '@/components/BentoPicker';
 import { isVideoMuted, setVideoMuted } from '@/lib/videoMute';
 import { useEditorState, NO_ROUTE, type RouteConfig } from '@/hooks/useEditorState';
@@ -40,6 +40,7 @@ export default function Home() {
   const router = useRouter();
   const [openModal, setOpenModal] = useState<'none' | 'speed' | 'camera'>('none');
   const bentoOn = useBentoActive();
+  const mapBox = useBentoTileBox('M');
 
   // Speed / camera panel: closes on a click anywhere outside (map, windows …) or Escape
   const panelAreaRef = useRef<HTMLDivElement>(null);
@@ -448,7 +449,11 @@ export default function Home() {
 
       {/* ── Floating Minimalist UI (Top Left) ── */}
       {/* Smartphone: ausgeblendet – abgespielt wird über das Video im Fahrt-Fenster */}
-      <div className="absolute top-[72px] left-4 md:top-[80px] md:left-6 z-[70] hidden md:flex flex-col items-center gap-3 md:gap-4">
+      {/* Bento-Ansicht: die Spalte sitzt oben links in der Karten-Kachel (das Raster nutzt die ganze Breite) */}
+      <div
+        className={`absolute z-[70] hidden md:flex flex-col items-center gap-3 md:gap-4 ${mapBox ? '' : 'top-[72px] left-4 md:top-[80px] md:left-6'} ${mapBox && mapBox.clipTop > 0 ? 'opacity-0 pointer-events-none' : ''}`}
+        style={mapBox ? { left: mapBox.x + 12, top: mapBox.y + 12 } : undefined}
+      >
 
         {/* Play Button */}
         {hasRoute && (

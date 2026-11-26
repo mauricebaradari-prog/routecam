@@ -33,7 +33,7 @@ export const PRESETS: Preset[] = [
   { id: 'side',       name: k('Seitenleiste'),   areas: ['S M M', 'E M M', 'C V V', 'C V V'],     cols: [0.85, 1, 1], rows: [0.6, 0.6, 1, 1] },
 ];
 
-const LEFT = 96;   // rechts neben der Knopfspalte links
+const LEFT = 16;   // die Knopfspalte sitzt in der Bento-Ansicht in der Karten-Kachel – das Raster beginnt am Rand
 // erst beim Rechnen lesen: AppHeader importiert (über den Ansicht-Knopf) wiederum diese Datei
 const top = () => HEADER_HEIGHT + 16;
 const EDGE = 16;   // Abstand rechts/unten
@@ -273,6 +273,20 @@ export function useBentoActive() {
   return bentoActive();
 }
 export function onBentoChange(l: () => void) { return subscribe(l); }
+
+/** Platz einer Kachel nur ablesen (ohne sich anzumelden) – z. B. um die Knöpfe in die Karte zu setzen */
+export function useBentoTileBox(tile: Tile): Rect & { clipTop: number } | null {
+  useSyncExternalStore(subscribe, () => version, () => 0);
+  if (typeof window === 'undefined' || !present.has(tile)) return null;
+  const preset = currentPreset();
+  if (!preset) return null;
+  if (preset.scroll) {
+    const b = columnLayout(preset, hasNow(), window.innerWidth, window.innerHeight)?.boxes[tile];
+    return b ? { x: b.x, y: b.y, w: b.w, h: b.h, clipTop: b.clipTop } : null;
+  }
+  const r = bentoRects(preset, hasNow(), window.innerWidth, window.innerHeight)[tile];
+  return r ? { ...r, clipTop: 0 } : null;
+}
 
 /** Für die Auswahl: ist gerade eine Fahrt offen? */
 export function useBentoRideOpen() {
